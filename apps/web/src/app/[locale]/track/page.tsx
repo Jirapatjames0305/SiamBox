@@ -69,7 +69,7 @@ export default function TrackPage() {
             onChange={(e) => setPhone(e.target.value)}
             placeholder={t("phonePlaceholder")}
             required
-            className="mt-1.5 w-full rounded-xl border border-slate-300 bg-slate-100 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
+            className="mt-1.5 w-full rounded-xl border border-slate-300 bg-slate-100 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
           />
         </label>
         <button
