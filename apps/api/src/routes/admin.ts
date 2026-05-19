@@ -211,23 +211,36 @@ const createShipmentSchema = z.object({
 adminRouter.post("/orders/:orderNumber/shipments", async (req, res, next) => {
   try {
     const input = createShipmentSchema.parse(req.body);
-    const order = await prisma.order.findUnique({ where: { orderNumber: req.params.orderNumber } });
+    const order = await prisma.order.findUnique({
+      where: { orderNumber: req.params.orderNumber },
+      include: { items: true },
+    });
     if (!order) {
       res.status(404).json({ error: "OrderNotFound" });
       return;
     }
-    const shipment = await prisma.shipment.create({
-      data: {
-        orderId: order.id,
-        carrier: input.carrier,
-        trackingNumber: input.trackingNumber,
-        weightGrams: input.weightGrams,
-        shippedAt: new Date(),
-      },
-    });
-    await prisma.order.update({
-      where: { id: order.id },
-      data: { status: "SHIPPED", shippedAt: new Date() },
+    const shippedAt = new Date();
+    const shipment = await prisma.$transaction(async (tx) => {
+      const created = await tx.shipment.create({
+        data: {
+          orderId: order.id,
+          carrier: input.carrier,
+          trackingNumber: input.trackingNumber,
+          weightGrams: input.weightGrams,
+          shippedAt,
+        },
+      });
+      await tx.order.update({
+        where: { id: order.id },
+        data: { status: "SHIPPED", shippedAt },
+      });
+      for (const item of order.items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } },
+        });
+      }
+      return created;
     });
     res.status(201).json({ data: shipment });
   } catch (err) {
