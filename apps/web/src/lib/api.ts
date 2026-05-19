@@ -38,6 +38,15 @@ export type TrackingLog = {
   occurredAt: string;
 };
 
+export type Shipment = {
+  id: string;
+  carrier: string;
+  trackingNumber: string;
+  weightGrams: number | null;
+  shippedAt: string | null;
+  createdAt: string;
+};
+
 export type Order = {
   id: string;
   orderNumber: string;
@@ -59,6 +68,7 @@ export type Order = {
     postalCode: string;
   } | null;
   trackingLogs: TrackingLog[];
+  shipments: Shipment[];
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {

@@ -342,6 +342,7 @@ model Settings {
   senderAddressLine1 String   @default("") @map("sender_address_line_1")
   senderAddressLine2 String   @default("") @map("sender_address_line_2")
   senderPhone        String   @default("") @map("sender_phone")
+  shippingBaseCents  Int      @default(0) @map("shipping_base_cents")
   updatedAt          DateTime @updatedAt @map("updated_at")
 
   @@map("settings")

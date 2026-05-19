@@ -43,7 +43,8 @@
     "errorLoading": "无法加载商品",
     "noImage": "暂无图片",
     "outOfStock": "缺货",
-    "productsCount": "{count} 件商品"
+    "productsCount": "{count} 件商品",
+    "allCategories": "全部"
   },
   "ProductDetail": {
     "weight": "重量",
@@ -104,6 +105,8 @@
     "paymentNote": "订单号 {order} · 付款后由客服审核确认。",
     "tracking": "物流",
     "noTracking": "暂无物流信息",
+    "trackingNumber": "运单号",
+    "carrier": "承运商",
     "orderPlaced": "下单成功！请按下方说明完成付款。",
     "savedHint": "保存此页面或随时通过手机号查询订单。",
     "trackHere": "查询我的订单 →",

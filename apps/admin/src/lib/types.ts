@@ -133,5 +133,6 @@ export type Settings = {
   senderAddressLine1: string;
   senderAddressLine2: string;
   senderPhone: string;
+  shippingBaseCents: number;
   updatedAt: string;
 };

@@ -43,7 +43,8 @@
     "errorLoading": "Failed to load products",
     "noImage": "No image",
     "outOfStock": "Out of stock",
-    "productsCount": "{count} products"
+    "productsCount": "{count} products",
+    "allCategories": "All"
   },
   "ProductDetail": {
     "weight": "Weight",
@@ -104,6 +105,8 @@
     "paymentNote": "Order # {order} · Admin will verify and confirm.",
     "tracking": "Tracking",
     "noTracking": "No tracking events yet",
+    "trackingNumber": "Tracking #",
+    "carrier": "Carrier",
     "orderPlaced": "Order placed! See payment instructions below.",
     "savedHint": "Bookmark this page, or look up your orders anytime with your phone number.",
     "trackHere": "Track my orders →",

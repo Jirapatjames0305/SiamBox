@@ -11,6 +11,7 @@ const EMPTY: FormState = {
   senderAddressLine1: "",
   senderAddressLine2: "",
   senderPhone: "",
+  shippingBaseCents: 0,
 };
 
 export default function SettingsPage() {
@@ -28,6 +29,7 @@ export default function SettingsPage() {
           senderAddressLine1: s.senderAddressLine1,
           senderAddressLine2: s.senderAddressLine2,
           senderPhone: s.senderPhone,
+          shippingBaseCents: s.shippingBaseCents,
         });
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : (err as Error).message))
@@ -85,6 +87,22 @@ export default function SettingsPage() {
             placeholder="+66 81-234-5678"
           />
 
+          <div className="mt-6 border-t border-neutral-200 pt-6">
+            <h2 className="text-sm font-semibold text-neutral-800">ค่าจัดส่ง</h2>
+            <p className="mt-0.5 text-xs text-neutral-500">
+              ค่าส่งเหมา (cent — เช่น 2500 = 25 CNY) จะถูกบวกเข้าทุกออเดอร์ใหม่
+            </p>
+            <div className="mt-3">
+              <Field
+                label="ราคาส่ง (สตางค์ / cents)"
+                type="number"
+                value={String(form.shippingBaseCents)}
+                onChange={(v) => setForm({ ...form, shippingBaseCents: Number(v) || 0 })}
+                placeholder="0"
+              />
+            </div>
+          </div>
+
           {error && (
             <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               {error}
@@ -114,17 +132,19 @@ function Field({
   value,
   onChange,
   placeholder,
+  type = "text",
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  type?: "text" | "number";
 }) {
   return (
     <label className="block">
       <span className="text-sm font-medium text-neutral-700">{label}</span>
       <input
-        type="text"
+        type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

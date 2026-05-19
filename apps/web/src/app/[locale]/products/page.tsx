@@ -12,18 +12,32 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return { title: `${t("title")} · SiamBox` };
 }
 
-export default async function ProductsPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function ProductsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ category?: string }>;
+}) {
   const { locale } = await params;
+  const { category: selectedCategory } = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations("Products");
 
-  let products = [] as Awaited<ReturnType<typeof listProducts>>;
+  let allProducts = [] as Awaited<ReturnType<typeof listProducts>>;
   let error: string | null = null;
   try {
-    products = await listProducts();
+    allProducts = await listProducts();
   } catch (err) {
     error = err instanceof Error ? err.message : "Failed";
   }
+
+  const categories = Array.from(
+    new Set(allProducts.map((p) => p.category).filter((c): c is string => !!c)),
+  ).sort();
+  const products = selectedCategory
+    ? allProducts.filter((p) => p.category === selectedCategory)
+    : allProducts;
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-12">
@@ -35,6 +49,23 @@ export default async function ProductsPage({ params }: { params: Promise<{ local
           )}
         </div>
       </FadeInUp>
+
+      {categories.length > 0 && (
+        <div className="mt-6 flex flex-wrap gap-2">
+          <CategoryChip href="/products" active={!selectedCategory}>
+            {t("allCategories")}
+          </CategoryChip>
+          {categories.map((c) => (
+            <CategoryChip
+              key={c}
+              href={`/products?category=${encodeURIComponent(c)}`}
+              active={selectedCategory === c}
+            >
+              {c}
+            </CategoryChip>
+          ))}
+        </div>
+      )}
 
       {error && (
         <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -93,5 +124,28 @@ export default async function ProductsPage({ params }: { params: Promise<{ local
         })}
       </ul>
     </main>
+  );
+}
+
+function CategoryChip({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`rounded-full border px-4 py-1.5 text-sm font-medium transition ${
+        active
+          ? "border-blue-600 bg-blue-600 text-white"
+          : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
+      }`}
+    >
+      {children}
+    </Link>
   );
 }

@@ -440,6 +440,7 @@ const settingsSchema = z.object({
   senderAddressLine1: z.string().max(500),
   senderAddressLine2: z.string().max(500),
   senderPhone: z.string().max(100),
+  shippingBaseCents: z.number().int().min(0).max(10_000_000),
 });
 
 adminRouter.get("/settings", async (_req, res, next) => {

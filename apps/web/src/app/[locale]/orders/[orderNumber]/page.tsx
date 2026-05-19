@@ -138,6 +138,27 @@ export default async function OrderTrackingPage({
         </section>
       )}
 
+      {/* Shipment (carrier + tracking number) */}
+      {order.shipments.length > 0 && (
+        <section className="mt-4 rounded-2xl border border-blue-200 bg-blue-50/50 p-6">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-blue-700">{t("trackingNumber")}</h2>
+          <div className="mt-3 space-y-3">
+            {order.shipments.map((s) => (
+              <div key={s.id} className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium text-slate-500">{t("carrier")}</p>
+                  <p className="text-base font-semibold text-slate-900">{s.carrier}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-medium text-slate-500">{t("trackingNumber")}</p>
+                  <p className="font-mono text-base font-bold text-blue-700 break-all">{s.trackingNumber}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Tracking timeline */}
       <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-6">
         <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">{t("tracking")}</h2>

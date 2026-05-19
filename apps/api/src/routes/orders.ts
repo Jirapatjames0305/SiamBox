@@ -40,6 +40,14 @@ ordersRouter.post("/", async (req, res, next) => {
       };
     });
 
+    const settings = await prisma.settings.upsert({
+      where: { id: 1 },
+      update: {},
+      create: { id: 1 },
+    });
+    const shippingCents = settings.shippingBaseCents;
+    const total = subtotal + shippingCents;
+
     // Auto-account creation: link orders to a Customer User by phone
     const user = await prisma.user.upsert({
       where: { phone: input.shippingAddress.phone },
@@ -60,7 +68,8 @@ ordersRouter.post("/", async (req, res, next) => {
         orderNumber: generateOrderNumber(),
         user: { connect: { id: user.id } },
         subtotalCents: subtotal,
-        totalCents: subtotal,
+        shippingCents,
+        totalCents: total,
         customerNote: input.customerNote,
         shippingAddress: {
           create: {
@@ -88,7 +97,7 @@ ordersRouter.post("/", async (req, res, next) => {
       }
       const omise = getOmise();
       const sourceType = input.paymentMethod === "ALIPAY" ? "alipay" : "wechat_pay";
-      const amountSatang = cnyCentsToSatang(subtotal);
+      const amountSatang = cnyCentsToSatang(total);
       const returnUri = `${RETURN_BASE}/zh/orders/${order.orderNumber}?charge=1`;
 
       const source = await omise.sources.create({
@@ -188,7 +197,12 @@ ordersRouter.get("/:orderNumber", async (req, res, next) => {
   try {
     const order = await prisma.order.findUnique({
       where: { orderNumber: req.params.orderNumber },
-      include: { items: true, shippingAddress: true, trackingLogs: { orderBy: { occurredAt: "desc" } } },
+      include: {
+        items: true,
+        shippingAddress: true,
+        shipments: { orderBy: { createdAt: "desc" } },
+        trackingLogs: { orderBy: { occurredAt: "desc" } },
+      },
     });
     if (!order) {
       res.status(404).json({ error: "OrderNotFound" });

@@ -43,7 +43,8 @@
     "errorLoading": "โหลดสินค้าไม่สำเร็จ",
     "noImage": "ไม่มีรูป",
     "outOfStock": "หมด",
-    "productsCount": "{count} รายการ"
+    "productsCount": "{count} รายการ",
+    "allCategories": "ทั้งหมด"
   },
   "ProductDetail": {
     "weight": "น้ำหนัก",
@@ -104,6 +105,8 @@
     "paymentNote": "เลขออเดอร์ {order} · แอดมินจะตรวจสอบและยืนยัน",
     "tracking": "การจัดส่ง",
     "noTracking": "ยังไม่มีข้อมูลการส่ง",
+    "trackingNumber": "เลขพัสดุ",
+    "carrier": "ขนส่ง",
     "orderPlaced": "สั่งซื้อสำเร็จ! ดูคำแนะนำการชำระเงินด้านล่าง",
     "savedHint": "บันทึกหน้านี้ไว้ หรือค้นหาออเดอร์จากเบอร์โทรได้ตลอดเวลา",
     "trackHere": "ค้นหาออเดอร์ของฉัน →",
