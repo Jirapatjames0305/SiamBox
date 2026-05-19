@@ -5,6 +5,7 @@ import { getOrder } from "@/lib/api";
 import { formatDate, formatPrice } from "@/lib/format";
 import { OrderStatusPoller } from "./OrderStatusPoller";
 
+export const runtime = "edge";
 export const dynamic = "force-dynamic";
 
 const STATUS_COLOR: Record<string, string> = {
