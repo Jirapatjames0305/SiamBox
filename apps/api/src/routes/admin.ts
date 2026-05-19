@@ -2,17 +2,12 @@ import { Router } from "express";
 import { z } from "zod";
 import multer from "multer";
 import sharp from "sharp";
-import path from "node:path";
 import { randomBytes } from "node:crypto";
-import { mkdirSync } from "node:fs";
 import { prisma, OrderStatus, PaymentStatus, ShippingCarrier, CustomerStatus } from "@siambox/database";
 import { adminAuth } from "../middleware/admin-auth.js";
 import { getOmise } from "../lib/omise.js";
+import { getSupabase, SUPABASE_BUCKET } from "../lib/supabase.js";
 import { syncChargeToPayment } from "./webhooks.js";
-
-export const UPLOADS_ROOT = path.resolve(__dirname, "../../uploads");
-const PRODUCTS_UPLOAD_DIR = path.join(UPLOADS_ROOT, "products");
-mkdirSync(PRODUCTS_UPLOAD_DIR, { recursive: true });
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -426,17 +421,29 @@ adminRouter.post("/uploads", upload.single("file"), async (req, res, next) => {
       res.status(400).json({ error: "NoFile" });
       return;
     }
-    const filename = `${randomBytes(12).toString("hex")}.webp`;
-    const filePath = path.join(PRODUCTS_UPLOAD_DIR, filename);
-    const info = await sharp(req.file.buffer, { failOn: "error" })
+    const { data: webpBuffer, info } = await sharp(req.file.buffer, { failOn: "error" })
       .rotate() // honor EXIF orientation, then strip metadata
       .webp({ quality: 82 })
-      .toFile(filePath);
-    const base = `${req.protocol}://${req.get("host")}`;
+      .toBuffer({ resolveWithObject: true });
+
+    const objectPath = `products/${randomBytes(12).toString("hex")}.webp`;
+    const supabase = getSupabase();
+    const { error: uploadError } = await supabase.storage
+      .from(SUPABASE_BUCKET)
+      .upload(objectPath, webpBuffer, {
+        contentType: "image/webp",
+        cacheControl: "31536000",
+      });
+    if (uploadError) throw uploadError;
+
+    const { data: publicUrlData } = supabase.storage
+      .from(SUPABASE_BUCKET)
+      .getPublicUrl(objectPath);
+
     res.status(201).json({
       data: {
-        url: `${base}/uploads/products/${filename}`,
-        filename,
+        url: publicUrlData.publicUrl,
+        filename: objectPath,
         sizeBytes: info.size,
         originalBytes: req.file.size,
       },
