@@ -10,6 +10,7 @@ const NAV = [
   { href: "/orders", label: "ออเดอร์" },
   { href: "/products", label: "สินค้า" },
   { href: "/customers", label: "ลูกค้า" },
+  { href: "/settings", label: "ตั้งค่า" },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -19,14 +20,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    setAuthed(!!getToken());
-  }, [pathname]);
-
-  useEffect(() => {
-    if (authed === false && pathname !== "/login") {
+    const hasToken = !!getToken();
+    setAuthed(hasToken);
+    if (!hasToken && pathname !== "/login") {
       router.replace("/login");
     }
-  }, [authed, pathname, router]);
+  }, [pathname, router]);
 
   // close sidebar on route change
   useEffect(() => {

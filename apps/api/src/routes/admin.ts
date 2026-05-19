@@ -432,3 +432,39 @@ adminRouter.post("/uploads", upload.single("file"), async (req, res, next) => {
     next(err);
   }
 });
+
+// ---------- Settings ----------
+
+const settingsSchema = z.object({
+  senderName: z.string().max(200),
+  senderAddressLine1: z.string().max(500),
+  senderAddressLine2: z.string().max(500),
+  senderPhone: z.string().max(100),
+});
+
+adminRouter.get("/settings", async (_req, res, next) => {
+  try {
+    const settings = await prisma.settings.upsert({
+      where: { id: 1 },
+      update: {},
+      create: { id: 1 },
+    });
+    res.json({ data: settings });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.put("/settings", async (req, res, next) => {
+  try {
+    const input = settingsSchema.parse(req.body);
+    const settings = await prisma.settings.upsert({
+      where: { id: 1 },
+      update: input,
+      create: { id: 1, ...input },
+    });
+    res.json({ data: settings });
+  } catch (err) {
+    next(err);
+  }
+});

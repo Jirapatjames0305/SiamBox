@@ -126,3 +126,12 @@ export type Customer = {
   notes?: CustomerNote[];
   addresses?: ShippingAddress[];
 };
+
+export type Settings = {
+  id: number;
+  senderName: string;
+  senderAddressLine1: string;
+  senderAddressLine2: string;
+  senderPhone: string;
+  updatedAt: string;
+};

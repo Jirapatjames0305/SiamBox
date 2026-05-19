@@ -1,7 +1,7 @@
 "use client";
 
 import { getToken } from "./auth";
-import type { Customer, CustomerNote, Order, Product, Stats } from "./types";
+import type { Customer, CustomerNote, Order, Product, Settings, Stats } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_ADMIN_API_URL ?? "http://localhost:4000";
 
@@ -183,6 +183,19 @@ export async function deleteCustomerNote(customerId: string, noteId: string): Pr
   if (!res.ok && res.status !== 204) {
     throw new ApiError(res.status, `HTTP ${res.status}`);
   }
+}
+
+export async function fetchSettings(): Promise<Settings> {
+  const json = await request<{ data: Settings }>(`/api/admin/settings`);
+  return json.data;
+}
+
+export async function updateSettings(input: Omit<Settings, "id" | "updatedAt">): Promise<Settings> {
+  const json = await request<{ data: Settings }>(`/api/admin/settings`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+  return json.data;
 }
 
 export async function uploadImage(file: File): Promise<{ url: string }> {

@@ -2,28 +2,25 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ApiError, fetchOrder } from "@/lib/api";
+import { ApiError, fetchOrder, fetchSettings } from "@/lib/api";
 import { formatDate } from "@/lib/format";
-import type { Order } from "@/lib/types";
-
-// Override these in apps/admin/src/lib/sender.ts later if you want
-const SENDER = {
-  name: "SiamBox",
-  addressLine1: "[Sender address line 1]",
-  addressLine2: "[Sender address line 2]",
-  phone: "[Sender phone]",
-};
+import type { Order, Settings } from "@/lib/types";
 
 export default function ShippingLabelPage() {
   const params = useParams<{ orderNumber: string }>();
   const orderNumber = params.orderNumber;
   const [order, setOrder] = useState<Order | null>(null);
+  const [sender, setSender] = useState<Settings | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const data = await fetchOrder(orderNumber);
-      setOrder(data);
+      const [orderData, senderData] = await Promise.all([
+        fetchOrder(orderNumber),
+        fetchSettings(),
+      ]);
+      setOrder(orderData);
+      setSender(senderData);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : (err as Error).message);
     }
@@ -36,7 +33,7 @@ export default function ShippingLabelPage() {
   if (error) {
     return <div className="p-10 text-sm text-red-700">{error}</div>;
   }
-  if (!order) {
+  if (!order || !sender) {
     return <div className="p-10 text-sm text-neutral-500">Loading…</div>;
   }
 
@@ -74,10 +71,16 @@ export default function ShippingLabelPage() {
         {/* From */}
         <div className="text-[10px] uppercase tracking-widest text-neutral-500">From / 发件人</div>
         <div className="mt-1 leading-tight">
-          <div className="font-semibold">{SENDER.name}</div>
-          <div className="text-neutral-600">{SENDER.addressLine1}</div>
-          <div className="text-neutral-600">{SENDER.addressLine2}</div>
-          <div className="text-neutral-600">Tel: {SENDER.phone}</div>
+          <div className="font-semibold">{sender.senderName}</div>
+          {sender.senderAddressLine1 && (
+            <div className="text-neutral-600">{sender.senderAddressLine1}</div>
+          )}
+          {sender.senderAddressLine2 && (
+            <div className="text-neutral-600">{sender.senderAddressLine2}</div>
+          )}
+          {sender.senderPhone && (
+            <div className="text-neutral-600">Tel: {sender.senderPhone}</div>
+          )}
         </div>
 
         <hr className="my-4 border-neutral-300" />
