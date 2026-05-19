@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import ws from "ws";
 
 let cached: SupabaseClient | null = null;
 
@@ -9,7 +10,9 @@ export function getSupabase(): SupabaseClient {
   if (!url || !key) {
     throw Object.assign(new Error("SupabaseNotConfigured"), { status: 503 });
   }
-  cached = createClient(url, key);
+  cached = createClient(url, key, {
+    realtime: { transport: ws as unknown as never },
+  });
   return cached;
 }
 
