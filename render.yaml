@@ -1,0 +1,48 @@
+# Render Blueprint — siambox-api
+# Apply via Render dashboard → "Blueprints" → "New Blueprint Instance"
+# Docs: https://render.com/docs/blueprint-spec
+#
+# Notes:
+#   • Free plan sleeps after 15 min idle and cold-starts in ~30s.
+#   • Filesystem is ephemeral — uploads to /app/apps/api/uploads are
+#     LOST on every deploy / restart. Move product images to R2 before
+#     going live (env vars R2_* are already wired).
+
+services:
+  - type: web
+    name: siambox-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render injects $PORT; the API reads API_PORT. Keep them aligned.
+      - key: API_PORT
+        value: "10000"
+      # ---- fill in via Render dashboard (sensitive) ----
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false                       # e.g. https://siambox.pages.dev,https://admin.siambox.pages.dev
+      - key: OMISE_PUBLIC_KEY
+        sync: false
+      - key: OMISE_SECRET_KEY
+        sync: false
+      - key: OMISE_RETURN_BASE
+        sync: false                       # public web URL, e.g. https://siambox.pages.dev
+      - key: CNY_TO_THB_RATE
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false

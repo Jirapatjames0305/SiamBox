@@ -1,0 +1,337 @@
+// SiamBox database schema
+// Thailand → China cross-border ecommerce
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PACKING
+  SHIPPED
+  IN_CUSTOMS
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUBMITTED
+  APPROVED
+  REJECTED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  WECHAT
+  ALIPAY
+  USDT
+  BANK_TRANSFER
+  GATEWAY
+}
+
+enum ShippingCarrier {
+  EMS
+  DHL
+  FEDEX
+  OTHER
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+  STAFF
+}
+
+enum CustomerStatus {
+  ACTIVE
+  BLACKLISTED
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+// ---------- Core ----------
+
+model User {
+  id            String         @id @default(cuid())
+  role          UserRole       @default(CUSTOMER)
+  email         String?        @unique
+  phone         String?        @unique
+  wechatId      String?        @map("wechat_id")
+  name          String?
+  passwordHash  String?        @map("password_hash")
+  status        CustomerStatus @default(ACTIVE)
+  emailVerified DateTime?      @map("email_verified")
+  phoneVerified DateTime?      @map("phone_verified")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  addresses       ShippingAddress[]
+  orders          Order[]
+  notes           CustomerNote[]
+  tickets         SupportTicket[]
+  assignedTickets SupportTicket[]   @relation("AssignedStaff")
+
+  @@map("users")
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  sku           String   @unique
+  slug          String   @unique
+  nameTh        String   @map("name_th")
+  nameZh        String?  @map("name_zh")
+  nameEn        String?  @map("name_en")
+  descriptionTh String?  @map("description_th") @db.Text
+  descriptionZh String?  @map("description_zh") @db.Text
+  descriptionEn String?  @map("description_en") @db.Text
+  priceCents    Int      @map("price_cents")
+  currency      String   @default("CNY")
+  stock         Int      @default(0)
+  weightGrams   Int?     @map("weight_grams")
+  category      String?
+  tags          String[]
+  images        String[]
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  orderItems OrderItem[]
+
+  @@index([category])
+  @@index([active])
+  @@map("products")
+}
+
+model ShippingAddress {
+  id         String   @id @default(cuid())
+  userId     String?  @map("user_id")
+  recipient  String
+  phone      String
+  wechatId   String?  @map("wechat_id")
+  province   String
+  city       String
+  district   String?
+  street     String
+  postalCode String   @map("postal_code")
+  isDefault  Boolean  @default(false) @map("is_default")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  orders Order[]
+
+  @@index([userId])
+  @@map("shipping_addresses")
+}
+
+model Order {
+  id                String      @id @default(cuid())
+  orderNumber       String      @unique @map("order_number")
+  userId            String?     @map("user_id")
+  status            OrderStatus @default(PENDING_PAYMENT)
+  shippingAddressId String?     @map("shipping_address_id")
+  subtotalCents     Int         @map("subtotal_cents")
+  shippingCents     Int         @default(0) @map("shipping_cents")
+  totalCents        Int         @map("total_cents")
+  currency          String      @default("CNY")
+  customerNote      String?     @map("customer_note") @db.Text
+  internalNote      String?     @map("internal_note") @db.Text
+  placedAt          DateTime    @default(now()) @map("placed_at")
+  paidAt            DateTime?   @map("paid_at")
+  shippedAt         DateTime?   @map("shipped_at")
+  deliveredAt       DateTime?   @map("delivered_at")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  user            User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  shippingAddress ShippingAddress? @relation(fields: [shippingAddressId], references: [id], onDelete: SetNull)
+  items           OrderItem[]
+  payments        Payment[]
+  trackingLogs    TrackingLog[]
+  shipments       Shipment[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([placedAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id             String  @id @default(cuid())
+  orderId        String  @map("order_id")
+  productId      String  @map("product_id")
+  productNameTh  String  @map("product_name_th")
+  productNameZh  String? @map("product_name_zh")
+  quantity       Int
+  unitPriceCents Int     @map("unit_price_cents")
+  totalCents     Int     @map("total_cents")
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  orderId        String        @map("order_id")
+  method         PaymentMethod
+  status         PaymentStatus @default(PENDING)
+  amountCents    Int           @map("amount_cents")
+  currency       String        @default("CNY")
+  reference      String?
+  slipUrl        String?       @map("slip_url")
+  approvedAt     DateTime?     @map("approved_at")
+  approvedById   String?       @map("approved_by_id")
+  rejectedAt     DateTime?     @map("rejected_at")
+  notes          String?       @db.Text
+  omiseChargeId  String?       @unique @map("omise_charge_id")
+  omiseSourceId  String?       @map("omise_source_id")
+  failureMessage String?       @map("failure_message")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([status])
+  @@map("payments")
+}
+
+model Shipment {
+  id             String          @id @default(cuid())
+  orderId        String          @map("order_id")
+  carrier        ShippingCarrier
+  trackingNumber String          @map("tracking_number")
+  labelUrl       String?         @map("label_url")
+  weightGrams    Int?            @map("weight_grams")
+  shippedAt      DateTime?       @map("shipped_at")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([trackingNumber])
+  @@map("shipments")
+}
+
+model TrackingLog {
+  id         String   @id @default(cuid())
+  orderId    String   @map("order_id")
+  status     String
+  location   String?
+  message    String?  @db.Text
+  source     String?
+  occurredAt DateTime @map("occurred_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([occurredAt])
+  @@map("tracking_logs")
+}
+
+// ---------- CRM ----------
+
+model CustomerNote {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  authorId  String?  @map("author_id")
+  body      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("customer_notes")
+}
+
+model SupportTicket {
+  id           String       @id @default(cuid())
+  userId       String?      @map("user_id")
+  assignedToId String?      @map("assigned_to_id")
+  subject      String
+  body         String       @db.Text
+  status       TicketStatus @default(OPEN)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  user       User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  assignedTo User? @relation("AssignedStaff", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@map("support_tickets")
+}
+
+// ---------- CMS ----------
+
+model CmsPage {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  titleTh     String?   @map("title_th")
+  titleZh     String?   @map("title_zh")
+  titleEn     String?   @map("title_en")
+  bodyTh      String?   @map("body_th") @db.Text
+  bodyZh      String?   @map("body_zh") @db.Text
+  bodyEn      String?   @map("body_en") @db.Text
+  seoTitle    String?   @map("seo_title")
+  seoDesc     String?   @map("seo_desc")
+  published   Boolean   @default(false)
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("cms_pages")
+}
+
+model CmsBanner {
+  id        String    @id @default(cuid())
+  title     String?
+  imageUrl  String    @map("image_url")
+  linkUrl   String?   @map("link_url")
+  position  Int       @default(0)
+  active    Boolean   @default(true)
+  startsAt  DateTime? @map("starts_at")
+  endsAt    DateTime? @map("ends_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([active])
+  @@map("cms_banners")
+}
+
+model Campaign {
+  id            String    @id @default(cuid())
+  name          String
+  code          String?   @unique
+  description   String?   @db.Text
+  discountPct   Int?      @map("discount_pct")
+  discountCents Int?      @map("discount_cents")
+  startsAt      DateTime? @map("starts_at")
+  endsAt        DateTime? @map("ends_at")
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("campaigns")
+}
