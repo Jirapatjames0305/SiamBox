@@ -32,6 +32,10 @@ packages/database/prisma/migrations/dev.db*
 *.db
 *.db-journal
 
+# API local uploads (ephemeral on Render anyway)
+apps/api/uploads/*
+!apps/api/uploads/.gitkeep
+
 # Testing
 coverage/
 .nyc_output/

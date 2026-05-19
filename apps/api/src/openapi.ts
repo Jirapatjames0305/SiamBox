@@ -28,7 +28,7 @@ export const openApiSpec = {
       "All `/api/admin/*` endpoints require an `Authorization: Bearer <ADMIN_TOKEN>` header.",
     version: "0.1.0",
   },
-  servers: [{ url: "http://localhost:4000", description: "Local development" }],
+  servers: [{ url: "/", description: "Current host" }],
   tags: [
     { name: "Health" },
     { name: "Products", description: "Public product catalog" },
