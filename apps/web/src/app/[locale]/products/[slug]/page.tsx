@@ -7,8 +7,6 @@ import { localizedDescription, localizedName } from "@/lib/i18n-helpers";
 import type { Locale } from "@/i18n/routing";
 import { AddToCartButton } from "./AddToCartButton";
 
-export const runtime = "edge";
-
 export default async function ProductDetailPage({
   params,
 }: {

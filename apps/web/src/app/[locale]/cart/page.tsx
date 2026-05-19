@@ -1,7 +1,5 @@
 "use client";
 
-export const runtime = "edge";
-
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import {

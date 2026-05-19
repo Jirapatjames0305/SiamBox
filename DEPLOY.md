@@ -4,8 +4,8 @@ Free-tier stack:
 
 | Component | Host | Cost |
 |-----------|------|------|
-| `apps/web`   | Cloudflare Pages | Free |
-| `apps/admin` | Cloudflare Pages | Free |
+| `apps/web`   | Vercel           | Free (Hobby plan) |
+| `apps/admin` | Vercel           | Free (Hobby plan) |
 | `apps/api`   | Render (Docker)  | Free (sleeps after 15 min idle) |
 | Postgres     | Supabase         | Free (500 MB) |
 | Image store  | Cloudflare R2    | Free (10 GB) |
@@ -62,45 +62,35 @@ The repo ships a Docker-based blueprint at [`render.yaml`](render.yaml).
 
 ---
 
-## 3. Web + Admin — Cloudflare Pages
+## 3. Web + Admin — Vercel
 
-Both apps use the App Router and deploy via `@cloudflare/next-on-pages`.
+Both apps are standard Next.js App Router projects — Vercel builds them
+natively, no extra adapter required.
 
 ### 3a. siambox-web
 
-1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** →
-   **Connect to Git** → pick the repo.
-2. Build settings:
-   - **Project name**: `siambox-web`
-   - **Production branch**: `main`
-   - **Framework preset**: *Next.js*
-   - **Root directory**: `apps/web`
-   - **Build command**:
-     ```
-     pnpm install --frozen-lockfile && pnpm exec next-on-pages
-     ```
-   - **Build output directory**: `.vercel/output/static`
-3. Environment variables (Production + Preview):
-   - `NODE_VERSION` = `20`
-   - `PNPM_VERSION` = `9.15.0`
+1. https://vercel.com → sign in with the GitHub account that owns the repo.
+2. **Add New… → Project** → **Import** the `SiamBox` repo.
+3. Configure:
+   - **Framework Preset**: *Next.js* (auto-detected)
+   - **Root Directory**: `apps/web`
+   - **Build / Output / Install commands**: leave as defaults
+4. Environment Variables (Production + Preview + Development):
    - `NEXT_PUBLIC_API_URL` = `https://siambox-api.onrender.com`
-4. Settings → Functions → **Compatibility flags** (both Production + Preview):
-   add `nodejs_compat`.
-5. Settings → Functions → **Compatibility date**: `2025-01-01` or later.
-6. Deploy. URL: `https://siambox.pages.dev`.
+5. Click **Deploy**. URL: `https://siambox-web.vercel.app`.
 
 ### 3b. siambox-admin
 
 Same as 3a but:
-- **Project name**: `siambox-admin`
-- **Root directory**: `apps/admin`
+- **Root Directory**: `apps/admin`
 - Env: `NEXT_PUBLIC_ADMIN_API_URL` = `https://siambox-api.onrender.com`
+- URL: `https://siambox-admin.vercel.app`
 
-### 3c. After Pages URLs exist
+### 3c. After Vercel URLs exist
 
 Go back to Render and update:
-- `CORS_ORIGIN` → add the actual `.pages.dev` URLs
-- `OMISE_RETURN_BASE` → the web URL (`https://siambox.pages.dev`)
+- `CORS_ORIGIN` → add the actual `.vercel.app` URLs
+- `OMISE_RETURN_BASE` → the web URL (`https://siambox-web.vercel.app`)
 
 Then trigger a redeploy on Render (Manual Deploy → Deploy latest commit).
 
@@ -120,7 +110,7 @@ Then trigger a redeploy on Render (Manual Deploy → Deploy latest commit).
 
 ## 5. Domains (optional)
 
-Cloudflare Pages → project → **Custom domains**:
+Vercel → project → **Settings → Domains**:
 - `siambox.com` → `siambox-web`
 - `admin.siambox.com` → `siambox-admin`
 
@@ -146,10 +136,6 @@ pnpm dev                   # turbo runs web (3000) + admin (3001) + api (4000)
 **Prisma `migrate deploy` fails on first boot**
 The DB is empty and migrations haven't been applied. Run once locally against
 the prod `DATABASE_URL` (see step 1) before the first Render deploy.
-
-**Cloudflare Pages build fails with "Missing Node.js compatibility flag"**
-Add `nodejs_compat` under Pages → Settings → Functions → Compatibility flags
-for *both* Production and Preview environments.
 
 **API returns CORS error from the browser**
 `CORS_ORIGIN` on Render must include the exact origin (scheme + host) that the

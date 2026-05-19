@@ -1,8 +1,0 @@
-# Cloudflare Pages — siambox-web
-# Used by `wrangler pages deploy` and by Pages CI.
-# Build is run with `@cloudflare/next-on-pages` (see DEPLOY.md).
-
-name = "siambox-web"
-compatibility_date = "2025-01-01"
-compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = ".vercel/output/static"

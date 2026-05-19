@@ -6,8 +6,6 @@ import { localizedName } from "@/lib/i18n-helpers";
 import type { Locale } from "@/i18n/routing";
 import { FadeInUp } from "@/components/FadeInUp";
 
-export const runtime = "edge";
-
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Products" });
