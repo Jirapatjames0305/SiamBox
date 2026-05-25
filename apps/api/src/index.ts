@@ -11,6 +11,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
 import { productsRouter } from "./routes/products.js";
+import { packagesRouter } from "./routes/packages.js";
 import { ordersRouter } from "./routes/orders.js";
 import { adminRouter } from "./routes/admin.js";
 import { webhooksRouter } from "./routes/webhooks.js";
@@ -44,6 +45,7 @@ app.use(
 );
 
 app.use("/api/products", productsRouter);
+app.use("/api/packages", packagesRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/webhooks", webhooksRouter);

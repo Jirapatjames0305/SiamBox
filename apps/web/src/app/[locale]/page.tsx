@@ -1,6 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/routing";
-import { listProducts } from "@/lib/api";
+import { listPackages } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { localizedName } from "@/lib/i18n-helpers";
 import type { Locale } from "@/i18n/routing";
@@ -15,9 +15,9 @@ export default async function HomePage({
   setRequestLocale(locale);
   const t = await getTranslations("Home");
 
-  let featured: Awaited<ReturnType<typeof listProducts>> = [];
+  let featured: Awaited<ReturnType<typeof listPackages>> = [];
   try {
-    const all = await listProducts();
+    const all = await listPackages();
     featured = all.slice(0, 4);
   } catch {
     // silently skip if API is down

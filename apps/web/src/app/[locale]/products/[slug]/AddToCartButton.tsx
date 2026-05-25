@@ -3,21 +3,21 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
-import { addToCart, type CartLine } from "@/lib/cart";
+import { addPackageToCart, type PackageCartLine } from "@/lib/cart";
 
 type Props = {
-  product: Omit<CartLine, "quantity">;
+  pkg: Omit<PackageCartLine, "kind" | "lineId" | "quantity">;
   disabled?: boolean;
 };
 
-export function AddToCartButton({ product, disabled }: Props) {
+export function AddToCartButton({ pkg, disabled }: Props) {
   const t = useTranslations("ProductDetail");
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const router = useRouter();
 
   function handleAdd() {
-    addToCart({ ...product, quantity: qty });
+    addPackageToCart({ ...pkg, quantity: qty });
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   }
@@ -69,12 +69,12 @@ export function AddToCartButton({ product, disabled }: Props) {
               : "bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
           }`}
         >
-          {added ? t("added") : t("addToCart")}
+          {added ? t("added") : t("addPackageToCart")}
         </button>
         <button
           type="button"
           onClick={() => {
-            addToCart({ ...product, quantity: qty });
+            addPackageToCart({ ...pkg, quantity: qty });
             router.push("/cart");
           }}
           disabled={disabled}

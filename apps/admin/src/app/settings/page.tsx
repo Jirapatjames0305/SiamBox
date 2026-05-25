@@ -12,6 +12,7 @@ const EMPTY: FormState = {
   senderAddressLine2: "",
   senderPhone: "",
   shippingBaseCents: 0,
+  customPackageMinCents: 0,
 };
 
 export default function SettingsPage() {
@@ -30,6 +31,7 @@ export default function SettingsPage() {
           senderAddressLine2: s.senderAddressLine2,
           senderPhone: s.senderPhone,
           shippingBaseCents: s.shippingBaseCents,
+          customPackageMinCents: s.customPackageMinCents,
         });
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : (err as Error).message))
@@ -103,6 +105,25 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          <div className="mt-6 border-t border-neutral-200 pt-6">
+            <h2 className="text-sm font-semibold text-neutral-800">แพ็กเกจกำหนดเอง</h2>
+            <p className="mt-0.5 text-xs text-neutral-500">
+              ขั้นต่ำที่ลูกค้าต้องจัดในแพ็กเกจของตัวเอง (CNY) — ตั้ง 0 หากไม่จำกัด
+            </p>
+            <div className="mt-3">
+              <Field
+                label="ขั้นต่ำต่อแพ็กเกจกำหนดเอง (CNY)"
+                type="number"
+                step="0.01"
+                value={(form.customPackageMinCents / 100).toFixed(2)}
+                onChange={(v) =>
+                  setForm({ ...form, customPackageMinCents: Math.round((Number(v) || 0) * 100) })
+                }
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+
           {error && (
             <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               {error}
@@ -133,18 +154,21 @@ function Field({
   onChange,
   placeholder,
   type = "text",
+  step,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   type?: "text" | "number";
+  step?: string;
 }) {
   return (
     <label className="block">
       <span className="text-sm font-medium text-neutral-700">{label}</span>
       <input
         type={type}
+        step={step}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

@@ -1,7 +1,7 @@
 "use client";
 
 import { getToken } from "./auth";
-import type { Customer, CustomerNote, Order, Product, Settings, Stats } from "./types";
+import type { Customer, CustomerNote, Order, Package, Product, Settings, Stats } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_ADMIN_API_URL ?? "http://localhost:4000";
 
@@ -139,6 +139,52 @@ export async function updateProduct(id: string, input: Partial<ProductInput>): P
     body: JSON.stringify(input),
   });
   return json.data;
+}
+
+export async function fetchPackages(): Promise<Package[]> {
+  const json = await request<{ data: Package[] }>(`/api/admin/packages`);
+  return json.data;
+}
+
+export type PackageInput = {
+  slug: string;
+  nameTh: string;
+  nameZh?: string | null;
+  nameEn?: string | null;
+  descriptionTh?: string | null;
+  descriptionZh?: string | null;
+  descriptionEn?: string | null;
+  currency?: string;
+  images?: string[];
+  active?: boolean;
+  items: { productId: string; quantity: number }[];
+};
+
+export async function createPackage(input: PackageInput): Promise<Package> {
+  const json = await request<{ data: Package }>(`/api/admin/packages`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return json.data;
+}
+
+export async function updatePackage(id: string, input: Partial<PackageInput>): Promise<Package> {
+  const json = await request<{ data: Package }>(`/api/admin/packages/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  return json.data;
+}
+
+export async function deletePackage(id: string): Promise<void> {
+  const token = getToken();
+  const res = await fetch(`${API_URL}/api/admin/packages/${id}`, {
+    method: "DELETE",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  if (!res.ok && res.status !== 204) {
+    throw new ApiError(res.status, `HTTP ${res.status}`);
+  }
 }
 
 export async function fetchCustomers(params?: { q?: string; status?: string }): Promise<Customer[]> {

@@ -12,10 +12,29 @@ export const shippingAddressSchema = z.object({
 });
 export type ShippingAddressInput = z.infer<typeof shippingAddressSchema>;
 
-export const checkoutItemSchema = z.object({
-  productId: z.string().min(1),
+export const checkoutPackageItemSchema = z.object({
+  kind: z.literal("package"),
+  packageId: z.string().min(1),
   quantity: z.number().int().positive(),
 });
+
+export const checkoutCustomItemSchema = z.object({
+  kind: z.literal("custom"),
+  quantity: z.number().int().positive(),
+  products: z
+    .array(
+      z.object({
+        productId: z.string().min(1),
+        quantity: z.number().int().positive(),
+      }),
+    )
+    .min(1),
+});
+
+export const checkoutItemSchema = z.discriminatedUnion("kind", [
+  checkoutPackageItemSchema,
+  checkoutCustomItemSchema,
+]);
 
 export const paymentMethodSchema = z.enum(["MANUAL", "ALIPAY", "WECHAT_PAY"]);
 export type PaymentMethodInput = z.infer<typeof paymentMethodSchema>;

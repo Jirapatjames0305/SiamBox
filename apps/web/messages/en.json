@@ -19,9 +19,23 @@
   "Nav": {
     "brand": "Thai Goods",
     "products": "Products",
+    "build": "Build Your Box",
     "cart": "Cart",
     "track": "Track Order",
     "language": "Language"
+  },
+  "Build": {
+    "title": "Build Your Own Package",
+    "subtitle": "Pick your items — price calculated automatically",
+    "add": "Add",
+    "yourPackage": "Your Package",
+    "emptySelection": "No items selected yet",
+    "itemCount": "Items",
+    "total": "Total",
+    "belowMin": "Minimum order {min}",
+    "minOk": "Minimum {min} reached",
+    "addToCart": "Add to Cart",
+    "added": "Added"
   },
   "Track": {
     "title": "Track Your Orders",

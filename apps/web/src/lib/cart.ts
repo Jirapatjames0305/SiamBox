@@ -3,10 +3,12 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Locale } from "@/i18n/routing";
 
-const STORAGE_KEY = "siambox.cart.v2";
+const STORAGE_KEY = "siambox.cart.v4";
 
-export type CartLine = {
-  productId: string;
+export type PackageCartLine = {
+  kind: "package";
+  lineId: string; // = packageId
+  packageId: string;
   slug: string;
   nameTh: string;
   nameZh: string | null;
@@ -15,6 +17,16 @@ export type CartLine = {
   quantity: number;
   image?: string;
 };
+
+export type CustomCartLine = {
+  kind: "custom";
+  lineId: string; // generated unique
+  products: { productId: string; quantity: number; nameTh: string; nameZh: string | null; priceCents: number; image?: string }[];
+  priceCents: number; // unit price (sum of items)
+  quantity: number;
+};
+
+export type CartLine = PackageCartLine | CustomCartLine;
 
 type Cart = { lines: CartLine[] };
 
@@ -61,32 +73,39 @@ export function useCartHydrated() {
   return hydrated;
 }
 
-export function addToCart(line: Omit<CartLine, "quantity"> & { quantity?: number }) {
+export function addPackageToCart(line: Omit<PackageCartLine, "kind" | "lineId" | "quantity"> & { quantity?: number }) {
   const cart = read();
-  const existing = cart.lines.find((l) => l.productId === line.productId);
+  const existing = cart.lines.find((l): l is PackageCartLine => l.kind === "package" && l.packageId === line.packageId);
   if (existing) {
     existing.quantity += line.quantity ?? 1;
   } else {
-    cart.lines.push({ ...line, quantity: line.quantity ?? 1 });
+    cart.lines.push({ ...line, kind: "package", lineId: line.packageId, quantity: line.quantity ?? 1 });
   }
   write(cart);
 }
 
-export function updateQuantity(productId: string, quantity: number) {
+export function addCustomToCart(line: Omit<CustomCartLine, "kind" | "lineId" | "quantity"> & { quantity?: number }) {
   const cart = read();
-  const line = cart.lines.find((l) => l.productId === productId);
+  const lineId = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  cart.lines.push({ ...line, kind: "custom", lineId, quantity: line.quantity ?? 1 });
+  write(cart);
+}
+
+export function updateQuantity(lineId: string, quantity: number) {
+  const cart = read();
+  const line = cart.lines.find((l) => l.lineId === lineId);
   if (!line) return;
   if (quantity <= 0) {
-    cart.lines = cart.lines.filter((l) => l.productId !== productId);
+    cart.lines = cart.lines.filter((l) => l.lineId !== lineId);
   } else {
     line.quantity = quantity;
   }
   write(cart);
 }
 
-export function removeFromCart(productId: string) {
+export function removeFromCart(lineId: string) {
   const cart = read();
-  cart.lines = cart.lines.filter((l) => l.productId !== productId);
+  cart.lines = cart.lines.filter((l) => l.lineId !== lineId);
   write(cart);
 }
 
@@ -103,7 +122,17 @@ export function cartItemCount(cart: Cart): number {
 }
 
 export function cartLineName(line: CartLine, locale: Locale): string {
+  if (line.kind === "custom") {
+    if (locale === "zh") return "自定义套餐";
+    if (locale === "en") return "Custom Package";
+    return "แพ็กเกจกำหนดเอง";
+  }
   if (locale === "zh") return line.nameZh ?? line.nameTh;
   if (locale === "en") return line.nameEn ?? line.nameZh ?? line.nameTh;
   return line.nameTh;
+}
+
+export function cartLineImage(line: CartLine): string | undefined {
+  if (line.kind === "custom") return line.products[0]?.image;
+  return line.image;
 }

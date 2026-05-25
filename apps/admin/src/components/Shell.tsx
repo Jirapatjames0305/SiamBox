@@ -8,6 +8,7 @@ import { clearToken, getToken } from "@/lib/auth";
 const NAV = [
   { href: "/", label: "แดชบอร์ด" },
   { href: "/orders", label: "ออเดอร์" },
+  { href: "/packages", label: "แพ็กเกจ" },
   { href: "/products", label: "สินค้า" },
   { href: "/customers", label: "ลูกค้า" },
   { href: "/settings", label: "ตั้งค่า" },

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/routing";
-import { getProductBySlug } from "@/lib/api";
+import { getPackageBySlug } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { localizedDescription, localizedName } from "@/lib/i18n-helpers";
 import type { Locale } from "@/i18n/routing";
@@ -14,15 +14,15 @@ export default async function ProductDetailPage({
 }) {
   const { slug, locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations("ProductDetail");
   const tProducts = await getTranslations("Products");
 
-  const product = await getProductBySlug(slug);
-  if (!product) notFound();
+  const pkg = await getPackageBySlug(slug);
+  if (!pkg) notFound();
 
-  const name = localizedName(product, locale as Locale);
-  const description = localizedDescription(product, locale as Locale);
-  const inStock = product.stock > 0;
+  const name = localizedName(pkg, locale as Locale);
+  const description = localizedDescription(pkg, locale as Locale);
+  // Package is in-stock if every contained product has enough stock for at least 1 package
+  const inStock = pkg.items.every((it) => it.product.stock >= it.quantity);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
@@ -38,9 +38,9 @@ export default async function ProductDetailPage({
         {/* Image */}
         <div className="overflow-hidden rounded-2xl bg-slate-100 shadow-sm border border-slate-200">
           <div className="aspect-square w-full">
-            {product.images[0] ? (
+            {pkg.images[0] ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={product.images[0]} alt={name} className="h-full w-full object-cover" />
+              <img src={pkg.images[0]} alt={name} className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-300">
                 <svg className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
@@ -57,39 +57,51 @@ export default async function ProductDetailPage({
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{name}</h1>
 
           <div className="mt-4 text-4xl font-black text-blue-600">
-            {formatPrice(product.priceCents, product.currency)}
+            {formatPrice(pkg.priceCents, pkg.currency)}
           </div>
 
           <div className="mt-4 flex flex-wrap gap-3">
             <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${inStock ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>
               <span className={`h-1.5 w-1.5 rounded-full ${inStock ? "bg-emerald-500" : "bg-red-400"}`} />
-              {inStock ? t("stockCount", { count: product.stock }) : tProducts("outOfStock")}
+              {inStock ? "พร้อมส่ง" : tProducts("outOfStock")}
             </span>
-            {product.weightGrams && (
-              <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                {product.weightGrams}g
-              </span>
-            )}
           </div>
 
           <div className="my-6 border-t border-slate-200" />
 
+          {/* Package contents */}
+          <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+              สินค้าในแพ็กเกจ
+            </p>
+            <ul className="space-y-2">
+              {pkg.items.map((it) => {
+                const itemName = localizedName(it.product, locale as Locale);
+                return (
+                  <li key={it.id} className="flex items-center justify-between text-sm">
+                    <span className="text-slate-700">{itemName}</span>
+                    <span className="font-medium text-slate-900">× {it.quantity}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
           <AddToCartButton
-            product={{
-              productId: product.id,
-              slug: product.slug,
-              nameTh: product.nameTh,
-              nameZh: product.nameZh,
-              nameEn: product.nameEn,
-              priceCents: product.priceCents,
-              image: product.images[0],
+            pkg={{
+              packageId: pkg.id,
+              slug: pkg.slug,
+              nameTh: pkg.nameTh,
+              nameZh: pkg.nameZh,
+              nameEn: pkg.nameEn,
+              priceCents: pkg.priceCents,
+              image: pkg.images[0],
             }}
             disabled={!inStock}
           />
 
           {description && (
             <div className="mt-8 rounded-xl bg-slate-50 border border-slate-200 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">{t("weight")}</p>
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-600">{description}</p>
             </div>
           )}

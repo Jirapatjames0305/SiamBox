@@ -1,6 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/routing";
-import { listProducts } from "@/lib/api";
+import { listPackages } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { localizedName } from "@/lib/i18n-helpers";
 import type { Locale } from "@/i18n/routing";
@@ -14,58 +14,31 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 export default async function ProductsPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ category?: string }>;
 }) {
   const { locale } = await params;
-  const { category: selectedCategory } = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations("Products");
 
-  let allProducts = [] as Awaited<ReturnType<typeof listProducts>>;
+  let packages = [] as Awaited<ReturnType<typeof listPackages>>;
   let error: string | null = null;
   try {
-    allProducts = await listProducts();
+    packages = await listPackages();
   } catch (err) {
     error = err instanceof Error ? err.message : "Failed";
   }
-
-  const categories = Array.from(
-    new Set(allProducts.map((p) => p.category).filter((c): c is string => !!c)),
-  ).sort();
-  const products = selectedCategory
-    ? allProducts.filter((p) => p.category === selectedCategory)
-    : allProducts;
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-12">
       <FadeInUp>
         <div className="flex items-baseline justify-between">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">{t("title")}</h1>
-          {products.length > 0 && (
-            <span className="text-sm text-slate-500">{t("productsCount", { count: products.length })}</span>
+          {packages.length > 0 && (
+            <span className="text-sm text-slate-500">{t("productsCount", { count: packages.length })}</span>
           )}
         </div>
       </FadeInUp>
-
-      {categories.length > 0 && (
-        <div className="mt-6 flex flex-wrap gap-2">
-          <CategoryChip href="/products" active={!selectedCategory}>
-            {t("allCategories")}
-          </CategoryChip>
-          {categories.map((c) => (
-            <CategoryChip
-              key={c}
-              href={`/products?category=${encodeURIComponent(c)}`}
-              active={selectedCategory === c}
-            >
-              {c}
-            </CategoryChip>
-          ))}
-        </div>
-      )}
 
       {error && (
         <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -73,15 +46,16 @@ export default async function ProductsPage({
         </div>
       )}
 
-      {!error && products.length === 0 && (
+      {!error && packages.length === 0 && (
         <div className="mt-16 text-center">
           <p className="text-slate-400">{t("noProducts")}</p>
         </div>
       )}
 
       <ul className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {products.map((p, i) => {
+        {packages.map((p, i) => {
           const name = localizedName(p, locale as Locale);
+          const itemCount = p.items.reduce((sum, it) => sum + it.quantity, 0);
           return (
             <li key={p.id}>
               <FadeInUp delay={i * 50}>
@@ -108,13 +82,11 @@ export default async function ProductsPage({
                   </div>
                   <div className="p-3">
                     <p className="text-sm font-medium text-slate-800 line-clamp-2 leading-snug">{name}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{itemCount} ชิ้น</p>
                     <div className="mt-2 flex items-center justify-between">
                       <p className="text-base font-bold text-blue-600">
                         {formatPrice(p.priceCents, p.currency)}
                       </p>
-                      {p.stock <= 0 && (
-                        <span className="text-xs text-slate-400">{t("outOfStock")}</span>
-                      )}
                     </div>
                   </div>
                 </Link>
@@ -124,28 +96,5 @@ export default async function ProductsPage({
         })}
       </ul>
     </main>
-  );
-}
-
-function CategoryChip({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`rounded-full border px-4 py-1.5 text-sm font-medium transition ${
-        active
-          ? "border-blue-600 bg-blue-600 text-white"
-          : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
-      }`}
-    >
-      {children}
-    </Link>
   );
 }

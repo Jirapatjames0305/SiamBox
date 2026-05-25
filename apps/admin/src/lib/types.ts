@@ -74,6 +74,32 @@ export type Order = {
   trackingLogs?: TrackingLog[];
 };
 
+export type PackageItem = {
+  id: string;
+  packageId: string;
+  productId: string;
+  quantity: number;
+  product: Product;
+};
+
+export type Package = {
+  id: string;
+  slug: string;
+  nameTh: string;
+  nameZh: string | null;
+  nameEn: string | null;
+  descriptionTh: string | null;
+  descriptionZh: string | null;
+  descriptionEn: string | null;
+  priceCents: number;
+  currency: string;
+  images: string[];
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  items: PackageItem[];
+};
+
 export type Product = {
   id: string;
   sku: string;
@@ -134,5 +160,6 @@ export type Settings = {
   senderAddressLine2: string;
   senderPhone: string;
   shippingBaseCents: number;
+  customPackageMinCents: number;
   updatedAt: string;
 };

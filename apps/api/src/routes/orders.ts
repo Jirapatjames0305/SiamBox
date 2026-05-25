@@ -19,32 +19,76 @@ ordersRouter.post("/", async (req, res, next) => {
   try {
     const input = checkoutSchema.parse(req.body);
 
-    const products = await prisma.product.findMany({
-      where: { id: { in: input.items.map((i) => i.productId) }, active: true },
-    });
-    const productMap = new Map(products.map((p) => [p.id, p]));
+    const packageIds = input.items.flatMap((i) => (i.kind === "package" ? [i.packageId] : []));
+    const customProductIds = input.items.flatMap((i) =>
+      i.kind === "custom" ? i.products.map((p) => p.productId) : [],
+    );
+
+    const [packages, customProducts, settings] = await Promise.all([
+      packageIds.length > 0
+        ? prisma.package.findMany({ where: { id: { in: packageIds }, active: true } })
+        : Promise.resolve([]),
+      customProductIds.length > 0
+        ? prisma.product.findMany({
+            where: { id: { in: customProductIds }, active: true },
+          })
+        : Promise.resolve([]),
+      prisma.settings.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } }),
+    ]);
+    const packageMap = new Map(packages.map((p) => [p.id, p]));
+    const productMap = new Map(customProducts.map((p) => [p.id, p]));
+
+    // Pre-compute custom package totals + validate min threshold
+    type LineToCreate = {
+      packageId: string;
+      productNameTh: string;
+      productNameZh: string | null;
+      quantity: number;
+      unitPriceCents: number;
+      totalCents: number;
+      // For custom: package needs to be created first, so defer this part
+      _customProducts?: { productId: string; quantity: number }[];
+    };
 
     let subtotal = 0;
-    const lineItems = input.items.map((item) => {
-      const product = productMap.get(item.productId);
-      if (!product) throw Object.assign(new Error("ProductNotAvailable"), { status: 400 });
-      const lineTotal = product.priceCents * item.quantity;
+    const lineDrafts: LineToCreate[] = input.items.map((item) => {
+      if (item.kind === "package") {
+        const pkg = packageMap.get(item.packageId);
+        if (!pkg) throw Object.assign(new Error("PackageNotAvailable"), { status: 400 });
+        const lineTotal = pkg.priceCents * item.quantity;
+        subtotal += lineTotal;
+        return {
+          packageId: pkg.id,
+          productNameTh: pkg.nameTh,
+          productNameZh: pkg.nameZh,
+          quantity: item.quantity,
+          unitPriceCents: pkg.priceCents,
+          totalCents: lineTotal,
+        };
+      }
+      // Custom box: compute unit price = sum(product.price × qty)
+      let unitPrice = 0;
+      for (const p of item.products) {
+        const product = productMap.get(p.productId);
+        if (!product) throw Object.assign(new Error(`ProductNotAvailable:${p.productId}`), { status: 400 });
+        unitPrice += product.priceCents * p.quantity;
+      }
+      if (unitPrice < settings.customPackageMinCents) {
+        throw Object.assign(new Error("CustomPackageBelowMinimum"), { status: 400 });
+      }
+      const lineTotal = unitPrice * item.quantity;
       subtotal += lineTotal;
       return {
-        productId: product.id,
-        productNameTh: product.nameTh,
-        productNameZh: product.nameZh,
+        packageId: "", // filled in after Package is created
+        productNameTh: "แพ็กเกจกำหนดเอง",
+        productNameZh: "自定义套餐",
         quantity: item.quantity,
-        unitPriceCents: product.priceCents,
+        unitPriceCents: unitPrice,
         totalCents: lineTotal,
+        _customProducts: item.products,
       };
     });
 
-    const settings = await prisma.settings.upsert({
-      where: { id: 1 },
-      update: {},
-      create: { id: 1 },
-    });
     const shippingCents = settings.shippingBaseCents;
     const total = subtotal + shippingCents;
 
@@ -63,9 +107,31 @@ ordersRouter.post("/", async (req, res, next) => {
       },
     });
 
+    // Create one inactive Package per custom line so we have a packageId for OrderItem
+    const orderNumber = generateOrderNumber();
+    const lineItems = await Promise.all(
+      lineDrafts.map(async (draft) => {
+        const { _customProducts, ...rest } = draft;
+        if (!_customProducts) return rest;
+        const customPkg = await prisma.package.create({
+          data: {
+            slug: `custom-${orderNumber.toLowerCase()}-${Math.random().toString(36).slice(2, 6)}`,
+            nameTh: "แพ็กเกจกำหนดเอง",
+            nameZh: "自定义套餐",
+            priceCents: draft.unitPriceCents,
+            currency: "CNY",
+            images: [],
+            active: false,
+            items: { create: _customProducts },
+          },
+        });
+        return { ...rest, packageId: customPkg.id };
+      }),
+    );
+
     const order = await prisma.order.create({
       data: {
-        orderNumber: generateOrderNumber(),
+        orderNumber,
         user: { connect: { id: user.id } },
         subtotalCents: subtotal,
         shippingCents,

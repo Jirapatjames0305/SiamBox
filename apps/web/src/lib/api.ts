@@ -20,6 +20,29 @@ export type Product = {
   active: boolean;
 };
 
+export type PackageItem = {
+  id: string;
+  productId: string;
+  quantity: number;
+  product: Product;
+};
+
+export type Package = {
+  id: string;
+  slug: string;
+  nameTh: string;
+  nameZh: string | null;
+  nameEn: string | null;
+  descriptionTh: string | null;
+  descriptionZh: string | null;
+  descriptionEn: string | null;
+  priceCents: number;
+  currency: string;
+  images: string[];
+  active: boolean;
+  items: PackageItem[];
+};
+
 export type OrderItem = {
   id: string;
   productId: string;
@@ -106,8 +129,47 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   }
 }
 
+export type BuildConfig = {
+  customPackageMinCents: number;
+  shippingBaseCents: number;
+};
+
+export async function getBuildConfig(): Promise<BuildConfig> {
+  const json = await request<{ data: BuildConfig }>("/api/packages/config", {
+    next: { revalidate: 30 },
+  });
+  return json.data;
+}
+
+export async function listPackages(): Promise<Package[]> {
+  const json = await request<{ data: Package[] }>("/api/packages", {
+    next: { revalidate: 30 },
+  });
+  return json.data;
+}
+
+export async function getPackageBySlug(slug: string): Promise<Package | null> {
+  try {
+    const json = await request<{ data: Package }>(`/api/packages/${slug}`, {
+      next: { revalidate: 30 },
+    });
+    return json.data;
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("API 404")) return null;
+    throw err;
+  }
+}
+
+export type CheckoutItemPayload =
+  | { kind: "package"; packageId: string; quantity: number }
+  | {
+      kind: "custom";
+      quantity: number;
+      products: { productId: string; quantity: number }[];
+    };
+
 export type CheckoutPayload = {
-  items: { productId: string; quantity: number }[];
+  items: CheckoutItemPayload[];
   shippingAddress: {
     recipient: string;
     phone: string;

@@ -111,11 +111,49 @@ model Product {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  orderItems OrderItem[]
+  orderItems   OrderItem[]
+  packageItems PackageItem[]
 
   @@index([category])
   @@index([active])
   @@map("products")
+}
+
+model Package {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  nameTh        String   @map("name_th")
+  nameZh        String?  @map("name_zh")
+  nameEn        String?  @map("name_en")
+  descriptionTh String?  @map("description_th") @db.Text
+  descriptionZh String?  @map("description_zh") @db.Text
+  descriptionEn String?  @map("description_en") @db.Text
+  priceCents    Int      @map("price_cents")
+  currency      String   @default("CNY")
+  images        String[]
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  items      PackageItem[]
+  orderItems OrderItem[]
+
+  @@index([active])
+  @@map("packages")
+}
+
+model PackageItem {
+  id        String @id @default(cuid())
+  packageId String @map("package_id")
+  productId String @map("product_id")
+  quantity  Int    @default(1)
+
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([packageId, productId])
+  @@index([packageId])
+  @@map("package_items")
 }
 
 model ShippingAddress {
@@ -173,17 +211,19 @@ model Order {
 }
 
 model OrderItem {
-  id             String  @id @default(cuid())
-  orderId        String  @map("order_id")
-  productId      String  @map("product_id")
-  productNameTh  String  @map("product_name_th")
-  productNameZh  String? @map("product_name_zh")
+  id             String   @id @default(cuid())
+  orderId        String   @map("order_id")
+  productId      String?  @map("product_id")
+  packageId      String?  @map("package_id")
+  productNameTh  String   @map("product_name_th")
+  productNameZh  String?  @map("product_name_zh")
   quantity       Int
-  unitPriceCents Int     @map("unit_price_cents")
-  totalCents     Int     @map("total_cents")
+  unitPriceCents Int      @map("unit_price_cents")
+  totalCents     Int      @map("total_cents")
 
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+  package Package? @relation(fields: [packageId], references: [id])
 
   @@index([orderId])
   @@map("order_items")
@@ -337,13 +377,14 @@ model Campaign {
 }
 
 model Settings {
-  id                 Int      @id @default(1)
-  senderName         String   @default("SiamBox") @map("sender_name")
-  senderAddressLine1 String   @default("") @map("sender_address_line_1")
-  senderAddressLine2 String   @default("") @map("sender_address_line_2")
-  senderPhone        String   @default("") @map("sender_phone")
-  shippingBaseCents  Int      @default(0) @map("shipping_base_cents")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  id                      Int      @id @default(1)
+  senderName              String   @default("SiamBox") @map("sender_name")
+  senderAddressLine1      String   @default("") @map("sender_address_line_1")
+  senderAddressLine2      String   @default("") @map("sender_address_line_2")
+  senderPhone             String   @default("") @map("sender_phone")
+  shippingBaseCents       Int      @default(0) @map("shipping_base_cents")
+  customPackageMinCents   Int      @default(0) @map("custom_package_min_cents")
+  updatedAt               DateTime @updatedAt @map("updated_at")
 
   @@map("settings")
 }

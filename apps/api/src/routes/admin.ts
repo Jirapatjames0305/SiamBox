@@ -230,10 +230,22 @@ adminRouter.post("/orders/:orderNumber/shipments", async (req, res, next) => {
         data: { status: "SHIPPED", shippedAt },
       });
       for (const item of order.items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } },
-        });
+        if (item.packageId) {
+          const packageItems = await tx.packageItem.findMany({
+            where: { packageId: item.packageId },
+          });
+          for (const pi of packageItems) {
+            await tx.product.update({
+              where: { id: pi.productId },
+              data: { stock: { decrement: pi.quantity * item.quantity } },
+            });
+          }
+        } else if (item.productId) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { decrement: item.quantity } },
+          });
+        }
       }
       return created;
     });
@@ -291,6 +303,110 @@ adminRouter.patch("/products/:id", async (req, res, next) => {
       data: input,
     });
     res.json({ data: product });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Packages ----------
+
+const packageSchema = z.object({
+  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "slug must be lowercase letters, numbers, dashes"),
+  nameTh: z.string().min(1).max(200),
+  nameZh: z.string().max(200).optional().nullable(),
+  nameEn: z.string().max(200).optional().nullable(),
+  descriptionTh: z.string().max(5000).optional().nullable(),
+  descriptionZh: z.string().max(5000).optional().nullable(),
+  descriptionEn: z.string().max(5000).optional().nullable(),
+  currency: z.string().min(3).max(3).default("CNY"),
+  images: z.array(z.string().url()).default([]),
+  active: z.boolean().default(true),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().min(1),
+        quantity: z.number().int().positive(),
+      }),
+    )
+    .min(1),
+});
+
+async function computePackagePriceCents(
+  items: { productId: string; quantity: number }[],
+): Promise<number> {
+  if (items.length === 0) return 0;
+  const products = await prisma.product.findMany({
+    where: { id: { in: items.map((i) => i.productId) } },
+    select: { id: true, priceCents: true },
+  });
+  const priceMap = new Map(products.map((p) => [p.id, p.priceCents]));
+  return items.reduce((sum, it) => {
+    const price = priceMap.get(it.productId);
+    if (price == null) throw Object.assign(new Error(`ProductNotFound:${it.productId}`), { status: 400 });
+    return sum + price * it.quantity;
+  }, 0);
+}
+
+adminRouter.get("/packages", async (_req, res, next) => {
+  try {
+    const packages = await prisma.package.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { items: { include: { product: true } } },
+    });
+    res.json({ data: packages });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.post("/packages", async (req, res, next) => {
+  try {
+    const input = packageSchema.parse(req.body);
+    const { items, ...rest } = input;
+    const priceCents = await computePackagePriceCents(items);
+    const pkg = await prisma.package.create({
+      data: {
+        ...rest,
+        priceCents,
+        items: { create: items },
+      },
+      include: { items: { include: { product: true } } },
+    });
+    res.status(201).json({ data: pkg });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.patch("/packages/:id", async (req, res, next) => {
+  try {
+    const input = packageSchema.partial().parse(req.body);
+    const { items, ...rest } = input;
+    const pkg = await prisma.$transaction(async (tx) => {
+      const data: Record<string, unknown> = { ...rest };
+      if (items) {
+        data.priceCents = await computePackagePriceCents(items);
+        await tx.packageItem.deleteMany({ where: { packageId: req.params.id } });
+        await tx.packageItem.createMany({
+          data: items.map((i) => ({ ...i, packageId: req.params.id })),
+        });
+      }
+      await tx.package.update({ where: { id: req.params.id }, data });
+      return tx.package.findUnique({
+        where: { id: req.params.id },
+        include: { items: { include: { product: true } } },
+      });
+    });
+    res.json({ data: pkg });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.delete("/packages/:id", async (req, res, next) => {
+  try {
+    await prisma.package.delete({ where: { id: req.params.id } });
+    res.status(204).end();
   } catch (err) {
     next(err);
   }
@@ -461,6 +577,7 @@ const settingsSchema = z.object({
   senderAddressLine2: z.string().max(500),
   senderPhone: z.string().max(100),
   shippingBaseCents: z.number().int().min(0).max(10_000_000),
+  customPackageMinCents: z.number().int().min(0).max(10_000_000),
 });
 
 adminRouter.get("/settings", async (_req, res, next) => {

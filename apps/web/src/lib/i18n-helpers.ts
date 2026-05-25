@@ -1,10 +1,15 @@
 import type { Locale } from "@/i18n/routing";
-import type { Product } from "@/lib/api";
 
 type Named = {
   nameTh: string;
   nameZh: string | null;
   nameEn: string | null;
+};
+
+type Described = {
+  descriptionTh: string | null;
+  descriptionZh: string | null;
+  descriptionEn: string | null;
 };
 
 export function localizedName<T extends Named>(item: T, locale: Locale): string {
@@ -13,9 +18,9 @@ export function localizedName<T extends Named>(item: T, locale: Locale): string 
   return item.nameTh;
 }
 
-export function localizedDescription(product: Product, locale: Locale): string {
-  if (locale === "zh") return product.descriptionZh ?? product.descriptionTh ?? "";
+export function localizedDescription<T extends Described>(item: T, locale: Locale): string {
+  if (locale === "zh") return item.descriptionZh ?? item.descriptionTh ?? "";
   if (locale === "en")
-    return product.descriptionEn ?? product.descriptionZh ?? product.descriptionTh ?? "";
-  return product.descriptionTh ?? "";
+    return item.descriptionEn ?? item.descriptionZh ?? item.descriptionTh ?? "";
+  return item.descriptionTh ?? "";
 }

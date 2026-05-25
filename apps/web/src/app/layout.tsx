@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getLocale } from "next-intl/server";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,8 +10,11 @@ export const metadata: Metadata = {
   },
 };
 
-// html/body live in [locale]/layout.tsx so next-intl can set the lang attribute
-// per locale. Next.js shows a dev warning about this but the app renders correctly.
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return children as React.ReactElement;
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
+  return (
+    <html lang={locale === "zh" ? "zh-CN" : locale}>
+      <body className="bg-white text-slate-900 antialiased">{children}</body>
+    </html>
+  );
 }

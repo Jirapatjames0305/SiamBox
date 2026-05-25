@@ -19,9 +19,23 @@
   "Nav": {
     "brand": "泰国好物",
     "products": "商品",
+    "build": "自由搭配",
     "cart": "购物车",
     "track": "查询订单",
     "language": "语言"
+  },
+  "Build": {
+    "title": "自由搭配套餐",
+    "subtitle": "选择您喜欢的商品，系统自动计算价格",
+    "add": "添加",
+    "yourPackage": "您的套餐",
+    "emptySelection": "尚未选择商品",
+    "itemCount": "件数",
+    "total": "合计",
+    "belowMin": "最低订购 {min}",
+    "minOk": "已达最低 {min}",
+    "addToCart": "加入购物车",
+    "added": "已添加"
   },
   "Track": {
     "title": "查询我的订单",

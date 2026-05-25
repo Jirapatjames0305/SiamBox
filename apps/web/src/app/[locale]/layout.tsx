@@ -23,13 +23,9 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale === "zh" ? "zh-CN" : locale}>
-      <body className="bg-white text-slate-900 antialiased">
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          <Navbar />
-          {children}
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <NextIntlClientProvider locale={locale} messages={messages}>
+      <Navbar />
+      {children}
+    </NextIntlClientProvider>
   );
 }

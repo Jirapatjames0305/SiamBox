@@ -6,6 +6,7 @@ import { Link, useRouter } from "@/i18n/routing";
 import { shippingAddressSchema } from "@siambox/shared";
 import { createOrder } from "@/lib/api";
 import {
+  cartLineImage,
   cartLineName,
   cartTotalCents,
   clearCart,
@@ -103,7 +104,15 @@ export default function CheckoutPage() {
     setSubmitting(true);
     try {
       const order = await createOrder({
-        items: cart.lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
+        items: cart.lines.map((l) =>
+          l.kind === "package"
+            ? { kind: "package" as const, packageId: l.packageId, quantity: l.quantity }
+            : {
+                kind: "custom" as const,
+                quantity: l.quantity,
+                products: l.products.map((p) => ({ productId: p.productId, quantity: p.quantity })),
+              },
+        ),
         shippingAddress: parsed.data,
         customerNote: form.customerNote || undefined,
         paymentMethod,
@@ -175,12 +184,14 @@ export default function CheckoutPage() {
           <h2 className="text-base font-bold text-slate-900">{t("orderSummary")}</h2>
 
           <ul className="mt-4 space-y-2">
-            {cart.lines.map((l) => (
-              <li key={l.productId} className="flex gap-3">
+            {cart.lines.map((l) => {
+              const img = cartLineImage(l);
+              return (
+              <li key={l.lineId} className="flex gap-3">
                 <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-slate-100">
-                  {l.image && (
+                  {img && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={l.image} alt="" className="h-full w-full object-cover" />
+                    <img src={img} alt="" className="h-full w-full object-cover" />
                   )}
                 </div>
                 <div className="flex flex-1 items-start justify-between gap-2 text-sm">
@@ -193,7 +204,8 @@ export default function CheckoutPage() {
                   </span>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
 
           <div className="my-4 border-t border-slate-200" />

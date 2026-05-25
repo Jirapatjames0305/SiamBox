@@ -45,6 +45,12 @@ export function Navbar() {
             {t("products")}
           </Link>
           <Link
+            href="/build"
+            className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+          >
+            {t("build")}
+          </Link>
+          <Link
             href="/track"
             className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
           >
@@ -116,6 +122,13 @@ export function Navbar() {
               className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white"
             >
               {t("products")}
+            </Link>
+            <Link
+              href="/build"
+              onClick={() => setMobileOpen(false)}
+              className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white"
+            >
+              {t("build")}
             </Link>
             <Link
               href="/track"
