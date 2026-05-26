@@ -68,7 +68,9 @@
     "noImage": "No image",
     "outOfStock": "Out of stock",
     "productsCount": "{count} products",
-    "allCategories": "All"
+    "allCategories": "All",
+    "buildOwnTitle": "Build Your Own Package",
+    "buildOwnSubtitle": "Pick items you love and mix your own"
   },
   "ProductDetail": {
     "weight": "Weight",

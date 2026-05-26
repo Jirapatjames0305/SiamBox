@@ -68,7 +68,9 @@
     "noImage": "ไม่มีรูป",
     "outOfStock": "หมด",
     "productsCount": "{count} รายการ",
-    "allCategories": "ทั้งหมด"
+    "allCategories": "ทั้งหมด",
+    "buildOwnTitle": "จัดแพ็กเกจเอง",
+    "buildOwnSubtitle": "เลือกสินค้าที่ชอบ ผสมเองได้"
   },
   "ProductDetail": {
     "weight": "น้ำหนัก",

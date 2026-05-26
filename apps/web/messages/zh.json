@@ -68,7 +68,9 @@
     "noImage": "暂无图片",
     "outOfStock": "缺货",
     "productsCount": "{count} 件商品",
-    "allCategories": "全部"
+    "allCategories": "全部",
+    "buildOwnTitle": "自定义套餐",
+    "buildOwnSubtitle": "选择您喜欢的商品自由搭配"
   },
   "ProductDetail": {
     "weight": "重量",

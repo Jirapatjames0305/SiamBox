@@ -479,6 +479,19 @@ const packages = [
       { sku: "SB-SEAS-003", quantity: 1 },
     ],
   },
+  {
+    slug: "thai-snack-variety-box",
+    nameTh: "เซ็ตขนมไทยรวมยอดฮิต",
+    nameZh: "泰式人气零食礼盒",
+    nameEn: "Thai Snack Variety Box",
+    descriptionTh: "ขนมไทยยอดฮิตคัดสรร — ทุเรียนหมอนทองทอด ทองม้วนรสดั้งเดิม และปลาหมึกอบเบนโตะ ครบรสหวาน-กรอบ-เค็ม",
+    images: ["https://placehold.co/600x600/E67E22/ffffff?text=Snack+Variety"],
+    items: [
+      { sku: "SB-GG-001", quantity: 1 },
+      { sku: "SB-GG-006", quantity: 1 },
+      { sku: "SB-BT-001", quantity: 1 },
+    ],
+  },
 ];
 
 async function main() {

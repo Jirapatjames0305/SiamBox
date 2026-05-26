@@ -9,6 +9,9 @@ out/
 .next/
 .turbo/
 *.tsbuildinfo
+# Whitelist the /build route page (custom package builder UI) — matched by `build/` above
+!apps/web/src/app/**/build
+!apps/web/src/app/**/build/**
 
 # Environment variables
 .env

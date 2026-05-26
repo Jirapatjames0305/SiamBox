@@ -57,13 +57,13 @@ export default async function ProductsPage({
           const name = localizedName(p, locale as Locale);
           const itemCount = p.items.reduce((sum, it) => sum + it.quantity, 0);
           return (
-            <li key={p.id}>
-              <FadeInUp delay={i * 50}>
+            <li key={p.id} className="h-full">
+              <FadeInUp delay={i * 50} className="h-full">
                 <Link
                   href={`/products/${p.slug}`}
-                  className="group block overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm transition hover:shadow-md hover:border-blue-200"
+                  className="group flex h-full flex-col overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm transition hover:shadow-md hover:border-blue-200"
                 >
-                  <div className="aspect-square overflow-hidden bg-slate-100">
+                  <div className="aspect-square shrink-0 overflow-hidden bg-slate-100">
                     {p.images[0] ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -80,10 +80,10 @@ export default async function ProductsPage({
                       </div>
                     )}
                   </div>
-                  <div className="p-3">
+                  <div className="flex flex-1 flex-col p-3">
                     <p className="text-sm font-medium text-slate-800 line-clamp-2 leading-snug">{name}</p>
                     <p className="mt-0.5 text-xs text-slate-500">{itemCount} ชิ้น</p>
-                    <div className="mt-2 flex items-center justify-between">
+                    <div className="mt-auto pt-2 flex items-center justify-between">
                       <p className="text-base font-bold text-blue-600">
                         {formatPrice(p.priceCents, p.currency)}
                       </p>
@@ -94,6 +94,26 @@ export default async function ProductsPage({
             </li>
           );
         })}
+        <li className="h-full">
+          <FadeInUp delay={packages.length * 50} className="h-full">
+            <Link
+              href="/build"
+              className="group flex h-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition hover:border-blue-400 hover:bg-blue-50/40"
+            >
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white border border-slate-200 text-slate-500 transition group-hover:border-blue-300 group-hover:text-blue-600">
+                <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-slate-800 group-hover:text-blue-700">
+                  {t("buildOwnTitle")}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">{t("buildOwnSubtitle")}</p>
+              </div>
+            </Link>
+          </FadeInUp>
+        </li>
       </ul>
     </main>
   );
