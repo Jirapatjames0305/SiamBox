@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "ulimit -n 10240 && next dev --port 3001",
+    "dev": "ulimit -n 60000 && WATCHPACK_POLLING=true CHOKIDAR_USEPOLLING=true next dev --port 3001",
     "build": "next build",
     "start": "next start --port 3001",
     "lint": "next lint",

@@ -198,6 +198,231 @@ const products = [
     tags: ["rosdee", "ka-prao", "basil"],
     images: ["https://placehold.co/600x600/388E3C/ffffff?text=Ka+Prao"],
   },
+  // ---------- Goldgreen snacks ----------
+  {
+    sku: "SB-GG-001",
+    slug: "goldgreen-bake-durian-monthong-chips-3pack",
+    nameTh: "เดอะโกลด์กรีน ทุเรียนหมอนทองทอดและอบกรอบ (แพ็ก 3 ซอง)",
+    nameZh: "Goldgreen 烘烤金枕头榴莲脆片 (3包装)",
+    nameEn: "Goldgreen Bake Durian Monthong Chips (Pack of 3)",
+    priceCents: 6500,
+    stock: 40,
+    weightGrams: 150,
+    category: "snack",
+    tags: ["goldgreen", "durian", "chips"],
+    images: ["https://placehold.co/600x600/DAA520/ffffff?text=Durian+Chips+x3"],
+  },
+  {
+    sku: "SB-GG-002",
+    slug: "goldgreen-durian-monthong-chips-50g-6pack",
+    nameTh: "เดอะโกลด์กรีน ทุเรียนหมอนทองทอดและอบกรอบ 50 กรัม (แพ็ก 6 ซอง)",
+    nameZh: "Goldgreen 金枕头榴莲脆片 50克 (6包装)",
+    nameEn: "Goldgreen Monthong Durian Chips 50g (Pack of 6)",
+    priceCents: 12500,
+    stock: 30,
+    weightGrams: 300,
+    category: "snack",
+    tags: ["goldgreen", "durian", "chips"],
+    images: ["https://placehold.co/600x600/DAA520/ffffff?text=Durian+Chips+50g+x6"],
+  },
+  {
+    sku: "SB-GG-003",
+    slug: "goldgreen-cashew-coconut-100g",
+    nameTh: "เดอะโกลด์กรีน เม็ดมะม่วงหิมพานต์เคลือบมะพร้าว 100 กรัม",
+    nameZh: "Goldgreen 椰子涂层腰果 100克",
+    nameEn: "Goldgreen Cashew Nuts Coated Coconut 100g",
+    priceCents: 3500,
+    stock: 50,
+    weightGrams: 100,
+    category: "snack",
+    tags: ["goldgreen", "cashew", "coconut", "nuts"],
+    images: ["https://placehold.co/600x600/C49A6C/ffffff?text=Cashew+Coconut"],
+  },
+  {
+    sku: "SB-GG-004",
+    slug: "goldgreen-mango-coconut-milk-100g-3pack",
+    nameTh: "เดอะโกลด์กรีน มะม่วงอบแห้งเคลือบครีมกะทิ 100 กรัม (แพ็ก 3 ซอง)",
+    nameZh: "Goldgreen 椰奶涂层芒果干 100克 (3包装)",
+    nameEn: "Goldgreen Mango Coated Coconut Milk 100g (Pack of 3)",
+    priceCents: 9000,
+    stock: 30,
+    weightGrams: 300,
+    category: "snack",
+    tags: ["goldgreen", "mango", "coconut"],
+    images: ["https://placehold.co/600x600/FFA500/ffffff?text=Mango+Coconut+x3"],
+  },
+  {
+    sku: "SB-GG-005",
+    slug: "goldgreen-tom-yum-mini-rice-cookies-40g-3pack",
+    nameTh: "เดอะโกลด์กรีน ข้าวแต๋นมินิ รสต้มยำ 40 กรัม (แพ็ก 3 ซอง)",
+    nameZh: "Goldgreen 冬阴功味迷你米通 40克 (3包装)",
+    nameEn: "Goldgreen Tom Yum Mini Rice Cookies 40g (Pack of 3)",
+    priceCents: 5000,
+    stock: 35,
+    weightGrams: 120,
+    category: "snack",
+    tags: ["goldgreen", "rice-cookies", "tom-yum"],
+    images: ["https://placehold.co/600x600/E67E22/ffffff?text=Tom+Yum+Rice+x3"],
+  },
+  {
+    sku: "SB-GG-006",
+    slug: "goldgreen-coconut-crispy-rolls-80g",
+    nameTh: "เดอะโกลด์กรีน ทองม้วนรสดั้งเดิม 80 กรัม",
+    nameZh: "Goldgreen 传统椰子卷 80克",
+    nameEn: "Goldgreen Traditional Coconut Crispy Rolls 80g",
+    priceCents: 3000,
+    stock: 50,
+    weightGrams: 80,
+    category: "snack",
+    tags: ["goldgreen", "coconut", "rolls"],
+    images: ["https://placehold.co/600x600/D4A373/ffffff?text=Coconut+Rolls"],
+  },
+  {
+    sku: "SB-GG-007",
+    slug: "goldgreen-bake-coconut-chips-50g-3pack",
+    nameTh: "เดอะโกลด์กรีน มะพร้าวอบกรอบ 50 กรัม (แพ็ก 3 ซอง)",
+    nameZh: "Goldgreen 烘烤椰子脆片 50克 (3包装)",
+    nameEn: "Goldgreen Bake Coconut Chips 50g (Pack of 3)",
+    priceCents: 4500,
+    stock: 40,
+    weightGrams: 150,
+    category: "snack",
+    tags: ["goldgreen", "coconut", "chips"],
+    images: ["https://placehold.co/600x600/F5DEB3/333333?text=Coconut+Chips+x3"],
+  },
+  {
+    sku: "SB-GG-008",
+    slug: "goldgreen-jackfruit-chips-100g-3pack",
+    nameTh: "เดอะโกลด์กรีน ขนุนอบกรอบ 100 กรัม (แพ็ก 3 ซอง)",
+    nameZh: "Goldgreen 菠萝蜜脆片 100克 (3包装)",
+    nameEn: "Goldgreen Jackfruit Chips 100g (Pack of 3)",
+    priceCents: 9500,
+    stock: 30,
+    weightGrams: 300,
+    category: "snack",
+    tags: ["goldgreen", "jackfruit", "chips"],
+    images: ["https://placehold.co/600x600/F1C40F/ffffff?text=Jackfruit+Chips+x3"],
+  },
+  {
+    sku: "SB-GG-009",
+    slug: "goldgreen-mangosteen-freeze-dried-72g-3pack",
+    nameTh: "เดอะโกลด์กรีน มังคุดอบกรอบ 72 กรัม (แพ็ก 3 ซอง)",
+    nameZh: "Goldgreen 冷冻干燥山竹 72克 (3包装)",
+    nameEn: "Goldgreen Mangosteen Freeze Dried 72g (Pack of 3)",
+    priceCents: 8500,
+    stock: 30,
+    weightGrams: 216,
+    category: "snack",
+    tags: ["goldgreen", "mangosteen", "freeze-dried"],
+    images: ["https://placehold.co/600x600/6A1B9A/ffffff?text=Mangosteen+x3"],
+  },
+  // ---------- Bento squid snacks ----------
+  {
+    sku: "SB-BT-001",
+    slug: "bento-squid-sweet-spicy-4g-12pack",
+    nameTh: "เบนโตะ ปลาหมึกอบทรงเครื่อง 4 กรัม (แพ็ก 12 ซอง)",
+    nameZh: "Bento 烤鱿鱼甜辣味 4克 (12包装)",
+    nameEn: "Bento Squid Snack Sweet & Spicy 4g (Pack of 12)",
+    priceCents: 3000,
+    stock: 50,
+    weightGrams: 48,
+    category: "snack",
+    tags: ["bento", "squid", "sweet-spicy"],
+    images: ["https://placehold.co/600x600/D32F2F/ffffff?text=Bento+Sweet+x12"],
+  },
+  {
+    sku: "SB-BT-002",
+    slug: "bento-squid-sweet-spicy-4g-6pack",
+    nameTh: "เบนโตะ ปลาหมึกอบทรงเครื่อง 4 กรัม (แพ็ก 6 ซอง)",
+    nameZh: "Bento 烤鱿鱼甜辣味 4克 (6包装)",
+    nameEn: "Bento Squid Snack Sweet & Spicy 4g (Pack of 6)",
+    priceCents: 1800,
+    stock: 60,
+    weightGrams: 24,
+    category: "snack",
+    tags: ["bento", "squid", "sweet-spicy"],
+    images: ["https://placehold.co/600x600/D32F2F/ffffff?text=Bento+Sweet+x6"],
+  },
+  {
+    sku: "SB-BT-003",
+    slug: "bento-squid-hot-spicy-18g-6pack",
+    nameTh: "เบนโตะ ปลาหมึกอบปรุงรส 18 กรัม (แพ็ก 6 ซอง)",
+    nameZh: "Bento 烤鱿鱼麻辣味 18克 (6包装)",
+    nameEn: "Bento Squid Snack Hot & Spicy 18g (Pack of 6)",
+    priceCents: 4000,
+    stock: 40,
+    weightGrams: 108,
+    category: "snack",
+    tags: ["bento", "squid", "hot-spicy"],
+    images: ["https://placehold.co/600x600/1976D2/ffffff?text=Bento+Hot+x6"],
+  },
+  {
+    sku: "SB-BT-004",
+    slug: "bento-squid-namprik-thai-18g-6pack",
+    nameTh: "เบนโตะ ปลาหมึกอบรสน้ำพริกตำรับไทย 18 กรัม (แพ็ก 6 ซอง)",
+    nameZh: "Bento 烤鱿鱼泰式辣酱味 18克 (6包装)",
+    nameEn: "Bento Squid Snack Namprik Thai Original 18g (Pack of 6)",
+    priceCents: 4000,
+    stock: 40,
+    weightGrams: 108,
+    category: "snack",
+    tags: ["bento", "squid", "namprik"],
+    images: ["https://placehold.co/600x600/EF6C00/ffffff?text=Bento+Namprik+x6"],
+  },
+  // ---------- Taro fish snacks ----------
+  {
+    sku: "SB-TR-001",
+    slug: "taro-fish-snack-hot-chili-30g-12pack",
+    nameTh: "ทาโร ปลาเส้น รสซูเปอร์แซบ 30 กรัม (แพ็ก 12 ซอง)",
+    nameZh: "Taro 鱼条超辣味 30克 (12包装)",
+    nameEn: "Taro Fish Snack Hot Chili 30g (Pack of 12)",
+    priceCents: 7500,
+    stock: 35,
+    weightGrams: 360,
+    category: "snack",
+    tags: ["taro", "fish", "hot-chili"],
+    images: ["https://placehold.co/600x600/C62828/ffffff?text=Taro+HotChili+x12"],
+  },
+  {
+    sku: "SB-TR-002",
+    slug: "taro-fish-snack-bbq-30g-12pack",
+    nameTh: "ทาโร ปลาเส้น รสบาร์บีคิว 30 กรัม (แพ็ก 12 ซอง)",
+    nameZh: "Taro 鱼条烧烤味 30克 (12包装)",
+    nameEn: "Taro Fish Snack BBQ 30g (Pack of 12)",
+    priceCents: 7500,
+    stock: 35,
+    weightGrams: 360,
+    category: "snack",
+    tags: ["taro", "fish", "bbq"],
+    images: ["https://placehold.co/600x600/E65100/ffffff?text=Taro+BBQ+x12"],
+  },
+  {
+    sku: "SB-TR-003",
+    slug: "taro-fish-snack-spicy-30g-12pack",
+    nameTh: "ทาโร ปลาเส้น รสเข้มข้น 30 กรัม (แพ็ก 12 ซอง)",
+    nameZh: "Taro 鱼条香辣味 30克 (12包装)",
+    nameEn: "Taro Fish Snack Spicy 30g (Pack of 12)",
+    priceCents: 7500,
+    stock: 35,
+    weightGrams: 360,
+    category: "snack",
+    tags: ["taro", "fish", "spicy"],
+    images: ["https://placehold.co/600x600/F9A825/ffffff?text=Taro+Spicy+x12"],
+  },
+  // ---------- Lay's ----------
+  {
+    sku: "SB-LY-001",
+    slug: "lays-bt21-hot-chili-squid-big-pack",
+    nameTh: "เลย์ ร็อค BT21 รสปลาหมึกย่างฮอตชิลลี่ Big Pack",
+    nameZh: "Lay's BT21 烤鱿鱼香辣味 大包装",
+    nameEn: "Lay's BT21 Hot Chili Squid Big Pack",
+    priceCents: 1500,
+    stock: 60,
+    weightGrams: 65,
+    category: "snack",
+    tags: ["lays", "chips", "squid", "bt21"],
+    images: ["https://placehold.co/600x600/F1C40F/ffffff?text=Lays+BT21"],
+  },
 ];
 
 const packages = [
@@ -257,10 +482,12 @@ const packages = [
 ];
 
 async function main() {
+  // Idempotent: only create rows missing by SKU; never modify existing products
+  // (preserves images/prices/stock edited via admin after first seed).
   for (const p of products) {
     await prisma.product.upsert({
       where: { sku: p.sku },
-      update: { images: p.images },
+      update: {},
       create: {
         ...p,
         currency: "CNY",
@@ -269,8 +496,11 @@ async function main() {
     });
   }
 
-  // Seed packages — resolve SKU to product id, compute priceCents from items, then upsert by slug
+  // Seed packages — resolve SKU to product id, compute priceCents from items.
+  // Idempotent: skip if the slug already exists so admin edits (images, price, items) survive re-seeds.
   for (const pkg of packages) {
+    const existing = await prisma.package.findUnique({ where: { slug: pkg.slug } });
+    if (existing) continue;
     const skuToProduct = new Map<string, { id: string; priceCents: number }>();
     for (const it of pkg.items) {
       const prod = await prisma.product.findUnique({
@@ -288,39 +518,20 @@ async function main() {
       (sum, it) => sum + skuToProduct.get(it.sku)!.priceCents * it.quantity,
       0,
     );
-    const existing = await prisma.package.findUnique({ where: { slug: pkg.slug } });
-    if (existing) {
-      await prisma.$transaction([
-        prisma.packageItem.deleteMany({ where: { packageId: existing.id } }),
-        prisma.package.update({
-          where: { id: existing.id },
-          data: {
-            nameTh: pkg.nameTh,
-            nameZh: pkg.nameZh,
-            nameEn: pkg.nameEn,
-            descriptionTh: pkg.descriptionTh,
-            priceCents,
-            images: pkg.images,
-            items: { create: itemData },
-          },
-        }),
-      ]);
-    } else {
-      await prisma.package.create({
-        data: {
-          slug: pkg.slug,
-          nameTh: pkg.nameTh,
-          nameZh: pkg.nameZh,
-          nameEn: pkg.nameEn,
-          descriptionTh: pkg.descriptionTh,
-          priceCents,
-          currency: "CNY",
-          images: pkg.images,
-          active: true,
-          items: { create: itemData },
-        },
-      });
-    }
+    await prisma.package.create({
+      data: {
+        slug: pkg.slug,
+        nameTh: pkg.nameTh,
+        nameZh: pkg.nameZh,
+        nameEn: pkg.nameEn,
+        descriptionTh: pkg.descriptionTh,
+        priceCents,
+        currency: "CNY",
+        images: pkg.images,
+        active: true,
+        items: { create: itemData },
+      },
+    });
   }
 }
 
