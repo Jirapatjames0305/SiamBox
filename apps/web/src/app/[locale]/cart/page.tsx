@@ -86,6 +86,15 @@ export default function CartPage() {
                         ))}
                       </ul>
                     )}
+                    {line.kind === "package" && line.addons && line.addons.length > 0 && (
+                      <ul className="mt-1 space-y-0.5 text-xs text-slate-500">
+                        {line.addons.map((a) => (
+                          <li key={a.productId}>
+                            + {a.nameTh} × {a.quantity}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     <p className="mt-1 text-sm font-medium text-blue-500">
                       {formatPrice(line.priceCents)}
                     </p>

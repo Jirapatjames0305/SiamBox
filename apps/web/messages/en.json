@@ -24,6 +24,16 @@
     "track": "Track Order",
     "language": "Language"
   },
+  "Contact": {
+    "openMenu": "Contact Admin",
+    "close": "Close",
+    "lineLabel": "LINE",
+    "lineAria": "Contact admin via LINE",
+    "wechatLabel": "WeChat",
+    "wechatAria": "Contact admin via WeChat",
+    "wechatCopyHint": "Click to copy WeChat ID",
+    "wechatCopied": "Copied!"
+  },
   "Build": {
     "title": "Build Your Own Package",
     "subtitle": "Pick your items — price calculated automatically",
@@ -66,7 +76,13 @@
     "stockCount": "{count} pcs",
     "addToCart": "Add to Cart",
     "added": "Added ✓",
-    "buyNow": "Buy Now"
+    "buyNow": "Buy Now",
+    "inStock": "In Stock",
+    "packageContents": "Package Contents",
+    "addExtras": "Add Extras",
+    "sameCategoryOnly": "Same category only",
+    "unitPrice": "Unit Price",
+    "lineTotal": "Total"
   },
   "Cart": {
     "title": "Cart",

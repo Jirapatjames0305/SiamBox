@@ -161,7 +161,12 @@ export async function getPackageBySlug(slug: string): Promise<Package | null> {
 }
 
 export type CheckoutItemPayload =
-  | { kind: "package"; packageId: string; quantity: number }
+  | {
+      kind: "package";
+      packageId: string;
+      quantity: number;
+      addons?: { productId: string; quantity: number }[];
+    }
   | {
       kind: "custom";
       quantity: number;

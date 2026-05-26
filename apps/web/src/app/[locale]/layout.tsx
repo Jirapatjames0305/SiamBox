@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
+import { ContactWidget } from "@/components/ContactWidget";
 import { Navbar } from "@/components/Navbar";
 import { routing } from "@/i18n/routing";
 
@@ -26,6 +27,7 @@ export default async function LocaleLayout({
     <NextIntlClientProvider locale={locale} messages={messages}>
       <Navbar />
       {children}
+      <ContactWidget />
     </NextIntlClientProvider>
   );
 }

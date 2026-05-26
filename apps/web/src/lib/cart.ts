@@ -5,17 +5,29 @@ import type { Locale } from "@/i18n/routing";
 
 const STORAGE_KEY = "siambox.cart.v4";
 
-export type PackageCartLine = {
-  kind: "package";
-  lineId: string; // = packageId
-  packageId: string;
-  slug: string;
+export type PackageAddon = {
+  productId: string;
   nameTh: string;
   nameZh: string | null;
   nameEn: string | null;
   priceCents: number;
   quantity: number;
   image?: string;
+};
+
+export type PackageCartLine = {
+  kind: "package";
+  lineId: string; // packageId or packageId + addon fingerprint
+  packageId: string;
+  slug: string;
+  nameTh: string;
+  nameZh: string | null;
+  nameEn: string | null;
+  basePriceCents: number; // package base price (excluding addons)
+  priceCents: number; // unit price = basePriceCents + sum(addon.price × addon.qty)
+  quantity: number;
+  image?: string;
+  addons?: PackageAddon[];
 };
 
 export type CustomCartLine = {
@@ -73,13 +85,35 @@ export function useCartHydrated() {
   return hydrated;
 }
 
-export function addPackageToCart(line: Omit<PackageCartLine, "kind" | "lineId" | "quantity"> & { quantity?: number }) {
+function addonsFingerprint(addons?: PackageAddon[]): string {
+  if (!addons || addons.length === 0) return "";
+  return addons
+    .map((a) => `${a.productId}:${a.quantity}`)
+    .sort()
+    .join("|");
+}
+
+export function addPackageToCart(
+  line: Omit<PackageCartLine, "kind" | "lineId" | "quantity" | "priceCents"> & {
+    quantity?: number;
+  },
+) {
   const cart = read();
-  const existing = cart.lines.find((l): l is PackageCartLine => l.kind === "package" && l.packageId === line.packageId);
+  const fp = addonsFingerprint(line.addons);
+  const lineId = fp ? `${line.packageId}#${fp}` : line.packageId;
+  const addonsTotal = (line.addons ?? []).reduce((s, a) => s + a.priceCents * a.quantity, 0);
+  const priceCents = line.basePriceCents + addonsTotal;
+  const existing = cart.lines.find((l): l is PackageCartLine => l.kind === "package" && l.lineId === lineId);
   if (existing) {
     existing.quantity += line.quantity ?? 1;
   } else {
-    cart.lines.push({ ...line, kind: "package", lineId: line.packageId, quantity: line.quantity ?? 1 });
+    cart.lines.push({
+      ...line,
+      kind: "package",
+      lineId,
+      priceCents,
+      quantity: line.quantity ?? 1,
+    });
   }
   write(cart);
 }

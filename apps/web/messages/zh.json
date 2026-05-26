@@ -24,6 +24,16 @@
     "track": "查询订单",
     "language": "语言"
   },
+  "Contact": {
+    "openMenu": "联系客服",
+    "close": "关闭",
+    "lineLabel": "LINE",
+    "lineAria": "通过 LINE 联系客服",
+    "wechatLabel": "微信",
+    "wechatAria": "通过微信联系客服",
+    "wechatCopyHint": "点击复制微信号",
+    "wechatCopied": "已复制!"
+  },
   "Build": {
     "title": "自由搭配套餐",
     "subtitle": "选择您喜欢的商品，系统自动计算价格",
@@ -66,7 +76,13 @@
     "stockCount": "{count} 件",
     "addToCart": "加入购物车",
     "added": "已加入 ✓",
-    "buyNow": "立即购买"
+    "buyNow": "立即购买",
+    "inStock": "现货",
+    "packageContents": "套餐包含",
+    "addExtras": "添加额外商品",
+    "sameCategoryOnly": "仅限同类商品",
+    "unitPrice": "单价",
+    "lineTotal": "小计"
   },
   "Cart": {
     "title": "购物车",

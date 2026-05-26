@@ -106,7 +106,12 @@ export default function CheckoutPage() {
       const order = await createOrder({
         items: cart.lines.map((l) =>
           l.kind === "package"
-            ? { kind: "package" as const, packageId: l.packageId, quantity: l.quantity }
+            ? {
+                kind: "package" as const,
+                packageId: l.packageId,
+                quantity: l.quantity,
+                addons: l.addons?.map((a) => ({ productId: a.productId, quantity: a.quantity })),
+              }
             : {
                 kind: "custom" as const,
                 quantity: l.quantity,

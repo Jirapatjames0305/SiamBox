@@ -23,24 +23,32 @@ ordersRouter.post("/", async (req, res, next) => {
     const customProductIds = input.items.flatMap((i) =>
       i.kind === "custom" ? i.products.map((p) => p.productId) : [],
     );
+    const addonProductIds = input.items.flatMap((i) =>
+      i.kind === "package" && i.addons ? i.addons.map((a) => a.productId) : [],
+    );
+    const allProductIds = Array.from(new Set([...customProductIds, ...addonProductIds]));
 
-    const [packages, customProducts, settings] = await Promise.all([
+    const [packages, allProducts, settings] = await Promise.all([
       packageIds.length > 0
-        ? prisma.package.findMany({ where: { id: { in: packageIds }, active: true } })
+        ? prisma.package.findMany({
+            where: { id: { in: packageIds }, active: true },
+            include: { items: { include: { product: { select: { category: true } } } } },
+          })
         : Promise.resolve([]),
-      customProductIds.length > 0
+      allProductIds.length > 0
         ? prisma.product.findMany({
-            where: { id: { in: customProductIds }, active: true },
+            where: { id: { in: allProductIds }, active: true },
           })
         : Promise.resolve([]),
       prisma.settings.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } }),
     ]);
     const packageMap = new Map(packages.map((p) => [p.id, p]));
-    const productMap = new Map(customProducts.map((p) => [p.id, p]));
+    const productMap = new Map(allProducts.map((p) => [p.id, p]));
 
     // Pre-compute custom package totals + validate min threshold
     type LineToCreate = {
-      packageId: string;
+      packageId: string | null;
+      productId: string | null;
       productNameTh: string;
       productNameZh: string | null;
       quantity: number;
@@ -51,20 +59,48 @@ ordersRouter.post("/", async (req, res, next) => {
     };
 
     let subtotal = 0;
-    const lineDrafts: LineToCreate[] = input.items.map((item) => {
+    const lineDrafts: LineToCreate[] = input.items.flatMap((item) => {
       if (item.kind === "package") {
         const pkg = packageMap.get(item.packageId);
         if (!pkg) throw Object.assign(new Error("PackageNotAvailable"), { status: 400 });
         const lineTotal = pkg.priceCents * item.quantity;
         subtotal += lineTotal;
-        return {
-          packageId: pkg.id,
-          productNameTh: pkg.nameTh,
-          productNameZh: pkg.nameZh,
-          quantity: item.quantity,
-          unitPriceCents: pkg.priceCents,
-          totalCents: lineTotal,
-        };
+        const lines: LineToCreate[] = [
+          {
+            packageId: pkg.id,
+            productId: null,
+            productNameTh: pkg.nameTh,
+            productNameZh: pkg.nameZh,
+            quantity: item.quantity,
+            unitPriceCents: pkg.priceCents,
+            totalCents: lineTotal,
+          },
+        ];
+        if (item.addons && item.addons.length > 0) {
+          const allowedCategories = new Set(
+            pkg.items.map((pi) => pi.product.category).filter((c): c is string => !!c),
+          );
+          for (const a of item.addons) {
+            const product = productMap.get(a.productId);
+            if (!product) throw Object.assign(new Error(`AddonNotAvailable:${a.productId}`), { status: 400 });
+            if (allowedCategories.size > 0 && (!product.category || !allowedCategories.has(product.category))) {
+              throw Object.assign(new Error(`AddonCategoryMismatch:${a.productId}`), { status: 400 });
+            }
+            const addonQty = a.quantity * item.quantity;
+            const addonTotal = product.priceCents * addonQty;
+            subtotal += addonTotal;
+            lines.push({
+              packageId: null,
+              productId: product.id,
+              productNameTh: product.nameTh,
+              productNameZh: product.nameZh,
+              quantity: addonQty,
+              unitPriceCents: product.priceCents,
+              totalCents: addonTotal,
+            });
+          }
+        }
+        return lines;
       }
       // Custom box: compute unit price = sum(product.price × qty)
       let unitPrice = 0;
@@ -78,15 +114,18 @@ ordersRouter.post("/", async (req, res, next) => {
       }
       const lineTotal = unitPrice * item.quantity;
       subtotal += lineTotal;
-      return {
-        packageId: "", // filled in after Package is created
-        productNameTh: "แพ็กเกจกำหนดเอง",
-        productNameZh: "自定义套餐",
-        quantity: item.quantity,
-        unitPriceCents: unitPrice,
-        totalCents: lineTotal,
-        _customProducts: item.products,
-      };
+      return [
+        {
+          packageId: "", // filled in after Package is created
+          productId: null,
+          productNameTh: "แพ็กเกจกำหนดเอง",
+          productNameZh: "自定义套餐",
+          quantity: item.quantity,
+          unitPriceCents: unitPrice,
+          totalCents: lineTotal,
+          _customProducts: item.products,
+        },
+      ];
     });
 
     const shippingCents = settings.shippingBaseCents;

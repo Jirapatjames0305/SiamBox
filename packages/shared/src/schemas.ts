@@ -16,6 +16,14 @@ export const checkoutPackageItemSchema = z.object({
   kind: z.literal("package"),
   packageId: z.string().min(1),
   quantity: z.number().int().positive(),
+  addons: z
+    .array(
+      z.object({
+        productId: z.string().min(1),
+        quantity: z.number().int().positive(),
+      }),
+    )
+    .optional(),
 });
 
 export const checkoutCustomItemSchema = z.object({

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/routing";
-import { getPackageBySlug } from "@/lib/api";
+import { getPackageBySlug, listProducts } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { localizedDescription, localizedName } from "@/lib/i18n-helpers";
 import type { Locale } from "@/i18n/routing";
@@ -15,6 +15,7 @@ export default async function ProductDetailPage({
   const { slug, locale } = await params;
   setRequestLocale(locale);
   const tProducts = await getTranslations("Products");
+  const tDetail = await getTranslations("ProductDetail");
 
   const pkg = await getPackageBySlug(slug);
   if (!pkg) notFound();
@@ -23,6 +24,26 @@ export default async function ProductDetailPage({
   const description = localizedDescription(pkg, locale as Locale);
   // Package is in-stock if every contained product has enough stock for at least 1 package
   const inStock = pkg.items.every((it) => it.product.stock >= it.quantity);
+
+  // Addon candidates: products in the same category as any package item, excluding items already in the package
+  const pkgCategories = new Set(
+    pkg.items.map((it) => it.product.category).filter((c): c is string => !!c),
+  );
+  const pkgProductIds = new Set(pkg.items.map((it) => it.productId));
+  const availableAddons =
+    pkgCategories.size > 0
+      ? (await listProducts())
+          .filter((p) => p.category && pkgCategories.has(p.category))
+          .filter((p) => !pkgProductIds.has(p.id) && p.stock > 0)
+          .map((p) => ({
+            productId: p.id,
+            nameTh: p.nameTh,
+            nameZh: p.nameZh,
+            nameEn: p.nameEn,
+            priceCents: p.priceCents,
+            image: p.images[0],
+          }))
+      : [];
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
@@ -63,7 +84,7 @@ export default async function ProductDetailPage({
           <div className="mt-4 flex flex-wrap gap-3">
             <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${inStock ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>
               <span className={`h-1.5 w-1.5 rounded-full ${inStock ? "bg-emerald-500" : "bg-red-400"}`} />
-              {inStock ? "พร้อมส่ง" : tProducts("outOfStock")}
+              {inStock ? tDetail("inStock") : tProducts("outOfStock")}
             </span>
           </div>
 
@@ -72,7 +93,7 @@ export default async function ProductDetailPage({
           {/* Package contents */}
           <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
-              สินค้าในแพ็กเกจ
+              {tDetail("packageContents")}
             </p>
             <ul className="space-y-2">
               {pkg.items.map((it) => {
@@ -94,9 +115,11 @@ export default async function ProductDetailPage({
               nameTh: pkg.nameTh,
               nameZh: pkg.nameZh,
               nameEn: pkg.nameEn,
-              priceCents: pkg.priceCents,
+              basePriceCents: pkg.priceCents,
               image: pkg.images[0],
             }}
+            availableAddons={availableAddons}
+            locale={locale as Locale}
             disabled={!inStock}
           />
 

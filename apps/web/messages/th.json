@@ -24,6 +24,16 @@
     "track": "ติดตามออเดอร์",
     "language": "ภาษา"
   },
+  "Contact": {
+    "openMenu": "ติดต่อแอดมิน",
+    "close": "ปิด",
+    "lineLabel": "LINE",
+    "lineAria": "ติดต่อแอดมินผ่าน LINE",
+    "wechatLabel": "WeChat",
+    "wechatAria": "ติดต่อแอดมินผ่าน WeChat",
+    "wechatCopyHint": "คลิกเพื่อคัดลอก WeChat ID",
+    "wechatCopied": "คัดลอกแล้ว!"
+  },
   "Build": {
     "title": "จัดแพ็กเกจของคุณเอง",
     "subtitle": "เลือกสินค้าที่ต้องการ ระบบจะคำนวณราคาให้อัตโนมัติ",
@@ -66,7 +76,13 @@
     "stockCount": "{count} ชิ้น",
     "addToCart": "เพิ่มลงตะกร้า",
     "added": "เพิ่มแล้ว ✓",
-    "buyNow": "ซื้อเลย"
+    "buyNow": "ซื้อเลย",
+    "inStock": "พร้อมส่ง",
+    "packageContents": "สินค้าในแพ็กเกจ",
+    "addExtras": "เพิ่มสินค้าเข้าแพ็กเกจ",
+    "sameCategoryOnly": "เฉพาะหมวดหมู่เดียวกัน",
+    "unitPrice": "ราคาต่อหน่วย",
+    "lineTotal": "รวม"
   },
   "Cart": {
     "title": "ตะกร้า",
