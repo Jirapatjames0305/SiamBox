@@ -22,7 +22,8 @@
     "build": "จัดแพ็กเกจเอง",
     "cart": "ตะกร้า",
     "track": "ติดตามออเดอร์",
-    "language": "ภาษา"
+    "language": "ภาษา",
+    "requestProduct": "รีเควสสินค้า"
   },
   "Contact": {
     "openMenu": "ติดต่อแอดมิน",
@@ -124,7 +125,21 @@
     "submitError": "สั่งซื้อไม่สำเร็จ",
     "notePlaceholder": "หมายเหตุเพิ่มเติม (ถ้ามี)",
     "payTest": "ทดสอบ (บัตรเครดิต)",
-    "payTestHint": "สำหรับทดสอบเท่านั้น — บัตร sandbox 4141... OTP 123456"
+    "payTestHint": "สำหรับทดสอบเท่านั้น — บัตร sandbox 4141... OTP 123456",
+    "bankTransferTitle": "โอนเงินเข้าบัญชี",
+    "scanQr": "สแกนเพื่อโอน",
+    "accountName": "ชื่อบัญชี",
+    "accountNumber": "เลขที่บัญชี",
+    "attachSlip": "แนบสลิปการโอน",
+    "uploadingSlip": "กำลังอัปโหลด…",
+    "slipUploaded": "แนบสลิปแล้ว",
+    "slipUploadError": "อัปโหลดไม่สำเร็จ ลองใหม่",
+    "slipRequired": "กรุณาแนบสลิปการโอนก่อนยืนยัน",
+    "shippingMethodTitle": "วิธีจัดส่ง",
+    "shippingNormal": "ธรรมดา",
+    "shippingExpress": "ด่วน",
+    "daysNormal": "7-15 วัน",
+    "daysExpress": "3-5 วัน"
   },
   "Order": {
     "orderNumber": "ออเดอร์",
@@ -158,5 +173,25 @@
     "DELIVERED": "ส่งถึงแล้ว",
     "CANCELLED": "ยกเลิก",
     "REFUNDED": "คืนเงิน"
+  },
+  "RequestProduct": {
+    "title": "รีเควสสินค้า",
+    "subtitle": "หาสินค้าที่ต้องการไม่เจอ? บอกเราไว้ เดี๋ยวเราหาให้",
+    "productName": "ชื่อสินค้า",
+    "productNamePlaceholder": "เช่น มาส์กยี่ห้อ X / ลิงก์",
+    "detail": "รายละเอียด (ไม่บังคับ)",
+    "detailPlaceholder": "สเปก ลิงก์ จำนวน ฯลฯ",
+    "contact": "ช่องทางติดต่อ (ไม่บังคับ)",
+    "contactPlaceholder": "WeChat / เบอร์โทร / Line",
+    "submit": "ส่งคำขอ",
+    "submitting": "กำลังส่ง…",
+    "error": "ส่งไม่สำเร็จ ลองใหม่อีกครั้ง",
+    "thanks": "รับคำขอแล้ว!",
+    "thanksHint": "เราจะรีบหาสินค้าให้เร็วที่สุด",
+    "again": "รีเควสอีกชิ้น",
+    "image": "รูปภาพ (ไม่บังคับ)",
+    "uploading": "กำลังอัปโหลด…",
+    "uploadError": "อัปโหลดรูปไม่สำเร็จ",
+    "removeImage": "ลบรูป"
   }
 }

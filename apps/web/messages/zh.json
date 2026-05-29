@@ -22,7 +22,8 @@
     "build": "自由搭配",
     "cart": "购物车",
     "track": "查询订单",
-    "language": "语言"
+    "language": "语言",
+    "requestProduct": "申请商品"
   },
   "Contact": {
     "openMenu": "联系客服",
@@ -124,7 +125,21 @@
     "submitError": "下单失败",
     "notePlaceholder": "订单备注（选填）",
     "payTest": "测试 (信用卡)",
-    "payTestHint": "仅用于测试 — 沙箱信用卡 4141... OTP 123456"
+    "payTestHint": "仅用于测试 — 沙箱信用卡 4141... OTP 123456",
+    "bankTransferTitle": "银行转账",
+    "scanQr": "扫码付款",
+    "accountName": "账户名",
+    "accountNumber": "账号",
+    "attachSlip": "上传付款凭证",
+    "uploadingSlip": "上传中…",
+    "slipUploaded": "已上传凭证",
+    "slipUploadError": "上传失败，请重试",
+    "slipRequired": "请先上传付款凭证再确认",
+    "shippingMethodTitle": "配送方式",
+    "shippingNormal": "普通",
+    "shippingExpress": "加急",
+    "daysNormal": "7-15 天",
+    "daysExpress": "3-5 天"
   },
   "Order": {
     "orderNumber": "订单",
@@ -158,5 +173,25 @@
     "DELIVERED": "已送达",
     "CANCELLED": "已取消",
     "REFUNDED": "已退款"
+  },
+  "RequestProduct": {
+    "title": "申请商品",
+    "subtitle": "想要的商品没找到？告诉我们，我们会帮您寻找。",
+    "productName": "商品名称",
+    "productNamePlaceholder": "例如：某品牌面膜 / 链接",
+    "detail": "详情（可选）",
+    "detailPlaceholder": "规格、链接、数量等",
+    "contact": "联系方式（可选）",
+    "contactPlaceholder": "微信 / 电话 / Line",
+    "submit": "提交申请",
+    "submitting": "提交中…",
+    "error": "提交失败，请重试",
+    "thanks": "已收到您的申请！",
+    "thanksHint": "我们会尽快为您寻找。",
+    "again": "再申请一个",
+    "image": "图片（可选）",
+    "uploading": "上传中…",
+    "uploadError": "图片上传失败",
+    "removeImage": "移除图片"
   }
 }

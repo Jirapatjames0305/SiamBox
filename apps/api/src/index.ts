@@ -15,6 +15,7 @@ import { packagesRouter } from "./routes/packages.js";
 import { ordersRouter } from "./routes/orders.js";
 import { adminRouter } from "./routes/admin.js";
 import { webhooksRouter } from "./routes/webhooks.js";
+import { productRequestsRouter } from "./routes/product-requests.js";
 import { errorHandler } from "./middleware/error.js";
 import { openApiSpec } from "./openapi.js";
 
@@ -47,6 +48,7 @@ app.use(
 app.use("/api/products", productsRouter);
 app.use("/api/packages", packagesRouter);
 app.use("/api/orders", ordersRouter);
+app.use("/api/product-requests", productRequestsRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/webhooks", webhooksRouter);
 

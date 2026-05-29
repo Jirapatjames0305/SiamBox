@@ -129,9 +129,18 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   }
 }
 
+export type PaymentMethodId = "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST";
+
+export type PaymentMethodVisibility = { hidden: boolean; disabled: boolean };
+
 export type BuildConfig = {
   customPackageMinCents: number;
   shippingBaseCents: number;
+  shippingExpressCents: number;
+  paymentMethods: Record<PaymentMethodId, PaymentMethodVisibility>;
+  bankQrUrl: string;
+  bankAccountName: string;
+  bankAccountNumber: string;
 };
 
 export async function getBuildConfig(): Promise<BuildConfig> {
@@ -187,6 +196,8 @@ export type CheckoutPayload = {
   };
   customerNote?: string;
   paymentMethod?: "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST";
+  slipUrl?: string;
+  shippingMethod?: "NORMAL" | "EXPRESS";
 };
 
 export type OrderWithAuth = Order & { authorizeUri: string | null };
@@ -199,6 +210,15 @@ export async function createOrder(payload: CheckoutPayload): Promise<OrderWithAu
   return json.data;
 }
 
+export async function uploadSlip(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`${API_URL}/api/orders/slip`, { method: "POST", body: fd });
+  if (!res.ok) throw new Error(`Slip upload failed (${res.status})`);
+  const json = (await res.json()) as { data: { url: string } };
+  return json.data.url;
+}
+
 export type OrderSummary = {
   id: string;
   orderNumber: string;
@@ -208,6 +228,27 @@ export type OrderSummary = {
   placedAt: string;
   items: { quantity: number; productNameTh: string; productNameZh: string | null }[];
 };
+
+export async function createProductRequest(payload: {
+  productName: string;
+  detail?: string;
+  contact?: string;
+  imageUrl?: string;
+}): Promise<void> {
+  await request("/api/product-requests", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function uploadProductRequestImage(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`${API_URL}/api/product-requests/upload`, { method: "POST", body: fd });
+  if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+  const json = (await res.json()) as { data: { url: string } };
+  return json.data.url;
+}
 
 export async function lookupOrders(phone: string): Promise<OrderSummary[]> {
   const json = await request<{ data: OrderSummary[] }>("/api/orders/lookup", {

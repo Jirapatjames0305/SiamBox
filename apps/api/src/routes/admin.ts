@@ -32,26 +32,28 @@ adminRouter.get("/stats", async (_req, res, next) => {
     const since = new Date();
     since.setHours(0, 0, 0, 0);
 
-    const [today, pendingPayment, packing, shipped, delivered] = await Promise.all([
+    // One groupBy covers every per-status count + total, instead of 6 parallel counts
+    // (keeps connection usage low for the Supabase pooler).
+    const [byStatus, ordersToday, revenueAgg] = await Promise.all([
+      prisma.order.groupBy({ by: ["status"], _count: { _all: true } }),
       prisma.order.count({ where: { placedAt: { gte: since } } }),
-      prisma.order.count({ where: { status: "PENDING_PAYMENT" } }),
-      prisma.order.count({ where: { status: "PACKING" } }),
-      prisma.order.count({ where: { status: "SHIPPED" } }),
-      prisma.order.count({ where: { status: "DELIVERED" } }),
+      prisma.order.aggregate({
+        _sum: { totalCents: true },
+        where: { status: { in: ["PAID", "PACKING", "SHIPPED", "IN_CUSTOMS", "OUT_FOR_DELIVERY", "DELIVERED"] } },
+      }),
     ]);
 
-    const revenueAgg = await prisma.order.aggregate({
-      _sum: { totalCents: true },
-      where: { status: { in: ["PAID", "PACKING", "SHIPPED", "IN_CUSTOMS", "OUT_FOR_DELIVERY", "DELIVERED"] } },
-    });
+    const countOf = (s: string) => byStatus.find((b) => b.status === s)?._count._all ?? 0;
+    const totalOrders = byStatus.reduce((sum, b) => sum + b._count._all, 0);
 
     res.json({
       data: {
-        ordersToday: today,
-        pendingPayment,
-        packing,
-        shipped,
-        delivered,
+        ordersToday,
+        pendingPayment: countOf("PENDING_PAYMENT"),
+        packing: countOf("PACKING"),
+        shipped: countOf("SHIPPED"),
+        delivered: countOf("DELIVERED"),
+        totalOrders,
         revenueCents: revenueAgg._sum.totalCents ?? 0,
       },
     });
@@ -531,6 +533,36 @@ adminRouter.post("/payments/:id/refresh-chillpay", async (req, res, next) => {
   }
 });
 
+// ---------- Product requests ----------
+
+adminRouter.get("/product-requests", async (_req, res, next) => {
+  try {
+    const data = await prisma.productRequest.findMany({ orderBy: { createdAt: "desc" }, take: 200 });
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.patch("/product-requests/:id", async (req, res, next) => {
+  try {
+    const status = z.enum(["NEW", "DONE"]).parse(req.body?.status);
+    const data = await prisma.productRequest.update({ where: { id: req.params.id }, data: { status } });
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.delete("/product-requests/:id", async (req, res, next) => {
+  try {
+    await prisma.productRequest.delete({ where: { id: req.params.id } });
+    res.json({ data: { ok: true } });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ---------- Uploads ----------
 
 adminRouter.post("/uploads", upload.single("file"), async (req, res, next) => {
@@ -579,7 +611,11 @@ const settingsSchema = z.object({
   senderAddressLine2: z.string().max(500),
   senderPhone: z.string().max(100),
   shippingBaseCents: z.number().int().min(0).max(10_000_000),
+  shippingExpressCents: z.number().int().min(0).max(10_000_000),
   customPackageMinCents: z.number().int().min(0).max(10_000_000),
+  bankQrUrl: z.string().max(1000),
+  bankAccountName: z.string().max(200),
+  bankAccountNumber: z.string().max(100),
 });
 
 adminRouter.get("/settings", async (_req, res, next) => {
@@ -604,6 +640,53 @@ adminRouter.put("/settings", async (req, res, next) => {
       create: { id: 1, ...input },
     });
     res.json({ data: settings });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Payment channel visibility ----------
+
+const PAYMENT_METHOD_IDS = ["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST"] as const;
+
+const paymentMethodsSchema = z.object({
+  methods: z.array(
+    z.object({
+      method: z.enum(PAYMENT_METHOD_IDS),
+      hidden: z.boolean(),
+      disabled: z.boolean(),
+    }),
+  ),
+});
+
+adminRouter.get("/payment-methods", async (_req, res, next) => {
+  try {
+    const rows = await prisma.paymentMethodSetting.findMany();
+    const byMethod = new Map(rows.map((r) => [r.method, r]));
+    const data = PAYMENT_METHOD_IDS.map((method) => {
+      const row = byMethod.get(method);
+      return { method, hidden: row?.hidden ?? false, disabled: row?.disabled ?? false };
+    });
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.put("/payment-methods", async (req, res, next) => {
+  try {
+    const input = paymentMethodsSchema.parse(req.body);
+    await prisma.$transaction(
+      input.methods.map((m) =>
+        prisma.paymentMethodSetting.upsert({
+          where: { method: m.method },
+          update: { hidden: m.hidden, disabled: m.disabled },
+          create: { method: m.method, hidden: m.hidden, disabled: m.disabled },
+        }),
+      ),
+    );
+    const rows = await prisma.paymentMethodSetting.findMany();
+    res.json({ data: rows });
   } catch (err) {
     next(err);
   }

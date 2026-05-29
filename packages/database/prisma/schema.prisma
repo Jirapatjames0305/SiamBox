@@ -186,6 +186,7 @@ model Order {
   shippingAddressId String?     @map("shipping_address_id")
   subtotalCents     Int         @map("subtotal_cents")
   shippingCents     Int         @default(0) @map("shipping_cents")
+  shippingMethod    String      @default("NORMAL") @map("shipping_method") // NORMAL | EXPRESS
   totalCents        Int         @map("total_cents")
   currency          String      @default("CNY")
   customerNote      String?     @map("customer_note") @db.Text
@@ -383,8 +384,36 @@ model Settings {
   senderAddressLine2      String   @default("") @map("sender_address_line_2")
   senderPhone             String   @default("") @map("sender_phone")
   shippingBaseCents       Int      @default(0) @map("shipping_base_cents")
+  shippingExpressCents    Int      @default(0) @map("shipping_express_cents")
   customPackageMinCents   Int      @default(0) @map("custom_package_min_cents")
+  bankQrUrl               String   @default("") @map("bank_qr_url")
+  bankAccountName         String   @default("") @map("bank_account_name")
+  bankAccountNumber       String   @default("") @map("bank_account_number")
   updatedAt               DateTime @updatedAt @map("updated_at")
 
   @@map("settings")
+}
+
+// Public "request a product" submissions — anyone can submit; shown in admin.
+model ProductRequest {
+  id          String   @id @default(cuid())
+  productName String   @map("product_name")
+  detail      String?  @db.Text
+  contact     String?
+  imageUrl    String?  @map("image_url")
+  status      String   @default("NEW") // NEW | DONE
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([status])
+  @@map("product_requests")
+}
+
+// Per-method checkout visibility, managed from the admin "Payment channels" page.
+// hidden = not shown to customers at all; disabled = shown greyed-out / not selectable.
+model PaymentMethodSetting {
+  method   String  @id // MANUAL | ALIPAY | WECHAT_PAY | TEST
+  hidden   Boolean @default(false)
+  disabled Boolean @default(false)
+
+  @@map("payment_method_settings")
 }

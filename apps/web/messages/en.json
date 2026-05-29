@@ -22,7 +22,8 @@
     "build": "Build Your Box",
     "cart": "Cart",
     "track": "Track Order",
-    "language": "Language"
+    "language": "Language",
+    "requestProduct": "Request Product"
   },
   "Contact": {
     "openMenu": "Contact Admin",
@@ -124,7 +125,21 @@
     "submitError": "Order failed",
     "notePlaceholder": "Optional notes for your order",
     "payTest": "Test (Card)",
-    "payTestHint": "For testing only — sandbox card 4141..., OTP 123456"
+    "payTestHint": "For testing only — sandbox card 4141..., OTP 123456",
+    "bankTransferTitle": "Bank transfer",
+    "scanQr": "Scan to pay",
+    "accountName": "Account name",
+    "accountNumber": "Account no.",
+    "attachSlip": "Upload payment slip",
+    "uploadingSlip": "Uploading…",
+    "slipUploaded": "Slip uploaded",
+    "slipUploadError": "Upload failed, try again",
+    "slipRequired": "Please upload the payment slip before confirming",
+    "shippingMethodTitle": "Shipping method",
+    "shippingNormal": "Standard",
+    "shippingExpress": "Express",
+    "daysNormal": "7-15 days",
+    "daysExpress": "3-5 days"
   },
   "Order": {
     "orderNumber": "Order",
@@ -158,5 +173,25 @@
     "DELIVERED": "Delivered",
     "CANCELLED": "Cancelled",
     "REFUNDED": "Refunded"
+  },
+  "RequestProduct": {
+    "title": "Request a product",
+    "subtitle": "Can’t find what you want? Tell us and we’ll source it for you.",
+    "productName": "Product name",
+    "productNamePlaceholder": "e.g. Brand X face mask / link",
+    "detail": "Details (optional)",
+    "detailPlaceholder": "Specs, link, quantity, etc.",
+    "contact": "Contact (optional)",
+    "contactPlaceholder": "WeChat / phone / Line",
+    "submit": "Submit request",
+    "submitting": "Submitting…",
+    "error": "Failed, please try again",
+    "thanks": "Request received!",
+    "thanksHint": "We’ll try to source it soon.",
+    "again": "Request another",
+    "image": "Image (optional)",
+    "uploading": "Uploading…",
+    "uploadError": "Image upload failed",
+    "removeImage": "Remove image"
   }
 }

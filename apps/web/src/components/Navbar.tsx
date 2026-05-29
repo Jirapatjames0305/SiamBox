@@ -56,6 +56,12 @@ export function Navbar() {
           >
             {t("track")}
           </Link>
+          <Link
+            href="/request-product"
+            className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+          >
+            {t("requestProduct")}
+          </Link>
 
           <div className="inline-flex overflow-hidden rounded-lg border border-slate-700">
             {routing.locales.map((l) => (
@@ -136,6 +142,13 @@ export function Navbar() {
               className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white"
             >
               {t("track")}
+            </Link>
+            <Link
+              href="/request-product"
+              onClick={() => setMobileOpen(false)}
+              className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white"
+            >
+              {t("requestProduct")}
             </Link>
             <div className="mt-2 flex items-center gap-2 px-3">
               <span className="text-xs text-slate-600">{t("language")}:</span>

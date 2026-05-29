@@ -53,5 +53,8 @@ export const checkoutSchema = z.object({
   shippingAddress: shippingAddressSchema,
   customerNote: z.string().max(1000).optional(),
   paymentMethod: paymentMethodSchema.default("MANUAL"),
+  // Payment slip URL — uploaded by the customer for the manual bank-transfer flow.
+  slipUrl: z.string().url().max(1000).optional(),
+  shippingMethod: z.enum(["NORMAL", "EXPRESS"]).default("NORMAL"),
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;

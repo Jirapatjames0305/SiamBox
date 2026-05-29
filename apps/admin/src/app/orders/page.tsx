@@ -35,6 +35,15 @@ export default function OrdersPage() {
         <span className="text-sm text-neutral-500">{orders.length} รายการ</span>
       </div>
 
+      <div className="mt-2 flex items-center gap-4 text-xs text-neutral-500">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-sm border border-amber-300 bg-amber-100" /> ส่งด่วน (3-5 วัน)
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-sm border border-neutral-300 bg-white" /> ธรรมดา (7-15 วัน)
+        </span>
+      </div>
+
       <div className="mt-4 flex flex-wrap gap-2 text-sm">
         <FilterLink href="/orders" active={!status}>
           ทั้งหมด
@@ -79,7 +88,14 @@ export default function OrdersPage() {
               </tr>
             ) : (
               orders.map((o) => (
-                <tr key={o.id} className="hover:bg-neutral-50">
+                <tr
+                  key={o.id}
+                  className={
+                    o.shippingMethod === "EXPRESS"
+                      ? "bg-amber-50 hover:bg-amber-100"
+                      : "hover:bg-neutral-50"
+                  }
+                >
                   <td className="px-4 py-3">
                     <Link href={`/orders/${o.orderNumber}`} className="font-medium underline">
                       {o.orderNumber}

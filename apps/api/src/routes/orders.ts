@@ -1,5 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
+import multer from "multer";
+import sharp from "sharp";
+import { randomBytes } from "node:crypto";
 import { prisma } from "@siambox/database";
 import { checkoutSchema } from "@siambox/shared";
 import {
@@ -11,9 +14,47 @@ import {
   getPaymentStatus,
   isChillpayEnabled,
 } from "../lib/chillpay.js";
+import { getSupabase, SUPABASE_BUCKET } from "../lib/supabase.js";
 import { syncStatusToPayment } from "./webhooks.js";
 
 export const ordersRouter = Router();
+
+const slipUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) {
+      cb(new Error("UnsupportedFileType"));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
+// Public payment-slip upload (manual bank transfer). Returns a public URL the checkout
+// then sends back as `slipUrl` when placing the order.
+ordersRouter.post("/slip", slipUpload.single("file"), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: "NoFile" });
+      return;
+    }
+    const webp = await sharp(req.file.buffer, { failOn: "error" })
+      .rotate()
+      .webp({ quality: 82 })
+      .toBuffer();
+    const objectPath = `slips/${randomBytes(12).toString("hex")}.webp`;
+    const supabase = getSupabase();
+    const { error: uploadError } = await supabase.storage
+      .from(SUPABASE_BUCKET)
+      .upload(objectPath, webp, { contentType: "image/webp", cacheControl: "31536000" });
+    if (uploadError) throw uploadError;
+    const { data } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(objectPath);
+    res.status(201).json({ data: { url: data.publicUrl } });
+  } catch (err) {
+    next(err);
+  }
+});
 
 function generateOrderNumber(): string {
   const ts = Date.now().toString(36).toUpperCase();
@@ -50,6 +91,15 @@ ordersRouter.post("/", async (req, res, next) => {
     ]);
     const packageMap = new Map(packages.map((p) => [p.id, p]));
     const productMap = new Map(allProducts.map((p) => [p.id, p]));
+
+    // Reject payment methods the admin has hidden or disabled (defense in depth — the web
+    // hides/greys them too, but a blocked method must never reach the gateway).
+    const pmSetting = await prisma.paymentMethodSetting.findUnique({
+      where: { method: input.paymentMethod },
+    });
+    if (pmSetting && (pmSetting.hidden || pmSetting.disabled)) {
+      throw Object.assign(new Error("PaymentMethodUnavailable"), { status: 400 });
+    }
 
     // Pre-compute custom package totals + validate min threshold
     type LineToCreate = {
@@ -134,7 +184,10 @@ ordersRouter.post("/", async (req, res, next) => {
       ];
     });
 
-    const shippingCents = settings.shippingBaseCents;
+    const shippingCents =
+      input.shippingMethod === "EXPRESS"
+        ? settings.shippingExpressCents
+        : settings.shippingBaseCents;
     const total = subtotal + shippingCents;
 
     // Auto-account creation: link orders to a Customer User by phone
@@ -180,6 +233,7 @@ ordersRouter.post("/", async (req, res, next) => {
         user: { connect: { id: user.id } },
         subtotalCents: subtotal,
         shippingCents,
+        shippingMethod: input.shippingMethod,
         totalCents: total,
         customerNote: input.customerNote,
         shippingAddress: {
@@ -240,14 +294,16 @@ ordersRouter.post("/", async (req, res, next) => {
       });
       authorizeUri = payment.PaymentUrl;
     } else if (input.paymentMethod === "MANUAL") {
-      // Manual bank transfer — create a PENDING payment for admin to approve/reject.
+      // Manual bank transfer — store the customer's slip. SUBMITTED if a slip was attached,
+      // otherwise PENDING. Admin reviews + approves/rejects either way.
       await prisma.payment.create({
         data: {
           orderId: order.id,
           method: "BANK_TRANSFER",
-          status: "PENDING",
+          status: input.slipUrl ? "SUBMITTED" : "PENDING",
           amountCents: total,
           currency: order.currency,
+          slipUrl: input.slipUrl,
         },
       });
     }

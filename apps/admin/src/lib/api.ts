@@ -1,7 +1,17 @@
 "use client";
 
 import { getToken } from "./auth";
-import type { Customer, CustomerNote, Order, Package, Product, Settings, Stats } from "./types";
+import type {
+  Customer,
+  CustomerNote,
+  Order,
+  Package,
+  PaymentMethodSetting,
+  Product,
+  ProductRequest,
+  Settings,
+  Stats,
+} from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_ADMIN_API_URL ?? "http://localhost:4000";
 
@@ -242,6 +252,37 @@ export async function updateSettings(input: Omit<Settings, "id" | "updatedAt">):
     body: JSON.stringify(input),
   });
   return json.data;
+}
+
+export async function fetchPaymentMethods(): Promise<PaymentMethodSetting[]> {
+  const json = await request<{ data: PaymentMethodSetting[] }>(`/api/admin/payment-methods`);
+  return json.data;
+}
+
+export async function updatePaymentMethods(
+  methods: PaymentMethodSetting[],
+): Promise<PaymentMethodSetting[]> {
+  const json = await request<{ data: PaymentMethodSetting[] }>(`/api/admin/payment-methods`, {
+    method: "PUT",
+    body: JSON.stringify({ methods }),
+  });
+  return json.data;
+}
+
+export async function fetchProductRequests(): Promise<ProductRequest[]> {
+  const json = await request<{ data: ProductRequest[] }>(`/api/admin/product-requests`);
+  return json.data;
+}
+
+export async function setProductRequestStatus(id: string, status: "NEW" | "DONE"): Promise<void> {
+  await request(`/api/admin/product-requests/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function deleteProductRequest(id: string): Promise<void> {
+  await request(`/api/admin/product-requests/${id}`, { method: "DELETE" });
 }
 
 export async function uploadImage(file: File): Promise<{ url: string }> {

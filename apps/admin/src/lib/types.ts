@@ -59,6 +59,7 @@ export type Order = {
   status: string;
   subtotalCents: number;
   shippingCents: number;
+  shippingMethod: string;
   totalCents: number;
   currency: string;
   customerNote: string | null;
@@ -128,6 +129,7 @@ export type Stats = {
   packing: number;
   shipped: number;
   delivered: number;
+  totalOrders: number;
   revenueCents: number;
 };
 
@@ -160,6 +162,28 @@ export type Settings = {
   senderAddressLine2: string;
   senderPhone: string;
   shippingBaseCents: number;
+  shippingExpressCents: number;
   customPackageMinCents: number;
+  bankQrUrl: string;
+  bankAccountName: string;
+  bankAccountNumber: string;
   updatedAt: string;
+};
+
+export type ProductRequest = {
+  id: string;
+  productName: string;
+  detail: string | null;
+  contact: string | null;
+  imageUrl: string | null;
+  status: string;
+  createdAt: string;
+};
+
+export type PaymentMethodId = "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST";
+
+export type PaymentMethodSetting = {
+  method: PaymentMethodId;
+  hidden: boolean;
+  disabled: boolean;
 };

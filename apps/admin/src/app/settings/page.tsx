@@ -12,7 +12,11 @@ const EMPTY: FormState = {
   senderAddressLine2: "",
   senderPhone: "",
   shippingBaseCents: 0,
+  shippingExpressCents: 0,
   customPackageMinCents: 0,
+  bankQrUrl: "",
+  bankAccountName: "",
+  bankAccountNumber: "",
 };
 
 export default function SettingsPage() {
@@ -31,7 +35,11 @@ export default function SettingsPage() {
           senderAddressLine2: s.senderAddressLine2,
           senderPhone: s.senderPhone,
           shippingBaseCents: s.shippingBaseCents,
+          shippingExpressCents: s.shippingExpressCents,
           customPackageMinCents: s.customPackageMinCents,
+          bankQrUrl: s.bankQrUrl,
+          bankAccountName: s.bankAccountName,
+          bankAccountNumber: s.bankAccountNumber,
         });
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : (err as Error).message))
@@ -88,22 +96,6 @@ export default function SettingsPage() {
             onChange={(v) => setForm({ ...form, senderPhone: v })}
             placeholder="+66 81-234-5678"
           />
-
-          <div className="mt-6 border-t border-neutral-200 pt-6">
-            <h2 className="text-sm font-semibold text-neutral-800">ค่าจัดส่ง</h2>
-            <p className="mt-0.5 text-xs text-neutral-500">
-              ค่าส่งเหมา (cent — เช่น 2500 = 25 CNY) จะถูกบวกเข้าทุกออเดอร์ใหม่
-            </p>
-            <div className="mt-3">
-              <Field
-                label="ราคาส่ง (สตางค์ / cents)"
-                type="number"
-                value={String(form.shippingBaseCents)}
-                onChange={(v) => setForm({ ...form, shippingBaseCents: Number(v) || 0 })}
-                placeholder="0"
-              />
-            </div>
-          </div>
 
           <div className="mt-6 border-t border-neutral-200 pt-6">
             <h2 className="text-sm font-semibold text-neutral-800">แพ็กเกจกำหนดเอง</h2>

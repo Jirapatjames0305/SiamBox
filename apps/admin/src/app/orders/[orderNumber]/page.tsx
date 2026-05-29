@@ -159,7 +159,8 @@ export default function OrderDetailPage() {
             ) : (
               <ul className="divide-y divide-neutral-100 text-sm">
                 {order.payments.map((p) => (
-                  <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <li key={p.id} className="py-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <div className="font-medium">
                         {p.method} · {formatPrice(p.amountCents, p.currency)}
@@ -212,6 +213,17 @@ export default function OrderDetailPage() {
                         </button>
                       ) : null}
                     </div>
+                    </div>
+                    {p.slipUrl && (
+                      <a href={p.slipUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={p.slipUrl}
+                          alt="สลิปการโอน"
+                          className="h-28 w-28 rounded-md border border-neutral-200 object-cover hover:opacity-90"
+                        />
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>

@@ -3,17 +3,30 @@ import { prisma } from "@siambox/database";
 
 export const packagesRouter = Router();
 
+const PAYMENT_METHODS = ["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST"] as const;
+
 packagesRouter.get("/config", async (_req, res, next) => {
   try {
-    const settings = await prisma.settings.upsert({
-      where: { id: 1 },
-      update: {},
-      create: { id: 1 },
-    });
+    const [settings, pmRows] = await Promise.all([
+      prisma.settings.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } }),
+      prisma.paymentMethodSetting.findMany(),
+    ]);
+    const byMethod = new Map(pmRows.map((r) => [r.method, r]));
+    const paymentMethods = Object.fromEntries(
+      PAYMENT_METHODS.map((m) => {
+        const row = byMethod.get(m);
+        return [m, { hidden: row?.hidden ?? false, disabled: row?.disabled ?? false }];
+      }),
+    );
     res.json({
       data: {
         customPackageMinCents: settings.customPackageMinCents,
         shippingBaseCents: settings.shippingBaseCents,
+        shippingExpressCents: settings.shippingExpressCents,
+        paymentMethods,
+        bankQrUrl: settings.bankQrUrl,
+        bankAccountName: settings.bankAccountName,
+        bankAccountNumber: settings.bankAccountNumber,
       },
     });
   } catch (err) {
