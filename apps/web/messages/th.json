@@ -122,7 +122,9 @@
     "submitting": "กำลังส่ง...",
     "empty": "ตะกร้าว่าง",
     "submitError": "สั่งซื้อไม่สำเร็จ",
-    "notePlaceholder": "หมายเหตุเพิ่มเติม (ถ้ามี)"
+    "notePlaceholder": "หมายเหตุเพิ่มเติม (ถ้ามี)",
+    "payTest": "ทดสอบ (บัตรเครดิต)",
+    "payTestHint": "สำหรับทดสอบเท่านั้น — บัตร sandbox 4141... OTP 123456"
   },
   "Order": {
     "orderNumber": "ออเดอร์",

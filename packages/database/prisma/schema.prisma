@@ -35,7 +35,7 @@ enum PaymentStatus {
 enum PaymentMethod {
   WECHAT
   ALIPAY
-  USDT
+  CNY
   BANK_TRANSFER
   GATEWAY
 }
@@ -242,8 +242,8 @@ model Payment {
   approvedById   String?       @map("approved_by_id")
   rejectedAt     DateTime?     @map("rejected_at")
   notes          String?       @db.Text
-  omiseChargeId  String?       @unique @map("omise_charge_id")
-  omiseSourceId  String?       @map("omise_source_id")
+  chillpayTransactionId String? @unique @map("chillpay_transaction_id")
+  chillpayToken         String? @map("chillpay_token")
   failureMessage String?       @map("failure_message")
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")

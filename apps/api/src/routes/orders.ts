@@ -2,12 +2,18 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "@siambox/database";
 import { checkoutSchema } from "@siambox/shared";
-import { cnyCentsToSatang, getOmise, isOmiseEnabled } from "../lib/omise.js";
-import { syncChargeToPayment } from "./webhooks.js";
+import {
+  CHANNEL_ALIPAY,
+  CHANNEL_CREDITCARD,
+  CHANNEL_WECHATPAY,
+  cnyCentsToSatang,
+  createPayment,
+  getPaymentStatus,
+  isChillpayEnabled,
+} from "../lib/chillpay.js";
+import { syncStatusToPayment } from "./webhooks.js";
 
 export const ordersRouter = Router();
-
-const RETURN_BASE = process.env.OMISE_RETURN_BASE ?? "http://localhost:3000";
 
 function generateOrderNumber(): string {
   const ts = Date.now().toString(36).toUpperCase();
@@ -194,42 +200,56 @@ ordersRouter.post("/", async (req, res, next) => {
       include: { items: true, shippingAddress: true },
     });
 
-    // Gateway flow — create Omise source + charge for online methods
+    // Online (gateway) methods → ChillPay channel + the Payment.method we store.
+    const GATEWAY_CHANNELS = {
+      ALIPAY: { channel: CHANNEL_ALIPAY, method: "ALIPAY" as const },
+      WECHAT_PAY: { channel: CHANNEL_WECHATPAY, method: "WECHAT" as const },
+      TEST: { channel: CHANNEL_CREDITCARD, method: "GATEWAY" as const },
+    };
+
+    // Gateway flow — create a ChillPay transaction for online methods.
     let authorizeUri: string | null = null;
-    if (input.paymentMethod === "ALIPAY" || input.paymentMethod === "WECHAT_PAY") {
-      if (!isOmiseEnabled()) {
+    const gateway = GATEWAY_CHANNELS[input.paymentMethod as keyof typeof GATEWAY_CHANNELS];
+    if (gateway) {
+      if (!isChillpayEnabled()) {
         throw Object.assign(new Error("PaymentGatewayDisabled"), { status: 503 });
       }
-      const omise = getOmise();
-      const sourceType = input.paymentMethod === "ALIPAY" ? "alipay" : "wechat_pay";
       const amountSatang = cnyCentsToSatang(total);
-      const returnUri = `${RETURN_BASE}/zh/orders/${order.orderNumber}?charge=1`;
+      // ChillPay OrderNo disallows special characters (e.g. "-"); send an alphanumeric form.
+      const orderNo = order.orderNumber.replace(/-/g, "");
+      const ipAddress = req.ip && /^\d{1,3}(\.\d{1,3}){3}$/.test(req.ip) ? req.ip : "127.0.0.1";
 
-      const source = await omise.sources.create({
-        type: sourceType,
-        amount: amountSatang,
-        currency: "THB",
-      });
-      const charge = await omise.charges.create({
-        amount: amountSatang,
-        currency: "THB",
-        source: source.id,
-        return_uri: returnUri,
+      const payment = await createPayment({
+        orderNo,
+        customerId: user.id,
+        amountSatang,
+        channelCode: gateway.channel,
         description: `SiamBox ${order.orderNumber}`,
-        metadata: { orderNumber: order.orderNumber },
+        ipAddress,
       });
       await prisma.payment.create({
         data: {
           orderId: order.id,
-          method: input.paymentMethod === "ALIPAY" ? "ALIPAY" : "WECHAT",
+          method: gateway.method,
           status: "PENDING",
           amountCents: amountSatang,
           currency: "THB",
-          omiseChargeId: charge.id,
-          omiseSourceId: source.id,
+          chillpayTransactionId: String(payment.TransactionId),
+          chillpayToken: payment.Token,
         },
       });
-      authorizeUri = charge.authorize_uri ?? null;
+      authorizeUri = payment.PaymentUrl;
+    } else if (input.paymentMethod === "MANUAL") {
+      // Manual bank transfer — create a PENDING payment for admin to approve/reject.
+      await prisma.payment.create({
+        data: {
+          orderId: order.id,
+          method: "BANK_TRANSFER",
+          status: "PENDING",
+          amountCents: total,
+          currency: order.currency,
+        },
+      });
     }
 
     res.status(201).json({ data: { ...order, authorizeUri } });
@@ -267,9 +287,9 @@ ordersRouter.post("/lookup", async (req, res, next) => {
   }
 });
 
-// Public endpoint — refresh order's Omise payments from Omise API and return current status.
-// Used by /[locale]/orders/[orderNumber] poller in dev (when webhook URL isn't public).
-// Safe because it only syncs from Omise (source of truth), no client-side state mutation.
+// Public endpoint — refresh order's ChillPay payments from the PaymentStatus API and return current status.
+// Used by /[locale]/orders/[orderNumber] poller in dev (when the background URL isn't public).
+// Safe because it only syncs from ChillPay (source of truth), no client-side state mutation.
 ordersRouter.post("/:orderNumber/refresh-payment", async (req, res, next) => {
   try {
     const order = await prisma.order.findUnique({
@@ -280,12 +300,11 @@ ordersRouter.post("/:orderNumber/refresh-payment", async (req, res, next) => {
       res.status(404).json({ error: "OrderNotFound" });
       return;
     }
-    if (isOmiseEnabled()) {
-      const omise = getOmise();
+    if (isChillpayEnabled()) {
       for (const payment of order.payments) {
-        if (!payment.omiseChargeId || payment.status !== "PENDING") continue;
-        const charge = await omise.charges.retrieve(payment.omiseChargeId);
-        await syncChargeToPayment(charge);
+        if (!payment.chillpayTransactionId || payment.status !== "PENDING") continue;
+        const status = await getPaymentStatus(payment.chillpayTransactionId);
+        await syncStatusToPayment(status);
       }
     }
     const fresh = await prisma.order.findUnique({

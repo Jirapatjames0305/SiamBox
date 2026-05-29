@@ -186,7 +186,7 @@ export type CheckoutPayload = {
     postalCode: string;
   };
   customerNote?: string;
-  paymentMethod?: "MANUAL" | "ALIPAY" | "WECHAT_PAY";
+  paymentMethod?: "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST";
 };
 
 export type OrderWithAuth = Order & { authorizeUri: string | null };

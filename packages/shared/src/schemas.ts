@@ -44,7 +44,8 @@ export const checkoutItemSchema = z.discriminatedUnion("kind", [
   checkoutCustomItemSchema,
 ]);
 
-export const paymentMethodSchema = z.enum(["MANUAL", "ALIPAY", "WECHAT_PAY"]);
+// TEST routes through ChillPay's browser-testable sandbox channel (credit card) — for testing only.
+export const paymentMethodSchema = z.enum(["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST"]);
 export type PaymentMethodInput = z.infer<typeof paymentMethodSchema>;
 
 export const checkoutSchema = z.object({

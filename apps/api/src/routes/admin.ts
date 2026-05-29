@@ -5,9 +5,9 @@ import sharp from "sharp";
 import { randomBytes } from "node:crypto";
 import { prisma, OrderStatus, PaymentStatus, ShippingCarrier, CustomerStatus } from "@siambox/database";
 import { adminAuth } from "../middleware/admin-auth.js";
-import { getOmise } from "../lib/omise.js";
+import { getPaymentStatus } from "../lib/chillpay.js";
 import { getSupabase, SUPABASE_BUCKET } from "../lib/supabase.js";
-import { syncChargeToPayment } from "./webhooks.js";
+import { syncStatusToPayment } from "./webhooks.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -512,18 +512,20 @@ adminRouter.delete("/customers/:userId/notes/:noteId", async (req, res, next) =>
   }
 });
 
-// Manual refresh of Omise charge status (use during dev without public webhook URL).
-adminRouter.post("/payments/:id/refresh-omise", async (req, res, next) => {
+// Manual refresh of ChillPay transaction status (use during dev without a public background URL).
+adminRouter.post("/payments/:id/refresh-chillpay", async (req, res, next) => {
   try {
     const payment = await prisma.payment.findUnique({ where: { id: req.params.id } });
-    if (!payment || !payment.omiseChargeId) {
-      res.status(404).json({ error: "PaymentOrChargeNotFound" });
+    if (!payment || !payment.chillpayTransactionId) {
+      res.status(404).json({ error: "PaymentOrTransactionNotFound" });
       return;
     }
-    const charge = await getOmise().charges.retrieve(payment.omiseChargeId);
-    const result = await syncChargeToPayment(charge);
+    const status = await getPaymentStatus(payment.chillpayTransactionId);
+    const result = await syncStatusToPayment(status);
     const fresh = await prisma.payment.findUnique({ where: { id: payment.id } });
-    res.json({ data: { payment: fresh, omiseStatus: charge.status, paid: charge.paid, updated: result.updated } });
+    res.json({
+      data: { payment: fresh, chillpayStatus: status.PaymentStatus, updated: result.updated },
+    });
   } catch (err) {
     next(err);
   }

@@ -27,7 +27,7 @@ export function OrderStatusPoller({ orderNumber, initialStatus, pollingLabel }: 
       if (cancelled) return;
       attemptsRef.current += 1;
       try {
-        // POST /refresh-payment syncs from Omise + returns latest status
+        // POST /refresh-payment syncs from ChillPay + returns latest status
         const res = await fetch(`${apiUrl}/api/orders/${orderNumber}/refresh-payment`, {
           method: "POST",
           cache: "no-store",

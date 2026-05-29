@@ -1142,33 +1142,34 @@ Smoke verified: phone +8613900000999 → คืน 2 ออเดอร์, phon
 
 ---
 
-# Phase 2A — Payment Gateway (Omise test mode) ✅
+# Phase 2A — Payment Gateway (ChillPay sandbox) ✅
 
-Code พร้อมเทส — รอใส่ test keys (`pkey_test_xxx` / `skey_test_xxx`) ใน `.env` ก็ลองรันได้
+Code พร้อมเทส — รอใส่ sandbox credentials (MerchantCode / ApiKey / MD5 Secret) ใน `.env` ก็ลองรันได้
 
 Setup:
 
 ```text
-pnpm add omise                            (apps/api, มี built-in types)
-.env  OMISE_PUBLIC_KEY + OMISE_SECRET_KEY + CNY_TO_THB_RATE (default 4.9) + OMISE_RETURN_BASE
-apps/api/src/lib/omise.ts                  client wrapper + cnyCentsToSatang() helper
+.env  CHILLPAY_MERCHANT_CODE + CHILLPAY_API_KEY + CHILLPAY_MD5_SECRET
+      + CHILLPAY_API_BASE (default sandbox) + CNY_TO_THB_RATE (default 4.9)
+apps/api/src/lib/chillpay.ts               config + MD5 checksum + createPayment() + getPaymentStatus() + cnyCentsToSatang()
+ไม่มี SDK — ใช้ node:crypto (md5) + global fetch (form-urlencoded)
 ```
 
 Schema:
 
 ```text
-Payment + omiseChargeId (unique), omiseSourceId, failureMessage
-prisma db push --accept-data-loss สำเร็จ
+Payment + chillpayTransactionId (unique), chillpayToken, failureMessage
+migration 20260529000000_omise_to_chillpay = RENAME COLUMN (เก็บ data เดิมไว้)
 ```
 
 Backend:
 
 ```text
 POST /api/orders                          รับ paymentMethod (MANUAL|ALIPAY|WECHAT_PAY)
-                                          ถ้า online → sources.create + charges.create
-                                          คืน { ...order, authorizeUri }
-POST /api/webhooks/omise                  รับ event → re-fetch charge by id → sync to payment
-POST /api/admin/payments/:id/refresh-omise  สำหรับ dev (ไม่มี public webhook URL)
+                                          ถ้า online → POST /api/v2/Payment/ → เก็บ TransactionId
+                                          คืน { ...order, authorizeUri = PaymentUrl }
+POST /api/webhooks/chillpay               background notify (form-urlencoded) → re-query PaymentStatus by TransactionId → sync
+POST /api/admin/payments/:id/refresh-chillpay  สำหรับ dev (ไม่มี public background URL)
 ```
 
 Frontend:
@@ -1177,36 +1178,39 @@ Frontend:
 /checkout                                  radio 3 ตัว (โอนเอง / Alipay / WeChat Pay)
                                            หลังกดสั่งซื้อ ถ้ามี authorizeUri → window.location.href = authorizeUri
 /orders/[orderNumber]?charge=1             OrderStatusPoller (client component)
-                                           poll GET /api/orders/{orderNumber} ทุก 4 วินาที (max 30 รอบ)
+                                           poll POST /api/orders/{orderNumber}/refresh-payment ทุก 4 วินาที (max 30 รอบ)
                                            สถานะเปลี่ยน → router.refresh()
 ```
 
 Decisions:
 
-* **Currency**: Omise alipay/wechat_pay รับ THB เท่านั้น → convert CNY cents → THB satang ด้วย `CNY_TO_THB_RATE` (default 4.9) ที่ตั้งจาก env. FX feed จริงเลื่อน Phase 3
-* **Verification**: webhook payload ไม่ trust ตรง ๆ — ดึง charge ID มา `omise.charges.retrieve()` แล้วใช้ค่าจาก API
-* **Sync logic**: `charge.paid === true` → Payment=APPROVED + Order=PAID, `charge.status === "failed"` → Payment=REJECTED + `failureMessage`
-* **Dev workflow ไม่มี public URL**: ใช้ `POST /api/admin/payments/:id/refresh-omise` ดึงสถานะจาก Omise มาเอง — ไม่ต้องตั้ง ngrok ก็เทสจบ flow ได้
-* **Source type**: ใช้ `alipay` + `wechat_pay` (cross-border / online merchant). `alipay_cn` เป็นของ POS ในไทย ไม่ใช่ที่เราต้องการ
-* **Stored amount**: Payment.amountCents เก็บเป็น THB satang ที่ Omise ใช้จริง (ไม่ใช่ CNY cents) — สำหรับ reconcile กับ Omise dashboard
+* **Channel codes**: Alipay = `epayment_alipay`, WeChat Pay = `epayment_wechatpay` (Appendix E)
+* **Currency**: ChillPay PG รับ THB เท่านั้น → convert CNY cents → THB satang ด้วย `CNY_TO_THB_RATE` (default 4.9). Amount ส่งเป็น satang (2 หลักท้าย = ทศนิยม), Currency = `764`
+* **Checksum**: ทุก request เซ็นด้วย `md5(concat(fields) + MD5SecretKey)` ตามลำดับ field ใน manual
+* **Verification**: ไม่ trust background notify ตรง ๆ — เอา `TransactionId` ไป re-query `POST /api/v2/PaymentStatus/` (authenticated) แล้วใช้ค่าจาก API (เหมือนเดิมที่ re-fetch charge)
+* **Sync logic** (Appendix C): `PaymentStatus === 0` → Payment=APPROVED + Order=PAID, `1/2/3` (fail/cancel/error) → Payment=REJECTED + `failureMessage`, `9` (pending) → ไม่เปลี่ยน
+* **OrderNo**: ChillPay ห้ามอักขระพิเศษ → ตัด `-` ออกจาก orderNumber ก่อนส่ง; **CustomerId** ใช้ `user.id` (cuid, alphanumeric)
+* **Result/Background URL**: ตั้งใน ChillPay dashboard ต่อ RouteNo (ไม่ได้ส่งผ่าน API); Background URL ชี้ที่ `/api/webhooks/chillpay`
+* **Stored amount**: Payment.amountCents เก็บเป็น THB satang ที่ ChillPay ใช้จริง (ไม่ใช่ CNY cents) — สำหรับ reconcile กับ ChillPay dashboard
 
 Out of scope (เลื่อน):
 
-* Refund ผ่าน Omise — ตอนนี้ admin ใช้ปุ่ม "คืนเงิน" manual (Phase 1F) เพียงพอ
-* PromptPay / credit card
-* Saved card / subscription
+* Refund/Void ผ่าน ChillPay — ตอนนี้ admin ใช้ปุ่ม "คืนเงิน" manual (Phase 1F) เพียงพอ
+* PromptPay / QR / credit card / installment channels อื่น ๆ
+* Saved card (CreditToken) / subscription
 * Multi-attempt — ถ้าลูกค้าจ่ายไม่สำเร็จ ตอนนี้ต้องสั่งใหม่
 
-Test plan (รอ keys):
+Test plan (รอ credentials):
 
 ```text
-1. ใส่ test keys ใน .env (จาก Omise Dashboard > API Keys)
-2. pnpm dev → กดสั่งซื้อ → เลือก Alipay/WeChat Pay
-3. ระบบ redirect ไป Omise test sandbox
-4. ในหน้า sandbox กดยืนยัน (Omise มีปุ่ม "Pay" สำหรับเทส)
-5. กลับมาที่ /orders/[orderNumber]?charge=1 → poller จะรอเช็คสถานะ
-6. ถ้า webhook ไม่ทำงาน (dev ไม่มี public URL) → ใน admin กด "Refresh from Omise"
-   /api/admin/payments/:id/refresh-omise → sync สถานะ
+1. ใส่ sandbox credentials ใน .env (จาก ChillPay dashboard > Settings > API)
+2. รัน migration: pnpm --filter @siambox/database migrate:deploy
+3. pnpm dev → กดสั่งซื้อ → เลือก Alipay/WeChat Pay
+4. ระบบ redirect ไป ChillPay sandbox (PaymentUrl)
+5. Alipay/WeChat sandbox ต้องนัดทีม support ของ ChillPay ผ่าน LINE Official เพื่อเทส
+6. กลับมาที่ /orders/[orderNumber]?charge=1 → poller จะ re-query PaymentStatus
+7. ถ้า background URL ไม่ทำงาน (dev ไม่มี public URL) → ใน admin กด "Refresh from ChillPay"
+   /api/admin/payments/:id/refresh-chillpay → sync สถานะ
 ```
 
 ---

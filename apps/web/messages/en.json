@@ -122,7 +122,9 @@
     "submitting": "Submitting...",
     "empty": "Your cart is empty",
     "submitError": "Order failed",
-    "notePlaceholder": "Optional notes for your order"
+    "notePlaceholder": "Optional notes for your order",
+    "payTest": "Test (Card)",
+    "payTestHint": "For testing only — sandbox card 4141..., OTP 123456"
   },
   "Order": {
     "orderNumber": "Order",

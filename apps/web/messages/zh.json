@@ -122,7 +122,9 @@
     "submitting": "提交中...",
     "empty": "购物车是空的",
     "submitError": "下单失败",
-    "notePlaceholder": "订单备注（选填）"
+    "notePlaceholder": "订单备注（选填）",
+    "payTest": "测试 (信用卡)",
+    "payTestHint": "仅用于测试 — 沙箱信用卡 4141... OTP 123456"
   },
   "Order": {
     "orderNumber": "订单",

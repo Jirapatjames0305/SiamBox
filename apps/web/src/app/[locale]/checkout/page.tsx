@@ -28,7 +28,7 @@ type FormState = {
   customerNote: string;
 };
 
-type PaymentMethod = "MANUAL" | "ALIPAY" | "WECHAT_PAY";
+type PaymentMethod = "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST";
 
 const empty: FormState = {
   recipient: "",
@@ -165,10 +165,11 @@ export default function CheckoutPage() {
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6">
             <h2 className="text-base font-bold text-slate-900">{t("paymentMethod")}</h2>
-            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
               <PaymentChoice value="MANUAL" selected={paymentMethod} onSelect={setPaymentMethod} label={t("payManual")} hint={t("payManualHint")} />
               <PaymentChoice value="ALIPAY" selected={paymentMethod} onSelect={setPaymentMethod} label="Alipay" hint={t("payOnlineHint")} />
               <PaymentChoice value="WECHAT_PAY" selected={paymentMethod} onSelect={setPaymentMethod} label="WeChat Pay" hint={t("payOnlineHint")} />
+              <PaymentChoice value="TEST" selected={paymentMethod} onSelect={setPaymentMethod} label={t("payTest")} hint={t("payTestHint")} badge="TEST" />
             </div>
           </div>
 
@@ -258,12 +259,15 @@ function PaymentChoice({
   onSelect,
   label,
   hint,
+  badge,
 }: {
   value: PaymentMethod;
   selected: PaymentMethod;
   onSelect: (v: PaymentMethod) => void;
   label: string;
   hint: string;
+  /** Optional pill (e.g. "TEST") shown next to the label for non-production options. */
+  badge?: string;
 }) {
   const active = selected === value;
   return (
@@ -285,6 +289,11 @@ function PaymentChoice({
           {active && <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />}
         </span>
         <span className="text-sm font-semibold text-slate-800">{label}</span>
+        {badge && (
+          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+            {badge}
+          </span>
+        )}
       </div>
       <p className="mt-1 pl-6 text-xs text-slate-500">{hint}</p>
     </button>

@@ -46,8 +46,8 @@ The repo ships a Docker-based blueprint at [`render.yaml`](render.yaml).
    - `ADMIN_TOKEN` — long random string
    - `CORS_ORIGIN` — `https://siambox.pages.dev,https://admin-siambox.pages.dev`
      (update after the Pages URLs are minted in step 3)
-   - `OMISE_PUBLIC_KEY`, `OMISE_SECRET_KEY`
-   - `OMISE_RETURN_BASE` — public web URL (set after Pages deploys)
+   - `CHILLPAY_MERCHANT_CODE`, `CHILLPAY_API_KEY`, `CHILLPAY_MD5_SECRET`
+   - `CHILLPAY_API_BASE` — sandbox by default; `https://appsrv.chillpay.co/api/v2` for production
    - `CNY_TO_THB_RATE` — e.g. `5.0`
    - `R2_*` — when you migrate uploads to R2
 5. Click **Apply**. First build takes ~6–8 min.
@@ -90,7 +90,13 @@ Same as 3a but:
 
 Go back to Render and update:
 - `CORS_ORIGIN` → add the actual `.vercel.app` URLs
-- `OMISE_RETURN_BASE` → the web URL (`https://siambox-web.vercel.app`)
+
+In the ChillPay dashboard (Settings → Payment Channel) set, for your RouteNo:
+- **Background URL** (server notify, marks paid) → `https://siambox-api.onrender.com/api/webhooks/chillpay`
+- **Result URL** (browser bounce-back after payment) → `https://siambox-api.onrender.com/api/webhooks/chillpay/return`
+
+Also set `WEB_BASE_URL` on Render to the web URL (`https://siambox-web.vercel.app`) so the
+Result URL handler knows where to redirect the customer.
 
 Then trigger a redeploy on Render (Manual Deploy → Deploy latest commit).
 
