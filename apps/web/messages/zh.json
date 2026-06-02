@@ -189,7 +189,8 @@
     "addExtras": "添加额外商品",
     "sameCategoryOnly": "仅限同类商品",
     "unitPrice": "单价",
-    "lineTotal": "小计"
+    "lineTotal": "小计",
+    "relatedTitle": "相关商品"
   },
   "Cart": {
     "title": "购物车",

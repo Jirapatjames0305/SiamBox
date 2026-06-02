@@ -1,6 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/routing";
-import { getBuildConfig, listProducts, listReviews, type Review } from "@/lib/api";
+import { getBuildConfig, listBestSellers, listProducts, listReviews, type Review } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { localizedName } from "@/lib/i18n-helpers";
 import type { Locale } from "@/i18n/routing";
@@ -57,7 +57,14 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
   let bestSellers: Awaited<ReturnType<typeof listProducts>> = [];
   try {
-    bestSellers = (await listProducts()).slice(0, 6);
+    bestSellers = await listBestSellers();
+    if (bestSellers.length === 0) {
+      // Fallback: if admin hasn't curated any, show the latest products.
+      bestSellers = (await listProducts()).slice(0, 6);
+    } else if (bestSellers.length > 6) {
+      // More than 6 curated → show a random 6 (rotates each revalidation).
+      bestSellers = [...bestSellers].sort(() => Math.random() - 0.5).slice(0, 6);
+    }
   } catch {
     // skip if API down
   }
@@ -97,29 +104,29 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={heroBg} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            <div className="absolute inset-0 bg-cream-50/80" />
+            <div className="absolute inset-0 bg-cream-50/80 sm:bg-cream-50/10" />
           </>
         )}
-        <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-gold-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-gold-300/10 blur-3xl" />
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 lg:grid-cols-2 lg:py-24">
           <div>
-            <div className="flex items-center gap-3 text-gold-600">
-              <span className="h-px w-8 bg-gold-500" />
+            <div className="flex items-center gap-3 text-gold-500">
+              <span className="h-px w-8 bg-gold-400/70" />
               <span className="text-xs font-semibold uppercase tracking-[0.3em]">{t("eyebrow")}</span>
             </div>
-            <h1 className="mt-5 font-serif text-4xl font-bold leading-[1.1] text-maroon-900 sm:text-5xl lg:text-6xl">
+            <h1 className="mt-5 font-serif text-4xl font-bold leading-[1.1] text-maroon-800 sm:text-5xl lg:text-6xl">
               {t("heroTitle")}
             </h1>
-            <p className="mt-5 max-w-md text-lg text-stone-600">{t("heroTagline")}</p>
+            <p className="mt-5 max-w-md text-lg text-stone-500">{t("heroTagline")}</p>
 
             <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
               {badges.map((b, i) => (
                 <div key={b.title} className="text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-gold-400/50 bg-white text-xl shadow-sm">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-gold-400/30 bg-white text-xl shadow-sm">
                     {BADGE_ICONS[i]}
                   </div>
-                  <p className="mt-2 text-xs font-semibold text-maroon-900">{b.title}</p>
-                  <p className="text-[11px] text-stone-500">{b.sub}</p>
+                  <p className="mt-2 text-xs font-semibold text-maroon-800">{b.title}</p>
+                  <p className="text-[11px] text-stone-400">{b.sub}</p>
                 </div>
               ))}
             </div>
@@ -127,16 +134,16 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             <div className="mt-9 flex flex-wrap gap-3">
               <Link
                 href="/products"
-                className="rounded-md bg-maroon-800 px-7 py-3 text-sm font-semibold text-cream-100 shadow-md transition hover:bg-maroon-700"
+                className="rounded-md bg-maroon-700 px-7 py-3 text-sm font-semibold text-cream-100 shadow-sm transition hover:bg-maroon-600"
               >
                 {t("shopNow")} →
               </Link>
-              <Link
+              {/* <Link
                 href="/build"
-                className="rounded-md border border-maroon-300/40 px-7 py-3 text-sm font-semibold text-maroon-800 transition hover:bg-maroon-50"
+                className="rounded-md border border-maroon-300/30 px-7 py-3 text-sm font-semibold text-maroon-700 transition hover:bg-maroon-50"
               >
                 {t("discover")} →
-              </Link>
+              </Link> */}
             </div>
           </div>
         </div>
@@ -246,7 +253,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         {/* Thailand Stories */}
         <div className="grain relative flex flex-col justify-between overflow-hidden bg-maroon-950 px-8 py-10 text-cream-100">
           {storiesBg && <img src={storiesBg} alt="" className="absolute inset-0 h-full w-full object-cover opacity-40" />}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-maroon-950/95 via-maroon-900/80 to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-maroon-950/80 via-maroon-900/80 to-transparent sm:from-maroon-950/10 sm:via-maroon-900/10" />
           <div className="relative">
             <h3 className="font-serif text-2xl font-bold uppercase tracking-wide text-gold-400">{t("storiesTitle")}</h3>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-cream-200/80">{t("storiesText")}</p>
@@ -266,7 +273,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           {brandsBg && (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={brandsBg} alt="" className="absolute inset-0 h-full w-full object-cover opacity-20" />
+              <img src={brandsBg} alt="" className="absolute inset-0 h-full w-full object-cover opacity-40" />
             </>
           )}
           <div className="relative">
@@ -289,7 +296,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         {/* Become Our Partner */}
         <div className="grain relative flex flex-col justify-between overflow-hidden bg-stone-900 px-8 py-10 text-cream-100">
           {partnerBg && <img src={partnerBg} alt="" className="absolute inset-0 h-full w-full object-cover opacity-40" />}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-stone-950/95 via-stone-900/80 to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-stone-950/80 via-stone-900/80 to-transparent sm:from-stone-950/10 sm:via-stone-900/10" />
           <div className="relative">
             <h3 className="font-serif text-2xl font-bold uppercase tracking-wide text-gold-400">{t("partnerTitle")}</h3>
             <p className="mt-1 text-xs text-cream-300/70">{t("partnerText")}</p>

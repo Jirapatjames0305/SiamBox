@@ -10,6 +10,7 @@ const NAV = [
   { href: "/orders", label: "ออเดอร์" },
   { href: "/packages", label: "แพ็กเกจ" },
   { href: "/products", label: "สินค้า" },
+  { href: "/best-sellers", label: "สินค้าขายดี" },
   { href: "/product-requests", label: "รีเควสสินค้า" },
   { href: "/partner-inquiries", label: "พันธมิตร" },
   { href: "/reviews", label: "รีวิว" },

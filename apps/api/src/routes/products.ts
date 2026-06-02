@@ -15,6 +15,20 @@ productsRouter.get("/", async (_req, res, next) => {
   }
 });
 
+// Public — curated homepage best sellers (active products only), ordered by position.
+productsRouter.get("/best-sellers", async (_req, res, next) => {
+  try {
+    const rows = await prisma.bestSeller.findMany({
+      orderBy: { position: "asc" },
+      include: { product: true },
+    });
+    const data = rows.map((r) => r.product).filter((p) => p.active);
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+});
+
 productsRouter.get("/:slug", async (req, res, next) => {
   try {
     const product = await prisma.product.findUnique({

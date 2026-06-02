@@ -405,6 +405,16 @@ async function main() {
     });
   }
 
+  // Seed homepage best sellers — pick 6 random active products if the table is empty.
+  // Idempotent: skip entirely once an admin has curated the list.
+  if ((await prisma.bestSeller.count()) === 0) {
+    const active = await prisma.product.findMany({ where: { active: true }, select: { id: true } });
+    const picked = active.sort(() => Math.random() - 0.5).slice(0, 6);
+    await prisma.$transaction(
+      picked.map((p, i) => prisma.bestSeller.create({ data: { productId: p.id, position: i } })),
+    );
+  }
+
   // Seed packages — resolve SKU to product id, compute priceCents from items.
   // Idempotent: skip if the slug already exists so admin edits (images, price, items) survive re-seeds.
   for (const pkg of packages) {

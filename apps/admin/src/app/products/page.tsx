@@ -199,6 +199,7 @@ function ProductForm({
     nameEn: product?.nameEn ?? "",
     descriptionTh: product?.descriptionTh ?? "",
     descriptionZh: product?.descriptionZh ?? "",
+    descriptionEn: product?.descriptionEn ?? "",
     priceCents: product?.priceCents ?? 0,
     currency: product?.currency ?? "CNY",
     stock: product?.stock ?? 0,
@@ -227,6 +228,7 @@ function ProductForm({
       nameEn: form.nameEn || undefined,
       descriptionTh: form.descriptionTh || undefined,
       descriptionZh: form.descriptionZh || undefined,
+      descriptionEn: form.descriptionEn || undefined,
       priceCents: Number(form.priceCents),
       currency: form.currency,
       stock: Number(form.stock),
@@ -301,6 +303,15 @@ function ProductForm({
           <textarea
             value={form.descriptionZh}
             onChange={(e) => set("descriptionZh", e.target.value)}
+            rows={2}
+            className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+          />
+        </label>
+        <label className="mt-3 block text-sm">
+          <span className="text-neutral-700">คำอธิบาย (ภาษาอังกฤษ)</span>
+          <textarea
+            value={form.descriptionEn}
+            onChange={(e) => set("descriptionEn", e.target.value)}
             rows={2}
             className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
           />

@@ -8,6 +8,7 @@ import type {
   Package,
   PartnerInquiry,
   PaymentMethodSetting,
+  BestSeller,
   Product,
   ProductRequest,
   Review,
@@ -320,6 +321,30 @@ export async function setReviewStatus(
 
 export async function deleteReview(id: string): Promise<void> {
   await request(`/api/admin/reviews/${id}`, { method: "DELETE" });
+}
+
+export async function fetchBestSellers(): Promise<BestSeller[]> {
+  const json = await request<{ data: BestSeller[] }>(`/api/admin/best-sellers`);
+  return json.data;
+}
+
+export async function addBestSeller(productId: string): Promise<void> {
+  await request(`/api/admin/best-sellers`, {
+    method: "POST",
+    body: JSON.stringify({ productId }),
+  });
+}
+
+export async function removeBestSeller(productId: string): Promise<void> {
+  await request(`/api/admin/best-sellers/${productId}`, { method: "DELETE" });
+}
+
+export async function randomizeBestSellers(count = 6): Promise<BestSeller[]> {
+  const json = await request<{ data: BestSeller[] }>(`/api/admin/best-sellers/randomize`, {
+    method: "POST",
+    body: JSON.stringify({ count }),
+  });
+  return json.data;
 }
 
 export async function uploadImage(file: File): Promise<{ url: string }> {

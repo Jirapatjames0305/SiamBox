@@ -189,7 +189,8 @@
     "addExtras": "Add Extras",
     "sameCategoryOnly": "Same category only",
     "unitPrice": "Unit Price",
-    "lineTotal": "Total"
+    "lineTotal": "Total",
+    "relatedTitle": "You may also like"
   },
   "Cart": {
     "title": "Cart",

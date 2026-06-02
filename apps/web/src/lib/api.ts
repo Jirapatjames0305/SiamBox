@@ -135,6 +135,13 @@ export async function listProducts(): Promise<Product[]> {
   return json.data;
 }
 
+export async function listBestSellers(): Promise<Product[]> {
+  const json = await request<{ data: Product[] }>("/api/products/best-sellers", {
+    next: { revalidate: 30 },
+  });
+  return json.data;
+}
+
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   try {
     const json = await request<{ data: Product }>(`/api/products/${slug}`, {

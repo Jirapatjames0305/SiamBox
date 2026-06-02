@@ -209,6 +209,14 @@ export type Review = {
   order: { orderNumber: string };
 };
 
+export type BestSeller = {
+  id: string;
+  productId: string;
+  position: number;
+  createdAt: string;
+  product: Product;
+};
+
 export type PaymentMethodId = "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST";
 
 export type PaymentMethodSetting = {

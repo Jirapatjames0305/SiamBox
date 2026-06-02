@@ -189,7 +189,8 @@
     "addExtras": "เพิ่มสินค้าเข้าแพ็กเกจ",
     "sameCategoryOnly": "เฉพาะหมวดหมู่เดียวกัน",
     "unitPrice": "ราคาต่อหน่วย",
-    "lineTotal": "รวม"
+    "lineTotal": "รวม",
+    "relatedTitle": "สินค้าใกล้เคียง"
   },
   "Cart": {
     "title": "ตะกร้า",

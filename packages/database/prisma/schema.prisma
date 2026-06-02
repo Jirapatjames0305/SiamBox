@@ -113,10 +113,24 @@ model Product {
 
   orderItems   OrderItem[]
   packageItems PackageItem[]
+  bestSeller   BestSeller?
 
   @@index([category])
   @@index([active])
   @@map("products")
+}
+
+// Curated homepage "best sellers". Admin manages which products appear and their order.
+model BestSeller {
+  id        String   @id @default(cuid())
+  productId String   @unique @map("product_id")
+  position  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([position])
+  @@map("best_sellers")
 }
 
 model Package {

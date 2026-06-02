@@ -593,6 +593,75 @@ adminRouter.delete("/partner-inquiries/:id", async (req, res, next) => {
   }
 });
 
+// ---------- Best sellers ----------
+
+adminRouter.get("/best-sellers", async (_req, res, next) => {
+  try {
+    const data = await prisma.bestSeller.findMany({
+      orderBy: { position: "asc" },
+      include: { product: true },
+    });
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+});
+
+const addBestSellerSchema = z.object({ productId: z.string().min(1) });
+
+adminRouter.post("/best-sellers", async (req, res, next) => {
+  try {
+    const { productId } = addBestSellerSchema.parse(req.body);
+    const max = await prisma.bestSeller.aggregate({ _max: { position: true } });
+    const created = await prisma.bestSeller.upsert({
+      where: { productId },
+      update: {},
+      create: { productId, position: (max._max.position ?? -1) + 1 },
+      include: { product: true },
+    });
+    res.status(201).json({ data: created });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.delete("/best-sellers/:productId", async (req, res, next) => {
+  try {
+    await prisma.bestSeller.deleteMany({ where: { productId: req.params.productId } });
+    res.json({ data: { ok: true } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+const randomizeSchema = z.object({ count: z.number().int().min(1).max(24).default(6) });
+
+adminRouter.post("/best-sellers/randomize", async (req, res, next) => {
+  try {
+    const { count } = randomizeSchema.parse(req.body ?? {});
+    const active = await prisma.product.findMany({ where: { active: true }, select: { id: true } });
+    const ids = active.map((p) => p.id);
+    // Fisher–Yates shuffle, then take `count`.
+    for (let i = ids.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = ids[i]!;
+      ids[i] = ids[j]!;
+      ids[j] = tmp;
+    }
+    const picked = ids.slice(0, count);
+    const data = await prisma.$transaction(async (tx) => {
+      await tx.bestSeller.deleteMany({});
+      await tx.bestSeller.createMany({
+        data: picked.map((productId, i) => ({ productId, position: i })),
+      });
+      return tx.bestSeller.findMany({ orderBy: { position: "asc" }, include: { product: true } });
+    });
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ---------- Reviews ----------
 
 adminRouter.get("/reviews", async (_req, res, next) => {
