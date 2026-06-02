@@ -6,9 +6,11 @@ import type {
   CustomerNote,
   Order,
   Package,
+  PartnerInquiry,
   PaymentMethodSetting,
   Product,
   ProductRequest,
+  Review,
   Settings,
   Stats,
 } from "./types";
@@ -283,6 +285,41 @@ export async function setProductRequestStatus(id: string, status: "NEW" | "DONE"
 
 export async function deleteProductRequest(id: string): Promise<void> {
   await request(`/api/admin/product-requests/${id}`, { method: "DELETE" });
+}
+
+export async function fetchPartnerInquiries(): Promise<PartnerInquiry[]> {
+  const json = await request<{ data: PartnerInquiry[] }>(`/api/admin/partner-inquiries`);
+  return json.data;
+}
+
+export async function setPartnerInquiryStatus(id: string, status: "NEW" | "CONTACTED"): Promise<void> {
+  await request(`/api/admin/partner-inquiries/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function deletePartnerInquiry(id: string): Promise<void> {
+  await request(`/api/admin/partner-inquiries/${id}`, { method: "DELETE" });
+}
+
+export async function fetchReviews(): Promise<Review[]> {
+  const json = await request<{ data: Review[] }>(`/api/admin/reviews`);
+  return json.data;
+}
+
+export async function setReviewStatus(
+  id: string,
+  status: "PENDING" | "APPROVED" | "REJECTED",
+): Promise<void> {
+  await request(`/api/admin/reviews/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function deleteReview(id: string): Promise<void> {
+  await request(`/api/admin/reviews/${id}`, { method: "DELETE" });
 }
 
 export async function uploadImage(file: File): Promise<{ url: string }> {

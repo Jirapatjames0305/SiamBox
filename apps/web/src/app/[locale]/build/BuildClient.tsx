@@ -11,12 +11,40 @@ import type { Locale } from "@/i18n/routing";
 
 type Selection = Record<string, number>;
 
-export function BuildClient({ products, minCents }: { products: Product[]; minCents: number }) {
+export function BuildClient({
+  products,
+  minCents,
+  initialProductIds = [],
+}: {
+  products: Product[];
+  minCents: number;
+  initialProductIds?: string[];
+}) {
   const t = useTranslations("Build");
   const locale = useLocale() as Locale;
   const router = useRouter();
-  const [selection, setSelection] = useState<Selection>({});
+  const [selection, setSelection] = useState<Selection>(() => {
+    const valid = new Set(products.map((p) => p.id));
+    const initial: Selection = {};
+    for (const id of initialProductIds) {
+      if (valid.has(id)) initial[id] = (initial[id] ?? 0) + 1;
+    }
+    return initial;
+  });
   const [added, setAdded] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const visibleProducts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter((p) =>
+      [p.nameTh, p.nameZh, p.nameEn, p.sku, p.category, ...p.tags]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [search, products]);
 
   const items = useMemo(
     () =>
@@ -55,6 +83,7 @@ export function BuildClient({ products, minCents }: { products: Product[]; minCe
         quantity,
         nameTh: product.nameTh,
         nameZh: product.nameZh,
+        nameEn: product.nameEn,
         priceCents: product.priceCents,
         image: product.images[0],
       })),
@@ -74,9 +103,27 @@ export function BuildClient({ products, minCents }: { products: Product[]; minCe
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
         {/* Product grid */}
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {products.map((p) => {
-            const name = localizedName(p, locale);
+        <div>
+          <div className="relative mb-4">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+              </svg>
+            </span>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("searchPlaceholder")}
+              className="h-10 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500"
+            />
+          </div>
+
+          {visibleProducts.length === 0 ? (
+            <p className="py-10 text-center text-sm text-slate-400">{t("noResults")}</p>
+          ) : (
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {visibleProducts.map((p) => {
+                const name = localizedName(p, locale);
             const qty = selection[p.id] ?? 0;
             return (
               <li
@@ -128,8 +175,10 @@ export function BuildClient({ products, minCents }: { products: Product[]; minCe
                 </div>
               </li>
             );
-          })}
-        </ul>
+              })}
+            </ul>
+          )}
+        </div>
 
         {/* Summary panel */}
         <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-5 lg:sticky lg:top-24">

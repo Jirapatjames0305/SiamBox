@@ -1,20 +1,89 @@
 {
   "Home": {
-    "tagline": "泰国好物，直送中国",
-    "subtitle": "泰国零食、伴手礼、生活用品 — 直送到家",
-    "browse": "浏览商品",
-    "eyebrow": "泰国 → 中国直送",
-    "trackOrder": "查询订单",
-    "featured": "精选商品",
+    "eyebrow": "甄选泰国好物",
+    "heroTitle": "甄选泰国优质好物",
+    "heroTagline": "传递泰式生活之美，源头直供，正品保证。",
+    "shopNow": "立即选购",
+    "discover": "探索泰国",
+    "badges": [
+      {
+        "title": "正品保证",
+        "sub": "泰国正品"
+      },
+      {
+        "title": "泰国直供",
+        "sub": "源头直供"
+      },
+      {
+        "title": "出口品质",
+        "sub": "国际标准"
+      },
+      {
+        "title": "中文客服",
+        "sub": "专业团队"
+      }
+    ],
+    "stats": [
+      {
+        "value": "12,000+",
+        "label": "满意客户"
+      },
+      {
+        "value": "100+",
+        "label": "合作品牌"
+      },
+      {
+        "value": "1,000+",
+        "label": "精选商品"
+      },
+      {
+        "value": "50+",
+        "label": "服务国家"
+      },
+      {
+        "value": "全球",
+        "label": "配送"
+      }
+    ],
+    "whyTitle": "为什么选择 SIAMBOX",
+    "why": [
+      {
+        "title": "正品保证",
+        "sub": "100%泰国正品，源自可信赖的制造商。"
+      },
+      {
+        "title": "泰国直供",
+        "sub": "去除中间商，给您最优价格。"
+      },
+      {
+        "title": "出口品质",
+        "sub": "面向全球的国际标准品质。"
+      },
+      {
+        "title": "中文客服",
+        "sub": "专属中文服务团队，全程协助。"
+      },
+      {
+        "title": "安全支付",
+        "sub": "多种安全支付方式。"
+      }
+    ],
+    "bestSellers": "热销商品",
     "viewAll": "查看全部",
-    "badge1Title": "泰国直邮",
-    "badge1Sub": "正品保证",
-    "badge2Title": "品质保障",
-    "badge2Sub": "精心挑选",
-    "badge3Title": "订单追踪",
-    "badge3Sub": "实时更新",
-    "ctaEyebrow": "今天开始购物",
-    "ctaTitle": "正品泰国货，直送到你家"
+    "addToCart": "加入购物车",
+    "storiesTitle": "泰国故事",
+    "storiesText": "探索泰国文化与传统之美，感受每件商品背后的匠心。",
+    "storiesCta": "了解更多",
+    "partnerTitle": "成为合作伙伴",
+    "partnerText": "携手共创，连接全球市场。",
+    "partnerPoint1": "批发合作",
+    "partnerPoint2": "贴牌定制 OEM",
+    "partnerPoint3": "跨境贸易",
+    "partnerCta": "联系我们",
+    "brandsTitle": "合作品牌",
+    "reviewsTitle": "客户评价",
+    "noReviews": "暂无评价",
+    "brandsSubtitle": "合作品牌"
   },
   "Nav": {
     "brand": "泰国好物",
@@ -23,7 +92,11 @@
     "cart": "购物车",
     "track": "查询订单",
     "language": "语言",
-    "requestProduct": "申请商品"
+    "requestProduct": "申请商品",
+    "home": "首页",
+    "serviceNote": "中文服务",
+    "help": "帮助中心",
+    "searchPlaceholder": "搜索商品..."
   },
   "Contact": {
     "openMenu": "联系客服",
@@ -46,7 +119,9 @@
     "belowMin": "最低订购 {min}",
     "minOk": "已达最低 {min}",
     "addToCart": "加入购物车",
-    "added": "已添加"
+    "added": "已添加",
+    "searchPlaceholder": "搜索商品...",
+    "noResults": "没有找到匹配的商品"
   },
   "Track": {
     "title": "查询我的订单",
@@ -71,7 +146,36 @@
     "productsCount": "{count} 件商品",
     "allCategories": "全部",
     "buildOwnTitle": "自定义套餐",
-    "buildOwnSubtitle": "选择您喜欢的商品自由搭配"
+    "buildOwnSubtitle": "选择您喜欢的商品自由搭配",
+    "addProduct": "添加商品",
+    "viewAll": "查看全部",
+    "uncategorized": "其他",
+    "searchResults": "“{q}” 的搜索结果",
+    "noResults": "没有找到与 “{q}” 匹配的商品",
+    "searchPlaceholder": "搜索商品...",
+    "addedToBox": "已加入套餐",
+    "toastRemaining": "已加入 — 距离起订金额还差 {amount}",
+    "toastReady": "已加入 — 已达起订金额，可以结算"
+  },
+  "Categories": {
+    "seasoning": "调味料",
+    "snack": "零食",
+    "driedfruit": "果干",
+    "instant": "速食",
+    "sauce": "酱料",
+    "beverage": "饮料",
+    "coffee": "咖啡",
+    "tea": "茶",
+    "skincare": "护肤",
+    "cosmetics": "彩妆",
+    "haircare": "洗护发",
+    "herbal": "草本",
+    "supplement": "保健品",
+    "spa": "香薰SPA",
+    "health": "健康",
+    "baby": "母婴",
+    "household": "家居",
+    "souvenir": "手信"
   },
   "ProductDetail": {
     "weight": "重量",
@@ -96,7 +200,10 @@
     "shippingLater": "运费在结账页计算",
     "checkout": "去结账",
     "total": "合计",
-    "tbd": "待定"
+    "tbd": "待定",
+    "belowMin": "起订金额 {min}",
+    "minOk": "已达起订金额 {min}",
+    "addMore": "再加 {amount} 达到起订金额"
   },
   "Checkout": {
     "title": "结账",
@@ -166,6 +273,7 @@
   "Status": {
     "PENDING_PAYMENT": "待付款",
     "PAID": "已付款",
+    "PROCESSING": "处理中",
     "PACKING": "打包中",
     "SHIPPED": "已发货",
     "IN_CUSTOMS": "清关中",
@@ -193,5 +301,76 @@
     "uploading": "上传中…",
     "uploadError": "图片上传失败",
     "removeImage": "移除图片"
+  },
+  "Footer": {
+    "tagline": "SIAMBOX 致力于将泰国优质商品带给全球客户。",
+    "shop": "商城",
+    "shopProducts": "全部商品",
+    "shopBuild": "自由搭配",
+    "shopRequest": "申请商品",
+    "shopTrack": "查询订单",
+    "service": "客户服务",
+    "serviceHelp": "帮助中心",
+    "serviceShipping": "配送方式",
+    "serviceReturns": "退换政策",
+    "serviceTrack": "查询订单",
+    "contact": "联系我们",
+    "emailPlaceholder": "请输入邮箱",
+    "subscribe": "订阅",
+    "rights": "版权所有。",
+    "trustShipping": "满¥500免运费",
+    "trustSecure": "安全支付",
+    "trustReturns": "7天无理由退换",
+    "trustSupport": "全天候客服"
+  },
+  "Partner": {
+    "eyebrow": "合作共赢",
+    "title": "成为合作伙伴",
+    "subtitle": "携手将泰国正品带入全球市场。留下您的信息，我们的团队会尽快与您联系。",
+    "companyName": "公司 / 店铺",
+    "companyPlaceholder": "请输入公司名称",
+    "contactName": "联系人",
+    "contactNamePlaceholder": "您的姓名",
+    "contact": "电话 / 微信 / Line",
+    "contactPlaceholder": "方便联系您的方式",
+    "email": "邮箱",
+    "emailPlaceholder": "you@company.com",
+    "type": "合作类型",
+    "typePlaceholder": "请选择类型",
+    "type_wholesale": "批发合作",
+    "type_oem": "贴牌定制 OEM",
+    "type_distributor": "分销代理",
+    "type_crossborder": "跨境贸易",
+    "type_other": "其他",
+    "message": "留言",
+    "messagePlaceholder": "简单介绍您的业务或需求",
+    "submit": "提交",
+    "submitting": "提交中…",
+    "error": "提交失败，请重试",
+    "thanks": "感谢您的咨询！",
+    "thanksHint": "我们的团队会尽快与您联系。"
+  },
+  "Review": {
+    "sectionTitle": "评价",
+    "invite": "收到商品了吗？告诉我们您的感受。",
+    "writeReview": "写评价",
+    "pendingBadge": "待审核",
+    "approvedBadge": "已发布",
+    "title": "评价您的订单",
+    "subtitle": "分享您的体验 — 您的评价能帮助其他买家。",
+    "ratingLabel": "评分",
+    "nameLabel": "显示名称",
+    "namePlaceholder": "您的姓名",
+    "commentLabel": "您的评价",
+    "commentPlaceholder": "聊聊商品和服务吧。",
+    "submit": "提交评价",
+    "submitting": "提交中…",
+    "error": "提交失败，请重试。",
+    "thanks": "感谢您的评价！",
+    "thanksHint": "评价将在团队审核后显示在网站上。",
+    "alreadyReviewed": "您已评价过此订单。",
+    "notDelivered": "订单送达后即可评价。",
+    "notFound": "订单不存在。",
+    "backToOrder": "返回订单"
   }
 }

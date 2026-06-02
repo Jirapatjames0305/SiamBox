@@ -204,6 +204,7 @@ model Order {
   payments        Payment[]
   trackingLogs    TrackingLog[]
   shipments       Shipment[]
+  review          Review?
 
   @@index([userId])
   @@index([status])
@@ -289,6 +290,24 @@ model TrackingLog {
   @@index([orderId])
   @@index([occurredAt])
   @@map("tracking_logs")
+}
+
+// Customer review of a completed (DELIVERED) order. One per order; shown publicly only once
+// an admin sets status = APPROVED. `location` is derived from the order's shipping province.
+model Review {
+  id         String   @id @default(cuid())
+  orderId    String   @unique @map("order_id")
+  authorName String   @map("author_name")
+  location   String?
+  rating     Int // 1-5
+  comment    String   @db.Text
+  status     String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("reviews")
 }
 
 // ---------- CRM ----------
@@ -389,6 +408,12 @@ model Settings {
   bankQrUrl               String   @default("") @map("bank_qr_url")
   bankAccountName         String   @default("") @map("bank_account_name")
   bankAccountNumber       String   @default("") @map("bank_account_number")
+  heroBgUrl               String   @default("") @map("hero_bg_url")
+  storiesBgUrl            String   @default("") @map("stories_bg_url")
+  brandsBgUrl             String   @default("") @map("brands_bg_url")
+  partnerBgUrl            String   @default("") @map("partner_bg_url")
+  faviconUrl              String   @default("") @map("favicon_url")
+  logoUrl                 String   @default("") @map("logo_url")
   updatedAt               DateTime @updatedAt @map("updated_at")
 
   @@map("settings")
@@ -406,6 +431,22 @@ model ProductRequest {
 
   @@index([status])
   @@map("product_requests")
+}
+
+// Public "become a partner" inquiries — submitted from the storefront, handled in admin.
+model PartnerInquiry {
+  id          String   @id @default(cuid())
+  companyName String   @map("company_name")
+  contactName String   @map("contact_name")
+  contact     String
+  email       String?
+  partnerType String?  @map("partner_type")
+  message     String?  @db.Text
+  status      String   @default("NEW") // NEW | CONTACTED
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([status])
+  @@map("partner_inquiries")
 }
 
 // Per-method checkout visibility, managed from the admin "Payment channels" page.

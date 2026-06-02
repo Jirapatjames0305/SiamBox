@@ -89,7 +89,8 @@ export default function DashboardPage() {
             onClick={() => setFireworks(`ทะลุ ${next.toLocaleString()} ออเดอร์แล้ว!`)}
             className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/25"
           >
-            🎆 ดูตัวอย่างพลุ
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="inline h-4 w-4 mr-1" aria-hidden="true"><path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/></svg>
+            ดูตัวอย่างพลุ
           </button>
         </div>
 
@@ -119,7 +120,7 @@ export default function DashboardPage() {
                       : "bg-white/10 text-indigo-200"
                 }`}
               >
-                {done ? "✓ " : isNext ? "→ " : ""}
+                {done ? <svg viewBox="0 0 20 20" fill="currentColor" className="inline h-3 w-3 mr-0.5" aria-hidden="true"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg> : isNext ? <svg viewBox="0 0 20 20" fill="currentColor" className="inline h-3 w-3 mr-0.5" aria-hidden="true"><path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd"/></svg> : null}
                 {m.toLocaleString()}
               </span>
             );

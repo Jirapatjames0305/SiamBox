@@ -563,6 +563,70 @@ adminRouter.delete("/product-requests/:id", async (req, res, next) => {
   }
 });
 
+// ---------- Partner inquiries ----------
+
+adminRouter.get("/partner-inquiries", async (_req, res, next) => {
+  try {
+    const data = await prisma.partnerInquiry.findMany({ orderBy: { createdAt: "desc" }, take: 200 });
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.patch("/partner-inquiries/:id", async (req, res, next) => {
+  try {
+    const status = z.enum(["NEW", "CONTACTED"]).parse(req.body?.status);
+    const data = await prisma.partnerInquiry.update({ where: { id: req.params.id }, data: { status } });
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.delete("/partner-inquiries/:id", async (req, res, next) => {
+  try {
+    await prisma.partnerInquiry.delete({ where: { id: req.params.id } });
+    res.json({ data: { ok: true } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Reviews ----------
+
+adminRouter.get("/reviews", async (_req, res, next) => {
+  try {
+    const data = await prisma.review.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 200,
+      include: { order: { select: { orderNumber: true } } },
+    });
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.patch("/reviews/:id", async (req, res, next) => {
+  try {
+    const status = z.enum(["PENDING", "APPROVED", "REJECTED"]).parse(req.body?.status);
+    const data = await prisma.review.update({ where: { id: req.params.id }, data: { status } });
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.delete("/reviews/:id", async (req, res, next) => {
+  try {
+    await prisma.review.delete({ where: { id: req.params.id } });
+    res.json({ data: { ok: true } });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ---------- Uploads ----------
 
 adminRouter.post("/uploads", upload.single("file"), async (req, res, next) => {
@@ -616,6 +680,12 @@ const settingsSchema = z.object({
   bankQrUrl: z.string().max(1000),
   bankAccountName: z.string().max(200),
   bankAccountNumber: z.string().max(100),
+  heroBgUrl: z.string().max(1000),
+  storiesBgUrl: z.string().max(1000),
+  brandsBgUrl: z.string().max(1000),
+  partnerBgUrl: z.string().max(1000),
+  faviconUrl: z.string().max(1000),
+  logoUrl: z.string().max(1000),
 });
 
 adminRouter.get("/settings", async (_req, res, next) => {

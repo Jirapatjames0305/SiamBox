@@ -30,6 +30,7 @@ export default async function OrderTrackingPage({
   setRequestLocale(locale);
   const t = await getTranslations("Order");
   const tStatus = await getTranslations("Status");
+  const tReview = await getTranslations("Review");
 
   const order = await getOrder(orderNumber);
   if (!order) notFound();
@@ -185,6 +186,46 @@ export default async function OrderTrackingPage({
           </ol>
         )}
       </section>
+
+      {/* Review (only once delivered) */}
+      {order.status === "DELIVERED" && (
+        <section className="mt-4 rounded-2xl border border-gold-300 bg-gold-50/40 p-6">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-maroon-700">{tReview("sectionTitle")}</h2>
+          {order.review ? (
+            <div className="mt-3">
+              <div className="flex items-center gap-2 text-gold-500">
+                <span className="inline-flex items-center gap-0.5">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <svg key={i} viewBox="0 0 20 20" fill="currentColor" className={`h-4 w-4 ${i < order.review!.rating ? "" : "opacity-25"}`}>
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                    </svg>
+                  ))}
+                </span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    order.review.status === "APPROVED"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-amber-100 text-amber-800"
+                  }`}
+                >
+                  {order.review.status === "APPROVED" ? tReview("approvedBadge") : tReview("pendingBadge")}
+                </span>
+              </div>
+              <p className="mt-2 text-sm text-stone-600">{order.review.comment}</p>
+            </div>
+          ) : (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-stone-600">{tReview("invite")}</p>
+              <Link
+                href={`/orders/${order.orderNumber}/review`}
+                className="rounded-xl bg-maroon-800 px-4 py-2 text-sm font-semibold text-cream-100 hover:bg-maroon-700"
+              >
+                {tReview("writeReview")}
+              </Link>
+            </div>
+          )}
+        </section>
+      )}
 
       <div className="mt-6 text-center">
         <Link

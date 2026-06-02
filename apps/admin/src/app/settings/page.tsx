@@ -17,6 +17,12 @@ const EMPTY: FormState = {
   bankQrUrl: "",
   bankAccountName: "",
   bankAccountNumber: "",
+  heroBgUrl: "",
+  storiesBgUrl: "",
+  brandsBgUrl: "",
+  partnerBgUrl: "",
+  faviconUrl: "",
+  logoUrl: "",
 };
 
 export default function SettingsPage() {
@@ -40,6 +46,12 @@ export default function SettingsPage() {
           bankQrUrl: s.bankQrUrl,
           bankAccountName: s.bankAccountName,
           bankAccountNumber: s.bankAccountNumber,
+          heroBgUrl: s.heroBgUrl,
+          storiesBgUrl: s.storiesBgUrl,
+          brandsBgUrl: s.brandsBgUrl,
+          partnerBgUrl: s.partnerBgUrl,
+          faviconUrl: s.faviconUrl,
+          logoUrl: s.logoUrl,
         });
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : (err as Error).message))

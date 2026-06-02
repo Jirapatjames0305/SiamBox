@@ -11,10 +11,13 @@ const NAV = [
   { href: "/packages", label: "แพ็กเกจ" },
   { href: "/products", label: "สินค้า" },
   { href: "/product-requests", label: "รีเควสสินค้า" },
+  { href: "/partner-inquiries", label: "พันธมิตร" },
+  { href: "/reviews", label: "รีวิว" },
   { href: "/customers", label: "ลูกค้า" },
   { href: "/payment-methods", label: "ช่องทางชำระเงิน" },
   { href: "/bank-account", label: "บัญชีรับโอน" },
   { href: "/shipping", label: "ค่าจัดส่ง" },
+  { href: "/ui-editor", label: "แก้ไข UI" },
   { href: "/settings", label: "ตั้งค่า" },
 ];
 

@@ -33,7 +33,15 @@ export type PackageCartLine = {
 export type CustomCartLine = {
   kind: "custom";
   lineId: string; // generated unique
-  products: { productId: string; quantity: number; nameTh: string; nameZh: string | null; priceCents: number; image?: string }[];
+  products: {
+    productId: string;
+    quantity: number;
+    nameTh: string;
+    nameZh: string | null;
+    nameEn: string | null;
+    priceCents: number;
+    image?: string;
+  }[];
   priceCents: number; // unit price (sum of items)
   quantity: number;
 };
@@ -123,6 +131,61 @@ export function addCustomToCart(line: Omit<CustomCartLine, "kind" | "lineId" | "
   const lineId = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   cart.lines.push({ ...line, kind: "custom", lineId, quantity: line.quantity ?? 1 });
   write(cart);
+}
+
+// Quick-add a single product into an in-progress custom package (the first custom line, or a
+// new one). Returns the custom package's new subtotal (cents) so the caller can show how much
+// more is needed to reach the minimum order.
+export function addToCustomDraft(product: {
+  productId: string;
+  nameTh: string;
+  nameZh: string | null;
+  nameEn: string | null;
+  priceCents: number;
+  image?: string;
+}): number {
+  const cart = read();
+  let line = cart.lines.find((l): l is CustomCartLine => l.kind === "custom");
+  if (!line) {
+    line = {
+      kind: "custom",
+      lineId: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      products: [],
+      priceCents: 0,
+      quantity: 1,
+    };
+    cart.lines.push(line);
+  }
+  const existing = line.products.find((x) => x.productId === product.productId);
+  if (existing) existing.quantity += 1;
+  else line.products.push({ ...product, quantity: 1 });
+  line.priceCents = line.products.reduce((sum, x) => sum + x.priceCents * x.quantity, 0);
+  write(cart);
+  return line.priceCents;
+}
+
+// Set the quantity of a single product inside a custom package line. Removing the last product
+// (or setting qty <= 0) drops the product; an empty custom line is removed entirely.
+export function setCustomProductQty(lineId: string, productId: string, quantity: number) {
+  const cart = read();
+  const line = cart.lines.find((l): l is CustomCartLine => l.kind === "custom" && l.lineId === lineId);
+  if (!line) return;
+  if (quantity <= 0) {
+    line.products = line.products.filter((p) => p.productId !== productId);
+  } else {
+    const product = line.products.find((p) => p.productId === productId);
+    if (product) product.quantity = quantity;
+  }
+  if (line.products.length === 0) {
+    cart.lines = cart.lines.filter((l) => l.lineId !== lineId);
+  } else {
+    line.priceCents = line.products.reduce((sum, x) => sum + x.priceCents * x.quantity, 0);
+  }
+  write(cart);
+}
+
+export function removeCustomProduct(lineId: string, productId: string) {
+  setCustomProductQty(lineId, productId, 0);
 }
 
 export function updateQuantity(lineId: string, quantity: number) {

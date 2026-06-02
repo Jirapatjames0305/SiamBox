@@ -249,7 +249,7 @@ function PackageForm({
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">{pkg ? "แก้ไขแพ็กเกจ" : "เพิ่มแพ็กเกจใหม่"}</h2>
           <button type="button" onClick={onClose} className="text-sm text-neutral-500 hover:text-neutral-700">
-            ✕
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
 

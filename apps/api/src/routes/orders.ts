@@ -382,6 +382,7 @@ ordersRouter.get("/:orderNumber", async (req, res, next) => {
         shippingAddress: true,
         shipments: { orderBy: { createdAt: "desc" } },
         trackingLogs: { orderBy: { occurredAt: "desc" } },
+        review: { select: { id: true, rating: true, comment: true, authorName: true, status: true } },
       },
     });
     if (!order) {

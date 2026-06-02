@@ -62,7 +62,7 @@ export default function RequestProductPage() {
 
       {done ? (
         <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center">
-          <div className="text-4xl">✅</div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="mx-auto h-12 w-12 text-emerald-600"><path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           <p className="mt-3 text-lg font-semibold text-emerald-800">{t("thanks")}</p>
           <p className="mt-1 text-sm text-emerald-700">{t("thanksHint")}</p>
           <button

@@ -3,6 +3,9 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { ContactWidget } from "@/components/ContactWidget";
 import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { Toaster } from "@/components/Toaster";
+import { getBuildConfig } from "@/lib/api";
 import { routing } from "@/i18n/routing";
 
 export function generateStaticParams() {
@@ -23,11 +26,20 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
   const messages = await getMessages();
 
+  let logoUrl = "";
+  try {
+    logoUrl = (await getBuildConfig()).logoUrl;
+  } catch {
+    // fall back to inline SVG logo
+  }
+
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
-      <Navbar />
+      <Navbar logoUrl={logoUrl} />
       {children}
+      <Footer logoUrl={logoUrl} />
       <ContactWidget />
+      <Toaster />
     </NextIntlClientProvider>
   );
 }

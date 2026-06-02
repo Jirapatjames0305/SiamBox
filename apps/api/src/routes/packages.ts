@@ -27,6 +27,12 @@ packagesRouter.get("/config", async (_req, res, next) => {
         bankQrUrl: settings.bankQrUrl,
         bankAccountName: settings.bankAccountName,
         bankAccountNumber: settings.bankAccountNumber,
+        heroBgUrl: settings.heroBgUrl,
+        storiesBgUrl: settings.storiesBgUrl,
+        brandsBgUrl: settings.brandsBgUrl,
+        partnerBgUrl: settings.partnerBgUrl,
+        faviconUrl: settings.faviconUrl,
+        logoUrl: settings.logoUrl,
       },
     });
   } catch (err) {

@@ -125,7 +125,7 @@ export default function ProductsPage() {
                       />
                     ) : (
                       <div className="flex h-11 w-11 items-center justify-center rounded-md border border-dashed border-neutral-300 text-neutral-300">
-                        ✗
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12"/></svg>
                       </div>
                     )}
                   </td>
@@ -251,8 +251,8 @@ function ProductForm({
       <form onSubmit={submit} className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">{product ? "แก้ไขสินค้า" : "เพิ่มสินค้าใหม่"}</h2>
-          <button type="button" onClick={onClose} className="text-sm text-neutral-500 hover:text-neutral-700">
-            ✕
+          <button type="button" onClick={onClose} className="text-neutral-500 hover:text-neutral-700">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
 

@@ -92,6 +92,24 @@ export type Order = {
   } | null;
   trackingLogs: TrackingLog[];
   shipments: Shipment[];
+  review: OrderReview | null;
+};
+
+export type OrderReview = {
+  id: string;
+  rating: number;
+  comment: string;
+  authorName: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+};
+
+export type Review = {
+  id: string;
+  authorName: string;
+  location: string | null;
+  rating: number;
+  comment: string;
+  createdAt: string;
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -141,6 +159,12 @@ export type BuildConfig = {
   bankQrUrl: string;
   bankAccountName: string;
   bankAccountNumber: string;
+  heroBgUrl: string;
+  storiesBgUrl: string;
+  brandsBgUrl: string;
+  partnerBgUrl: string;
+  faviconUrl: string;
+  logoUrl: string;
 };
 
 export async function getBuildConfig(): Promise<BuildConfig> {
@@ -241,6 +265,20 @@ export async function createProductRequest(payload: {
   });
 }
 
+export async function createPartnerInquiry(payload: {
+  companyName: string;
+  contactName: string;
+  contact: string;
+  email?: string;
+  partnerType?: string;
+  message?: string;
+}): Promise<void> {
+  await request("/api/partner-inquiries", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function uploadProductRequestImage(file: File): Promise<string> {
   const fd = new FormData();
   fd.append("file", file);
@@ -268,4 +306,39 @@ export async function getOrder(orderNumber: string): Promise<Order | null> {
     if (err instanceof Error && err.message.startsWith("API 404")) return null;
     throw err;
   }
+}
+
+export async function listReviews(): Promise<Review[]> {
+  const json = await request<{ data: Review[] }>("/api/reviews", {
+    next: { revalidate: 60 },
+  });
+  return json.data;
+}
+
+export type OrderReviewState = {
+  eligible: boolean;
+  review: OrderReview | null;
+  recipientName: string;
+};
+
+export async function getOrderReviewState(orderNumber: string): Promise<OrderReviewState | null> {
+  try {
+    const json = await request<{ data: OrderReviewState }>(`/api/reviews/order/${orderNumber}`, {
+      cache: "no-store",
+    });
+    return json.data;
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("API 404")) return null;
+    throw err;
+  }
+}
+
+export async function submitReview(
+  orderNumber: string,
+  payload: { authorName: string; rating: number; comment: string },
+): Promise<void> {
+  await request(`/api/reviews/order/${orderNumber}`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }

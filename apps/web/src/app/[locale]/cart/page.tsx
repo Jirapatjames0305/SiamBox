@@ -1,17 +1,21 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import {
-  cartLineImage,
   cartLineName,
   cartTotalCents,
+  removeCustomProduct,
   removeFromCart,
+  setCustomProductQty,
   updateQuantity,
   useCart,
   useCartHydrated,
 } from "@/lib/cart";
+import { getBuildConfig } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
+import { localizedName } from "@/lib/i18n-helpers";
 import type { Locale } from "@/i18n/routing";
 
 export default function CartPage() {
@@ -19,6 +23,13 @@ export default function CartPage() {
   const locale = useLocale() as Locale;
   const cart = useCart();
   const hydrated = useCartHydrated();
+  const [minCents, setMinCents] = useState(0);
+
+  useEffect(() => {
+    getBuildConfig()
+      .then((c) => setMinCents(c.customPackageMinCents))
+      .catch(() => {});
+  }, []);
 
   if (!hydrated) {
     return <main className="mx-auto max-w-4xl px-4 py-10" />;
@@ -26,6 +37,41 @@ export default function CartPage() {
 
   const empty = cart.lines.length === 0;
   const total = cartTotalCents(cart);
+  const hasCustom = cart.lines.some((l) => l.kind === "custom");
+  const customBelowMin = minCents > 0 && cart.lines.some((l) => l.kind === "custom" && l.priceCents < minCents);
+  const canCheckout = !empty && !customBelowMin;
+
+  // Flatten each custom package into individual product rows; pre-made packages stay one row.
+  const rows = cart.lines.flatMap((line) => {
+    if (line.kind === "custom") {
+      return line.products.map((p) => ({
+        key: `${line.lineId}:${p.productId}`,
+        image: p.image,
+        name: localizedName(p, locale),
+        href: null as string | null,
+        addons: null as null,
+        unitPriceCents: p.priceCents,
+        quantity: p.quantity,
+        onDec: () => setCustomProductQty(line.lineId, p.productId, p.quantity - 1),
+        onInc: () => setCustomProductQty(line.lineId, p.productId, p.quantity + 1),
+        onRemove: () => removeCustomProduct(line.lineId, p.productId),
+      }));
+    }
+    return [
+      {
+        key: line.lineId,
+        image: line.image,
+        name: cartLineName(line, locale),
+        href: `/products/${line.slug}` as string | null,
+        addons: line.addons && line.addons.length > 0 ? line.addons : null,
+        unitPriceCents: line.priceCents,
+        quantity: line.quantity,
+        onDec: () => updateQuantity(line.lineId, line.quantity - 1),
+        onInc: () => updateQuantity(line.lineId, line.quantity + 1),
+        onRemove: () => removeFromCart(line.lineId),
+      },
+    ];
+  });
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
@@ -46,95 +92,80 @@ export default function CartPage() {
         </div>
       ) : (
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
-          {/* Items */}
+          {/* Items — every product on its own row */}
           <div className="space-y-3">
-            {cart.lines.map((line) => {
-              const name = cartLineName(line, locale);
-              const image = cartLineImage(line);
-              const titleNode =
-                line.kind === "package" ? (
-                  <Link
-                    href={`/products/${line.slug}`}
-                    className="text-sm font-semibold text-slate-800 hover:text-blue-500 transition-colors line-clamp-2"
-                  >
-                    {name}
-                  </Link>
-                ) : (
-                  <span className="text-sm font-semibold text-slate-800 line-clamp-2">{name}</span>
-                );
-              return (
-                <div
-                  key={line.lineId}
-                  className="flex gap-4 rounded-xl border border-slate-200 bg-white p-4"
-                >
-                  <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-slate-100">
-                    {image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={image} alt={name} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="h-full w-full bg-slate-100" />
-                    )}
-                  </div>
-                  <div className="flex flex-1 flex-col min-w-0">
-                    {titleNode}
-                    {line.kind === "custom" && (
-                      <ul className="mt-1 space-y-0.5 text-xs text-slate-500">
-                        {line.products.map((p) => (
-                          <li key={p.productId}>
-                            {p.nameTh} × {p.quantity}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {line.kind === "package" && line.addons && line.addons.length > 0 && (
-                      <ul className="mt-1 space-y-0.5 text-xs text-slate-500">
-                        {line.addons.map((a) => (
-                          <li key={a.productId}>
-                            + {a.nameTh} × {a.quantity}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    <p className="mt-1 text-sm font-medium text-blue-500">
-                      {formatPrice(line.priceCents)}
-                    </p>
-                    <div className="mt-2 flex items-center justify-between">
-                      <div className="inline-flex items-center overflow-hidden rounded-lg border border-slate-300">
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(line.lineId, line.quantity - 1)}
-                          className="flex h-8 w-8 items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors"
-                        >
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
-                          </svg>
-                        </button>
-                        <span className="w-8 text-center text-sm font-medium text-slate-800">{line.quantity}</span>
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(line.lineId, line.quantity + 1)}
-                          className="flex h-8 w-8 items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors"
-                        >
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                          </svg>
-                        </button>
-                      </div>
+            {rows.map((row) => (
+              <div key={row.key} className="flex gap-4 rounded-xl border border-slate-200 bg-white p-4">
+                <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                  {row.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={row.image} alt={row.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full bg-slate-100" />
+                  )}
+                </div>
+                <div className="flex flex-1 flex-col min-w-0">
+                  {row.href ? (
+                    <Link
+                      href={row.href}
+                      className="text-sm font-semibold text-slate-800 hover:text-blue-500 transition-colors line-clamp-2"
+                    >
+                      {row.name}
+                    </Link>
+                  ) : (
+                    <span className="text-sm font-semibold text-slate-800 line-clamp-2">{row.name}</span>
+                  )}
+                  {row.addons && (
+                    <ul className="mt-1.5 space-y-1 rounded-lg bg-slate-50 p-2 text-xs text-slate-600">
+                      {row.addons.map((a) => (
+                        <li key={a.productId} className="flex items-center justify-between gap-2">
+                          <span className="min-w-0 truncate">
+                            + {localizedName(a, locale)} × {a.quantity}
+                          </span>
+                          <span className="whitespace-nowrap text-slate-400">
+                            {formatPrice(a.priceCents * a.quantity)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <p className="mt-1 text-sm font-medium text-blue-500">{formatPrice(row.unitPriceCents)}</p>
+                  <div className="mt-2 flex items-center justify-between">
+                    <div className="inline-flex items-center overflow-hidden rounded-lg border border-slate-300">
                       <button
                         type="button"
-                        onClick={() => removeFromCart(line.lineId)}
-                        className="text-xs text-slate-500 hover:text-red-400 transition-colors"
+                        onClick={row.onDec}
+                        className="flex h-8 w-8 items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors"
                       >
-                        {t("remove")}
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
+                        </svg>
+                      </button>
+                      <span className="w-8 text-center text-sm font-medium text-slate-800">{row.quantity}</span>
+                      <button
+                        type="button"
+                        onClick={row.onInc}
+                        className="flex h-8 w-8 items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors"
+                      >
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
                       </button>
                     </div>
-                  </div>
-                  <div className="text-right text-sm font-bold text-slate-900 whitespace-nowrap">
-                    {formatPrice(line.priceCents * line.quantity)}
+                    <button
+                      type="button"
+                      onClick={row.onRemove}
+                      className="text-xs text-slate-500 hover:text-red-400 transition-colors"
+                    >
+                      {t("remove")}
+                    </button>
                   </div>
                 </div>
-              );
-            })}
+                <div className="text-right text-sm font-bold text-slate-900 whitespace-nowrap">
+                  {formatPrice(row.unitPriceCents * row.quantity)}
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Summary */}
@@ -155,12 +186,35 @@ export default function CartPage() {
               <span>{t("total")}</span>
               <span className="text-blue-500">{formatPrice(total)}</span>
             </div>
-            <Link
-              href="/checkout"
-              className="mt-5 block w-full rounded-xl bg-blue-600 py-3 text-center text-sm font-semibold text-slate-900 hover:bg-blue-500 transition-colors"
-            >
-              {t("checkout")} &rarr;
-            </Link>
+
+            {hasCustom && minCents > 0 && (
+              <div className="mt-3 text-xs">
+                {customBelowMin ? (
+                  <p className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-amber-800">
+                    {t("belowMin", { min: formatPrice(minCents) })}
+                  </p>
+                ) : (
+                  <p className="text-emerald-700">{t("minOk", { min: formatPrice(minCents) })}</p>
+                )}
+              </div>
+            )}
+
+            {canCheckout ? (
+              <Link
+                href="/checkout"
+                className="mt-5 block w-full rounded-xl bg-blue-600 py-3 text-center text-sm font-semibold text-slate-900 hover:bg-blue-500 transition-colors"
+              >
+                {t("checkout")} &rarr;
+              </Link>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="mt-5 block w-full cursor-not-allowed rounded-xl bg-slate-200 py-3 text-center text-sm font-semibold text-slate-400"
+              >
+                {t("checkout")} &rarr;
+              </button>
+            )}
             <Link
               href="/products"
               className="mt-2 block w-full rounded-xl py-2.5 text-center text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-500 transition-colors"

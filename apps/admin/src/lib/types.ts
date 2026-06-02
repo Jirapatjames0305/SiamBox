@@ -167,6 +167,12 @@ export type Settings = {
   bankQrUrl: string;
   bankAccountName: string;
   bankAccountNumber: string;
+  heroBgUrl: string;
+  storiesBgUrl: string;
+  brandsBgUrl: string;
+  partnerBgUrl: string;
+  faviconUrl: string;
+  logoUrl: string;
   updatedAt: string;
 };
 
@@ -178,6 +184,29 @@ export type ProductRequest = {
   imageUrl: string | null;
   status: string;
   createdAt: string;
+};
+
+export type PartnerInquiry = {
+  id: string;
+  companyName: string;
+  contactName: string;
+  contact: string;
+  email: string | null;
+  partnerType: string | null;
+  message: string | null;
+  status: string;
+  createdAt: string;
+};
+
+export type Review = {
+  id: string;
+  authorName: string;
+  location: string | null;
+  rating: number;
+  comment: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  createdAt: string;
+  order: { orderNumber: string };
 };
 
 export type PaymentMethodId = "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST";
