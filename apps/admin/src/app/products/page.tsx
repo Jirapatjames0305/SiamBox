@@ -202,13 +202,16 @@ function ProductForm({
     descriptionEn: product?.descriptionEn ?? "",
     priceCents: product?.priceCents ?? 0,
     currency: product?.currency ?? "CNY",
-    stock: product?.stock ?? 0,
+    stock: product?.stock ?? 9999,
     weightGrams: product?.weightGrams ?? 0,
     category: product?.category ?? "",
     tags: (product?.tags ?? []).join(", "),
     images: (product?.images ?? []) as string[],
     active: product?.active ?? true,
   });
+  const [priceText, setPriceText] = useState((product ? product.priceCents / 100 : 0).toFixed(2));
+  const [stockText, setStockText] = useState(product ? String(product.stock) : "9999");
+  const [weightText, setWeightText] = useState(product?.weightGrams ? String(product.weightGrams) : "0");
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -269,21 +272,34 @@ function ProductForm({
             label="ราคา (¥)"
             type="number"
             step="0.01"
-            value={(form.priceCents / 100).toFixed(2)}
-            onChange={(v) => set("priceCents", Math.round((Number(v) || 0) * 100) as never)}
+            selectOnFocus
+            value={priceText}
+            onChange={(v) => {
+              setPriceText(v);
+              set("priceCents", Math.round((Number(v) || 0) * 100) as never);
+            }}
+            onBlur={(v) => setPriceText((Number(v) || 0).toFixed(2))}
             required
           />
           <Field
             label="สต็อก"
             type="number"
-            value={String(form.stock)}
-            onChange={(v) => set("stock", Number(v) as never)}
+            selectOnFocus
+            value={stockText}
+            onChange={(v) => {
+              setStockText(v);
+              set("stock", Number(v) || (0 as never));
+            }}
           />
           <Field
             label="น้ำหนัก (กรัม)"
             type="number"
-            value={String(form.weightGrams)}
-            onChange={(v) => set("weightGrams", Number(v) as never)}
+            selectOnFocus
+            value={weightText}
+            onChange={(v) => {
+              setWeightText(v);
+              set("weightGrams", Number(v) || (0 as never));
+            }}
           />
           <Field label="สกุลเงิน" value={form.currency} onChange={(v) => set("currency", v)} />
           <Field label="แท็ก (คั่นด้วยจุลภาค)" value={form.tags} onChange={(v) => set("tags", v)} className="sm:col-span-2" />
@@ -359,8 +375,10 @@ function Field({
   label,
   value,
   onChange,
+  onBlur,
   type = "text",
   step,
+  selectOnFocus,
   required,
   disabled,
   className,
@@ -368,8 +386,10 @@ function Field({
   label: string;
   value: string;
   onChange: (v: string) => void;
+  onBlur?: (v: string) => void;
   type?: string;
   step?: string;
+  selectOnFocus?: boolean;
   required?: boolean;
   disabled?: boolean;
   className?: string;
@@ -382,6 +402,8 @@ function Field({
         step={step}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onFocus={selectOnFocus ? (e) => e.target.select() : undefined}
+        onBlur={onBlur ? (e) => onBlur(e.target.value) : undefined}
         required={required}
         disabled={disabled}
         className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 outline-none focus:border-neutral-500 disabled:bg-neutral-100"

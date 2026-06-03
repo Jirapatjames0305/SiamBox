@@ -41,7 +41,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     let message = `HTTP ${res.status}`;
     try {
       const body = await res.json();
-      message = body?.error ?? message;
+      if (Array.isArray(body?.issues) && body.issues.length > 0) {
+        message = body.issues
+          .map((i: { path?: (string | number)[]; message?: string }) =>
+            `${(i.path ?? []).join(".") || "field"}: ${i.message ?? "invalid"}`)
+          .join("; ");
+      } else {
+        message = body?.error ?? message;
+      }
     } catch {
       // ignore
     }
