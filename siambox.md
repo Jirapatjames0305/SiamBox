@@ -609,23 +609,18 @@ Build custom CRM inside Backoffice
 
 # Storage
 
-## Cloudflare R2
+## Cloudflare R2 (recommended)
+
+> **ของจริงตอนนี้:** ใช้ **Supabase Storage** (bucket `siambox-products`) แทน R2 —
+> รูปทุกชนิด (สินค้า / แพ็กเกจ / slip / hero/section backgrounds / favicon / logo)
+> upload ผ่าน `POST /api/admin/uploads` → sharp แปลงเป็น WebP → push ขึ้น bucket → คืน public URL
+> ย้ายไป R2 ได้ภายหลังถ้าต้องการ (เปลี่ยนแค่ layer ใน `apps/api/src/lib/`). ดู Phase 1H
 
 ---
 
 # Deployment
 
-## Frontend
-
-* Cloudflare
-
-## Backend
-
-* Railway / Render
-
-## Database
-
-* Supabase PostgreSQL
+ดูรายละเอียดทั้งหมดที่ [`DEPLOY.md`](./DEPLOY.md) (source of truth — stack, env vars, checklist)
 
 ---
 
@@ -1060,10 +1055,7 @@ API docs:
 * Swagger UI ที่ `/swagger`, raw spec ที่ `/openapi.json`
 * `apps/api/src/openapi.ts` — OpenAPI 3.0 ครอบคลุม 15+ endpoints, bearer auth scheme, 16 reusable schemas
 
-Deploy planning:
-
-* `deploy.md` — stack ที่เลือก: Cloudflare Pages (web + admin) + Render Starter (api) + R2 (uploads) + Supabase (db) ~$7/m
-* checklist security + code + DNS + env vars
+Deploy planning: ดู [`DEPLOY.md`](./DEPLOY.md)
 
 ---
 
@@ -1215,6 +1207,159 @@ Test plan (รอ credentials):
 
 ---
 
+# Phase 1H — Supabase Storage (replaces local-disk / R2 plan) ✅
+
+ย้าย image storage จาก local disk (Phase 1E) → **Supabase Storage** (ไม่ผ่าน R2 ตามที่เคยวางแผน)
+
+```text
+apps/api/src/lib/supabase.ts   getSupabase() (lazy + cached) + SUPABASE_BUCKET
+                               createClient ใช้ ws เป็น realtime transport (node ไม่มี WebSocket native)
+.env  SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY + SUPABASE_BUCKET (default "siambox-products")
+deps เพิ่ม: @supabase/supabase-js, ws
+```
+
+Flow upload (เดิม serve `/uploads` static, ตอนนี้คืน public URL ของ bucket):
+
+```text
+POST /api/admin/uploads (multer memoryStorage) → sharp → WebP q82
+  → supabase.storage.from(bucket).upload(objectPath)
+  → คืน { url: publicUrl }
+```
+
+Public upload endpoints (ไม่ต้อง admin token):
+
+```text
+POST /api/orders/slip                 ลูกค้าแนบสลิปโอนเงิน (manual payment)
+POST /api/product-requests/upload     แนบรูปตอน request สินค้า
+```
+
+---
+
+# Phase 1I — Custom Package Builder + Packages ✅
+
+ขายแบบ "กล่องของฝาก" — มีทั้ง package สำเร็จรูป และให้ลูกค้าจัดเอง
+
+Schema เพิ่ม: `Package`, `PackageItem` (+ `OrderItem.packageId`, nullable `productId`)
+
+```text
+GET /api/packages           list package สำเร็จรูป (active)
+GET /api/packages/:slug     detail + items
+GET /api/packages/config    min ราคา custom box (Settings.customPackageMinCents) + รายการสินค้าให้เลือก
+```
+
+Admin: `/packages` — สร้าง/แก้/ลบ package + เลือกสินค้าในกล่อง
+Web: `/[locale]/build` — หน้าจัดกล่องเอง (BuildClient) เลือกสินค้า + เช็ค min ราคา
+Checkout: `checkoutItemSchema` เป็น `discriminatedUnion("kind")` — รับทั้ง package item และ custom item
+
+---
+
+# Phase 1J — Reviews ✅
+
+รีวิวจริงผูกกับ order ที่ `DELIVERED` (ตอบ "Customer Trust Strategy" ใน spec)
+
+Schema เพิ่ม: `Review` (1 ต่อ order, `status` PENDING/APPROVED/REJECTED, rating 1-5, location จาก province)
+
+```text
+GET  /api/reviews                      รีวิวที่ APPROVED (โชว์หน้าเว็บ)
+GET  /api/reviews/order/:orderNumber   เช็คว่า order นี้รีวิวยัง
+POST /api/reviews/order/:orderNumber   ลูกค้าส่งรีวิว (เฉพาะ order ที่ delivered)
+```
+
+Admin: `/reviews` — approve / reject / ลบ (moderation ก่อนขึ้นเว็บ)
+Web: `/[locale]/orders/[orderNumber]/review` — ฟอร์มรีวิว
+
+---
+
+# Phase 1K — Best Sellers (curated homepage) ✅
+
+Admin คุมเองว่าสินค้าไหนขึ้นหน้าแรก + ลำดับ
+
+Schema เพิ่ม: `BestSeller` (1 ต่อ product, `position`)
+
+```text
+GET    /api/products/best-sellers          public — สินค้าหน้าแรก
+GET    /api/admin/best-sellers
+POST   /api/admin/best-sellers             เพิ่ม/จัดลำดับ
+DELETE /api/admin/best-sellers/:productId
+POST   /api/admin/best-sellers/randomize   สุ่มชุดใหม่
+```
+
+Admin: `/best-sellers`
+
+---
+
+# Phase 1L — Product Requests & Partner Inquiries ✅
+
+ฟอร์มสาธารณะจาก storefront → จัดการใน admin
+
+Schema เพิ่ม: `ProductRequest` (NEW/DONE), `PartnerInquiry` (NEW/CONTACTED)
+
+```text
+POST   /api/product-requests             ลูกค้า request สินค้าที่อยากให้มีขาย (+ upload รูป)
+POST   /api/partner-inquiries            สมัครเป็น partner/ตัวแทน
+GET    /api/admin/product-requests       + PATCH (status) + DELETE
+GET    /api/admin/partner-inquiries      + PATCH (status) + DELETE
+```
+
+Web: `/[locale]/request-product`, `/[locale]/partner`
+Admin: `/product-requests`, `/partner-inquiries`
+
+---
+
+# Phase 1M — Settings, Payment Channels & UI Editor ✅
+
+ใส่ความสามารถแบบ CMS-lite เข้า backoffice (ยังไม่ใช้ Payload)
+
+**Settings** (single-row, id=1) — `GET /api/admin/settings` + `PUT`:
+
+```text
+- sender name/address/phone        (ใช้บนใบ shipping label)
+- shippingBaseCents / shippingExpressCents  (ค่าส่ง NORMAL / EXPRESS)
+- customPackageMinCents            (ขั้นต่ำ custom box)
+- bank QR / account name / number  (manual bank transfer)
+- hero/stories/brands/partner background URLs + favicon + logo  (UI editor)
+```
+
+Admin pages: `/settings`, `/shipping`, `/bank-account`, `/ui-editor`
+
+**Payment channels** — `PaymentMethodSetting` (per-method hidden/disabled):
+
+```text
+GET /api/admin/payment-methods + PUT     คุมว่าแต่ละช่องทางโชว์/เลือกได้ไหม
+Admin: /payment-methods
+```
+
+PaymentMethod enum ปัจจุบัน: `WECHAT · ALIPAY · CNY · BANK_TRANSFER · GATEWAY`
+(checkout schema ฝั่ง client: `MANUAL · ALIPAY · WECHAT_PAY · TEST`)
+Order เพิ่ม `shippingMethod` (NORMAL/EXPRESS) + `shippingCents`
+
+---
+
+# Current Schema Snapshot (ณ ตอนนี้)
+
+โตจาก Phase 0 (13 models) → **21 models + 7 enums**
+
+```text
+Core:     User, Product, BestSeller, Package, PackageItem,
+          ShippingAddress, Order, OrderItem, Payment, Shipment,
+          TrackingLog, Review
+CRM:      CustomerNote, SupportTicket
+CMS-lite: CmsPage, CmsBanner, Campaign, Settings,
+          ProductRequest, PartnerInquiry, PaymentMethodSetting
+
+Enums (7, เท่าเดิม):
+OrderStatus · PaymentStatus · PaymentMethod ·
+ShippingCarrier · UserRole · CustomerStatus · TicketStatus
+```
+
+> หมายเหตุ: `CmsPage` / `CmsBanner` / `Campaign` / `SupportTicket` มีใน schema แต่ยัง
+> **ไม่มี UI/route ใช้งานจริง** — scaffold รอ Phase 2 (CMS/CRM เต็มรูปแบบ)
+
+i18n: ตอนนี้ ~328 keys/locale (zh/th/en) — โตจาก ~50 keys ตอน Phase 1D
+
+---
+
 # Phase 2+ — ตามแผนเดิม
 
-CMS (Payload) · CRM features · Auto translation · Notification · Tracking sync
+CMS (Payload — หรือคง CMS-lite ปัจจุบันต่อ) · CRM เต็ม (support ticket UI, segmentation, broadcast) ·
+Auto translation · Notification · Tracking sync · ChillPay refund/void · OTP/WeChat login

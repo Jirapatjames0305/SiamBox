@@ -86,7 +86,7 @@ export function Navbar({ logoUrl = "" }: { logoUrl?: string }) {
               <svg viewBox="0 0 12 12" fill="currentColor" className="h-6 w-6 text-gold-400" aria-hidden="true"><polygon points="6,0 12,6 6,12 0,6"/></svg>
             )}
             <span className="leading-tight">
-              <span className="block font-serif text-2xl font-bold tracking-wide text-gold-400">SIAMBOX</span>
+              <span className="block font-serif text-xl font-bold tracking-wide text-gold-400 sm:text-2xl">SIAMBOX</span>
               <span className="hidden text-[10px] uppercase tracking-[0.25em] text-cream-300/70 sm:block">
                 Authentic Thai Products
               </span>
@@ -134,7 +134,7 @@ export function Navbar({ logoUrl = "" }: { logoUrl?: string }) {
           {/* Cart */}
           <Link
             href="/cart"
-            className={`relative flex h-10 w-10 items-center justify-center rounded-full text-cream-100 hover:bg-white/10 ${hideSearch ? "ml-auto" : ""}`}
+            className="relative ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-cream-100 hover:bg-white/10 md:ml-0"
           >
             <CartIcon />
             {count > 0 && (
@@ -148,7 +148,7 @@ export function Navbar({ logoUrl = "" }: { logoUrl?: string }) {
           <button
             type="button"
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-cream-100 hover:bg-white/10 lg:hidden"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-cream-100 hover:bg-white/10 lg:hidden"
             aria-label="Menu"
           >
             {mobileOpen ? <XIcon /> : <MenuIcon />}

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display } from "next/font/google";
 import { getLocale } from "next-intl/server";
 import { getBuildConfig } from "@/lib/api";
@@ -13,6 +13,11 @@ const serif = Playfair_Display({
 
 const FALLBACK_ICON =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%234E1416'/%3E%3Ctext x='50' y='72' font-family='serif' font-weight='bold' font-size='62' text-anchor='middle' fill='%23C8A24A'%3ES%3C/text%3E%3C/svg%3E";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   let faviconUrl = "";
@@ -32,7 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
   return (
-    <html lang={locale === "zh" ? "zh-CN" : locale} className={serif.variable}>
+    <html lang={locale === "zh" ? "zh-CN" : locale} className={`${serif.variable} overflow-x-hidden`}>
       <body className="bg-cream-50 text-stone-800 antialiased">{children}</body>
     </html>
   );

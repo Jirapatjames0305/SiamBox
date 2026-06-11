@@ -104,34 +104,34 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={heroBg} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            <div className="absolute inset-0 bg-cream-50/80 sm:bg-cream-50/10" />
+            <div className="absolute inset-0 bg-gradient-to-b from-cream-50/5 via-cream-50/15 to-cream-50/50 sm:bg-none sm:bg-cream-50/10" />
           </>
         )}
         <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-gold-300/10 blur-3xl" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 lg:grid-cols-2 lg:py-24">
-          <div>
-            <div className="flex items-center gap-3 text-gold-500">
-              <span className="h-px w-8 bg-gold-400/70" />
-              <span className="text-xs font-semibold uppercase tracking-[0.3em]">{t("eyebrow")}</span>
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-10 sm:py-16 lg:grid-cols-2 lg:py-24">
+          <div className="min-w-0 text-center sm:text-left">
+            <div className="flex items-center justify-center gap-2 text-gold-500 sm:justify-start sm:gap-3">
+              <span className="h-px w-6 bg-gold-400/70 sm:w-8" />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.25em] sm:text-xs sm:tracking-[0.3em]">{t("eyebrow")}</span>
             </div>
-            <h1 className="mt-5 font-serif text-4xl font-bold leading-[1.1] text-maroon-800 sm:text-5xl lg:text-6xl">
+            <h1 className="mt-4 font-serif text-xl font-bold leading-[1.25] text-maroon-800 sm:mt-5 sm:text-5xl sm:leading-[1.1] lg:text-6xl">
               {t("heroTitle")}
             </h1>
-            <p className="mt-5 max-w-md text-lg text-stone-500">{t("heroTagline")}</p>
+            <p className="mx-auto mt-3 max-w-sm text-base text-stone-500 sm:mx-0 sm:mt-5 sm:max-w-md sm:text-lg">{t("heroTagline")}</p>
 
-            <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="mt-6 grid grid-cols-4 gap-2 sm:mt-8 sm:gap-4">
               {badges.map((b, i) => (
                 <div key={b.title} className="text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-gold-400/30 bg-white text-xl shadow-sm">
+                  <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full border border-gold-400/30 bg-white text-sm shadow-sm sm:h-10 sm:w-10 sm:text-lg">
                     {BADGE_ICONS[i]}
                   </div>
-                  <p className="mt-2 text-xs font-semibold text-maroon-800">{b.title}</p>
-                  <p className="text-[11px] text-stone-400">{b.sub}</p>
+                  <p className="mt-1 text-[10px] font-semibold text-maroon-800 sm:mt-1.5 sm:text-xs">{b.title}</p>
+                  <p className="hidden text-[9px] text-stone-400 sm:block sm:text-[10px]">{b.sub}</p>
                 </div>
               ))}
             </div>
 
-            <div className="mt-9 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap justify-center gap-3 sm:mt-9 sm:justify-start">
               <Link
                 href="/products"
                 className="rounded-md bg-maroon-700 px-7 py-3 text-sm font-semibold text-cream-100 shadow-sm transition hover:bg-maroon-600"
@@ -151,14 +151,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
       {/* ── Stats bar ── */}
       <section className="bg-maroon-900 text-cream-100">
-        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-y-8 px-4 py-10 sm:grid-cols-3 lg:grid-cols-5 lg:gap-0 lg:divide-x lg:divide-gold-500/15">
+        <div className="mx-auto grid max-w-6xl grid-cols-5 gap-x-1 gap-y-0 px-2 py-6 sm:gap-x-0 sm:gap-y-8 sm:px-4 sm:py-10 sm:grid-cols-3 lg:grid-cols-5 lg:gap-0 lg:divide-x lg:divide-gold-500/15">
           {stats.map((s, i) => (
-            <div key={s.label} className="flex flex-col items-center px-2 text-center lg:px-6">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-gold-500/40 bg-maroon-950/40 text-xl">
+            <div key={s.label} className="flex flex-col items-center px-1 text-center sm:px-2 lg:px-6">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-gold-500/40 bg-maroon-950/40 text-sm sm:h-12 sm:w-12 sm:text-xl">
                 {STAT_ICONS[i]}
               </div>
-              {/* <div className="mt-2.5 font-serif text-2xl font-bold text-gold-400 sm:text-3xl">{s.value}</div> */}
-              <div className="mt-2.5 text-xs text-cream-200/75">{s.label}</div>
+              <div className="mt-1.5 text-[9px] leading-tight text-cream-200/75 sm:mt-2.5 sm:text-xs">{s.label}</div>
             </div>
           ))}
         </div>
