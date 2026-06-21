@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { createPartnerInquiry } from "@/lib/api";
+import { Turnstile, captchaEnabled } from "@/components/Turnstile";
 
 const TYPES = ["wholesale", "oem", "distributor", "crossborder", "other"] as const;
 
@@ -19,6 +20,7 @@ export default function PartnerPage() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   function set<K extends keyof typeof form>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -30,14 +32,17 @@ export default function PartnerPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await createPartnerInquiry({
-        companyName: form.companyName.trim(),
-        contactName: form.contactName.trim(),
-        contact: form.contact.trim(),
-        email: form.email.trim() || undefined,
-        partnerType: form.partnerType || undefined,
-        message: form.message.trim() || undefined,
-      });
+      await createPartnerInquiry(
+        {
+          companyName: form.companyName.trim(),
+          contactName: form.contactName.trim(),
+          contact: form.contact.trim(),
+          email: form.email.trim() || undefined,
+          partnerType: form.partnerType || undefined,
+          message: form.message.trim() || undefined,
+        },
+        captchaToken,
+      );
       setDone(true);
     } catch {
       setError(t("error"));
@@ -103,11 +108,13 @@ export default function PartnerPage() {
             />
           </label>
 
+          <Turnstile onVerify={setCaptchaToken} />
+
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <button
             type="submit"
-            disabled={submitting || !form.companyName.trim() || !form.contactName.trim() || !form.contact.trim()}
+            disabled={submitting || !form.companyName.trim() || !form.contactName.trim() || !form.contact.trim() || (captchaEnabled && !captchaToken)}
             className="w-full rounded-xl bg-maroon-800 py-3 text-sm font-semibold text-cream-100 transition hover:bg-maroon-700 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500"
           >
             {submitting ? t("submitting") : t("submit")}

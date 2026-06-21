@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "@siambox/database";
+import { verifyTurnstile } from "../middleware/turnstile.js";
 
 export const reviewsRouter = Router();
 
@@ -54,7 +55,7 @@ const submitSchema = z.object({
 });
 
 // Public — submit a review for a delivered order. One review per order; starts PENDING.
-reviewsRouter.post("/order/:orderNumber", async (req, res, next) => {
+reviewsRouter.post("/order/:orderNumber", verifyTurnstile, async (req, res, next) => {
   try {
     const input = submitSchema.parse(req.body);
     const order = await prisma.order.findUnique({

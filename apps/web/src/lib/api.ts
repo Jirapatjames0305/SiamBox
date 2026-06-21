@@ -112,6 +112,11 @@ export type Review = {
   createdAt: string;
 };
 
+// Cloudflare Turnstile token header for protected form submissions.
+function captchaHeader(token?: string | null): Record<string, string> {
+  return token ? { "cf-turnstile-token": token } : {};
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -233,9 +238,13 @@ export type CheckoutPayload = {
 
 export type OrderWithAuth = Order & { authorizeUri: string | null };
 
-export async function createOrder(payload: CheckoutPayload): Promise<OrderWithAuth> {
+export async function createOrder(
+  payload: CheckoutPayload,
+  captchaToken?: string | null,
+): Promise<OrderWithAuth> {
   const json = await request<{ data: OrderWithAuth }>("/api/orders", {
     method: "POST",
+    headers: captchaHeader(captchaToken),
     body: JSON.stringify(payload),
   });
   return json.data;
@@ -260,28 +269,36 @@ export type OrderSummary = {
   items: { quantity: number; productNameTh: string; productNameZh: string | null }[];
 };
 
-export async function createProductRequest(payload: {
-  productName: string;
-  detail?: string;
-  contact?: string;
-  imageUrl?: string;
-}): Promise<void> {
+export async function createProductRequest(
+  payload: {
+    productName: string;
+    detail?: string;
+    contact?: string;
+    imageUrl?: string;
+  },
+  captchaToken?: string | null,
+): Promise<void> {
   await request("/api/product-requests", {
     method: "POST",
+    headers: captchaHeader(captchaToken),
     body: JSON.stringify(payload),
   });
 }
 
-export async function createPartnerInquiry(payload: {
-  companyName: string;
-  contactName: string;
-  contact: string;
-  email?: string;
-  partnerType?: string;
-  message?: string;
-}): Promise<void> {
+export async function createPartnerInquiry(
+  payload: {
+    companyName: string;
+    contactName: string;
+    contact: string;
+    email?: string;
+    partnerType?: string;
+    message?: string;
+  },
+  captchaToken?: string | null,
+): Promise<void> {
   await request("/api/partner-inquiries", {
     method: "POST",
+    headers: captchaHeader(captchaToken),
     body: JSON.stringify(payload),
   });
 }
@@ -343,9 +360,11 @@ export async function getOrderReviewState(orderNumber: string): Promise<OrderRev
 export async function submitReview(
   orderNumber: string,
   payload: { authorName: string; rating: number; comment: string },
+  captchaToken?: string | null,
 ): Promise<void> {
   await request(`/api/reviews/order/${orderNumber}`, {
     method: "POST",
+    headers: captchaHeader(captchaToken),
     body: JSON.stringify(payload),
   });
 }

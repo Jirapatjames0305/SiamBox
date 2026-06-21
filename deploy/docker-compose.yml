@@ -1,0 +1,49 @@
+# SiamBox API — EC2 (Hong Kong, ap-east-1) deployment
+# Runs the API container behind Caddy (auto HTTPS via Let's Encrypt).
+# Build context is the repo root so the existing Dockerfile resolves apps/ + packages/.
+#
+#   cd deploy && docker compose up -d --build
+#
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL} # also read server-side at runtime for SSR
+    expose:
+      - "3000"
+
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    expose:
+      - "4000" # internal only — reached by Caddy over the compose network, not published to host
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      WEB_DOMAIN: ${WEB_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./logs:/var/log/caddy # access logs for GoAccess
+      - caddy_data:/data # persists issued TLS certs across restarts
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  caddy_data:
+  caddy_config:

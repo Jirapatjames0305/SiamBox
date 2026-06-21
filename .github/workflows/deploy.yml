@@ -1,0 +1,45 @@
+name: Deploy to Alibaba ECS
+
+# Approach A: build on the instance.
+# On push to main → rsync the repo to the ECS box → docker compose up -d --build.
+# The server's deploy/.env (secrets) is NEVER touched — it's excluded from the sync.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {} # allow manual "Run workflow" from the Actions tab
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false # never interrupt a deploy mid-build
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Ensure rsync on server
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "command -v rsync >/dev/null || (apt-get update -y && apt-get install -y rsync)"
+
+      - name: Sync code to server
+        run: |
+          rsync -az --delete \
+            --exclude '.git' --exclude 'node_modules' --exclude '.next' \
+            --exclude 'dist' --exclude '*.pem' --exclude '.env' --exclude '*.env' \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            ./ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/root/SiamBox/"
+
+      - name: Build & restart
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "cd /root/SiamBox/deploy && docker compose up -d --build && docker compose ps"

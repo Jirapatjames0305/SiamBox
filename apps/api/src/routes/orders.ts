@@ -16,6 +16,7 @@ import {
 } from "../lib/chillpay.js";
 import { getSupabase, SUPABASE_BUCKET } from "../lib/supabase.js";
 import { syncStatusToPayment } from "./webhooks.js";
+import { verifyTurnstile } from "../middleware/turnstile.js";
 
 export const ordersRouter = Router();
 
@@ -62,7 +63,7 @@ function generateOrderNumber(): string {
   return `SB-${ts}-${rand}`;
 }
 
-ordersRouter.post("/", async (req, res, next) => {
+ordersRouter.post("/", verifyTurnstile, async (req, res, next) => {
   try {
     const input = checkoutSchema.parse(req.body);
 

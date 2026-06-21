@@ -1,0 +1,29 @@
+# Caddy auto-provisions and renews Let's Encrypt certs for the domains below.
+# Each domain's DNS must point (A record, DNS-only) to this instance's public IP,
+# and ports 80 + 443 must be open in the security group.
+{
+	email {$ACME_EMAIL}
+}
+
+# Shared JSON access log → /var/log/caddy/access.log (read by GoAccess for analytics)
+(access_log) {
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 50MiB
+			roll_keep 5
+		}
+		format json
+	}
+}
+
+# Frontend (Next.js)
+{$WEB_DOMAIN} {
+	import access_log
+	reverse_proxy web:3000
+}
+
+# API
+{$API_DOMAIN} {
+	import access_log
+	reverse_proxy api:4000
+}

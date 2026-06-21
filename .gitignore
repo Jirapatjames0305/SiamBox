@@ -74,3 +74,6 @@ next-env.d.ts
 
 # Sentry
 .sentryclirc
+
+# SSH private keys — never commit
+*.pem

@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { shippingAddressSchema } from "@siambox/shared";
 import { createOrder, getBuildConfig, uploadSlip } from "@/lib/api";
+import { Turnstile, captchaEnabled } from "@/components/Turnstile";
 import {
   cartLineImage,
   cartLineName,
@@ -63,6 +64,7 @@ export default function CheckoutPage() {
   const [slipUrl, setSlipUrl] = useState<string | null>(null);
   const [slipUploading, setSlipUploading] = useState(false);
   const [slipError, setSlipError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [shippingMethod, setShippingMethod] = useState<"NORMAL" | "EXPRESS">("NORMAL");
   const [shipping, setShipping] = useState<{ normal: number; express: number }>({ normal: 0, express: 0 });
 
@@ -175,7 +177,7 @@ export default function CheckoutPage() {
         paymentMethod,
         slipUrl: paymentMethod === "MANUAL" ? slipUrl ?? undefined : undefined,
         shippingMethod,
-      });
+      }, captchaToken);
       clearCart();
       if (order.authorizeUri) {
         window.location.href = order.authorizeUri;
@@ -388,9 +390,11 @@ export default function CheckoutPage() {
             </div>
           )}
 
+          <Turnstile onVerify={setCaptchaToken} />
+
           <button
             type="submit"
-            disabled={submitting || slipUploading || (paymentMethod === "MANUAL" && !slipUrl)}
+            disabled={submitting || slipUploading || (paymentMethod === "MANUAL" && !slipUrl) || (captchaEnabled && !captchaToken)}
             className="mt-5 w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-slate-900 hover:bg-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? t("submitting") : t("placeOrder")}

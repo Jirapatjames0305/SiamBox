@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { createProductRequest, uploadProductRequestImage } from "@/lib/api";
+import { Turnstile, captchaEnabled } from "@/components/Turnstile";
 
 export default function RequestProductPage() {
   const t = useTranslations("RequestProduct");
@@ -14,6 +15,7 @@ export default function RequestProductPage() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   async function handleImage(file: File) {
     setError(null);
@@ -33,12 +35,15 @@ export default function RequestProductPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await createProductRequest({
-        productName: productName.trim(),
-        detail: detail.trim() || undefined,
-        contact: contact.trim() || undefined,
-        imageUrl: imageUrl ?? undefined,
-      });
+      await createProductRequest(
+        {
+          productName: productName.trim(),
+          detail: detail.trim() || undefined,
+          contact: contact.trim() || undefined,
+          imageUrl: imageUrl ?? undefined,
+        },
+        captchaToken,
+      );
       setDone(true);
     } catch {
       setError(t("error"));
@@ -136,11 +141,13 @@ export default function RequestProductPage() {
             )}
           </div>
 
+          <Turnstile onVerify={setCaptchaToken} />
+
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <button
             type="submit"
-            disabled={submitting || uploading || !productName.trim()}
+            disabled={submitting || uploading || !productName.trim() || (captchaEnabled && !captchaToken)}
             className="w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
           >
             {submitting ? t("submitting") : t("submit")}

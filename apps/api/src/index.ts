@@ -10,6 +10,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
+import rateLimit from "express-rate-limit";
 import { productsRouter } from "./routes/products.js";
 import { packagesRouter } from "./routes/packages.js";
 import { ordersRouter } from "./routes/orders.js";
@@ -25,8 +26,23 @@ const app = express();
 const PORT = Number(process.env.API_PORT ?? 4000);
 const CORS_ORIGIN = (process.env.CORS_ORIGIN ?? "http://localhost:3000").split(",");
 
+// Render runs behind a proxy — trust it so rate limiting keys off the real client IP
+app.set("trust proxy", 1);
+
+// Global rate limit: backstop against bots hitting the API directly.
+// 300/min/IP is generous on purpose — first-page bursts and mobile carrier NAT
+// (many users sharing one IP) must never trip it; only abusive traffic does.
+const globalLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 300,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  skip: (req) => req.path === "/health",
+});
+
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
+app.use(globalLimiter);
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 
