@@ -215,7 +215,12 @@ export function cartTotalCents(cart: Cart): number {
 }
 
 export function cartItemCount(cart: Cart): number {
-  return cart.lines.reduce((sum, l) => sum + l.quantity, 0);
+  return cart.lines.reduce((sum, l) => {
+    if (l.kind === "custom") {
+      return sum + l.products.reduce((s, p) => s + p.quantity, 0);
+    }
+    return sum + l.quantity;
+  }, 0);
 }
 
 export function cartLineName(line: CartLine, locale: Locale): string {
