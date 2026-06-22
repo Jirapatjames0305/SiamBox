@@ -80,19 +80,21 @@ export default function BankAccountPage() {
             </div>
           </div>
 
-          <div className="mt-6 border-t border-neutral-200 pt-6">
-            <h2 className="text-sm font-semibold text-neutral-800">Alipay</h2>
-            <p className="mt-0.5 text-xs text-neutral-500">
-              QR Alipay ที่จะแสดงให้ลูกค้าตอนเลือก &quot;Alipay&quot; ในหน้าชำระเงิน
-            </p>
-            <div className="mt-3">
-              <QrUpload
-                label="QR Code Alipay"
-                value={form.alipayQrUrl}
-                onChange={(v) => setForm({ ...form, alipayQrUrl: v })}
-              />
-            </div>
-          </div>
+          <ChannelConfig
+            title="Alipay"
+            mode={form.alipayMode}
+            onModeChange={(v) => setForm({ ...form, alipayMode: v })}
+            qrValue={form.alipayQrUrl}
+            onQrChange={(v) => setForm({ ...form, alipayQrUrl: v })}
+          />
+
+          <ChannelConfig
+            title="WeChat Pay"
+            mode={form.wechatMode}
+            onModeChange={(v) => setForm({ ...form, wechatMode: v })}
+            qrValue={form.wechatQrUrl}
+            onQrChange={(v) => setForm({ ...form, wechatQrUrl: v })}
+          />
 
           {error && (
             <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -111,6 +113,56 @@ export default function BankAccountPage() {
             {savedAt && <span className="text-sm text-emerald-700">บันทึกแล้ว</span>}
           </div>
         </form>
+      )}
+    </div>
+  );
+}
+
+// Per-channel config for Alipay / WeChat Pay: choose QR (manual slip) or Gateway (ChillPay).
+// The QR uploader only matters in QR mode, so it's hidden when Gateway is selected.
+function ChannelConfig({
+  title,
+  mode,
+  onModeChange,
+  qrValue,
+  onQrChange,
+}: {
+  title: string;
+  mode: "QR" | "GATEWAY";
+  onModeChange: (v: "QR" | "GATEWAY") => void;
+  qrValue: string;
+  onQrChange: (v: string) => void;
+}) {
+  return (
+    <div className="mt-6 border-t border-neutral-200 pt-6">
+      <h2 className="text-sm font-semibold text-neutral-800">{title}</h2>
+      <div className="mt-2 flex gap-2">
+        {(["QR", "GATEWAY"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => onModeChange(m)}
+            className={`rounded-md border px-3 py-1.5 text-sm ${
+              mode === m
+                ? "border-neutral-900 bg-neutral-900 text-white"
+                : "border-neutral-300 text-neutral-700 hover:border-neutral-500"
+            }`}
+          >
+            {m === "QR" ? "QR + แนปสลิป" : "Payment Gateway"}
+          </button>
+        ))}
+      </div>
+      {mode === "QR" ? (
+        <div className="mt-3">
+          <p className="mb-1.5 text-xs text-neutral-500">
+            QR ที่จะแสดงให้ลูกค้าสแกนตอนเลือก &quot;{title}&quot; ในหน้าชำระเงิน
+          </p>
+          <QrUpload label={`QR Code ${title}`} value={qrValue} onChange={onQrChange} />
+        </div>
+      ) : (
+        <p className="mt-3 text-xs text-neutral-500">
+          ลูกค้าจะถูก redirect ไปจ่ายผ่าน payment gateway (ChillPay) — ไม่ต้องใช้ QR/สลิป
+        </p>
       )}
     </div>
   );

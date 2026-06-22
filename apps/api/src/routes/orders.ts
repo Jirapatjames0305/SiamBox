@@ -262,9 +262,33 @@ ordersRouter.post("/", verifyTurnstile, async (req, res, next) => {
       TEST: { channel: CHANNEL_CREDITCARD, method: "GATEWAY" as const },
     };
 
+    // Alipay / WeChat Pay can run either as a manual QR (customer scans, then attaches a slip)
+    // or through the gateway — the admin picks per channel. TEST is always gateway; MANUAL is
+    // always a manual bank-transfer slip.
+    const channelMode =
+      input.paymentMethod === "ALIPAY"
+        ? settings.alipayMode
+        : input.paymentMethod === "WECHAT_PAY"
+          ? settings.wechatMode
+          : input.paymentMethod === "TEST"
+            ? "GATEWAY"
+            : "QR";
+
+    // For QR channels the slip is the proof of payment — required before the order can be placed.
+    if (
+      channelMode === "QR" &&
+      (input.paymentMethod === "ALIPAY" || input.paymentMethod === "WECHAT_PAY") &&
+      !input.slipUrl
+    ) {
+      throw Object.assign(new Error("PaymentSlipRequired"), { status: 400 });
+    }
+
     // Gateway flow — create a ChillPay transaction for online methods.
     let authorizeUri: string | null = null;
-    const gateway = GATEWAY_CHANNELS[input.paymentMethod as keyof typeof GATEWAY_CHANNELS];
+    const gateway =
+      channelMode === "GATEWAY"
+        ? GATEWAY_CHANNELS[input.paymentMethod as keyof typeof GATEWAY_CHANNELS]
+        : undefined;
     if (gateway) {
       if (!isChillpayEnabled()) {
         throw Object.assign(new Error("PaymentGatewayDisabled"), { status: 503 });
@@ -294,13 +318,20 @@ ordersRouter.post("/", verifyTurnstile, async (req, res, next) => {
         },
       });
       authorizeUri = payment.PaymentUrl;
-    } else if (input.paymentMethod === "MANUAL") {
-      // Manual bank transfer — store the customer's slip. SUBMITTED if a slip was attached,
-      // otherwise PENDING. Admin reviews + approves/rejects either way.
+    } else {
+      // Manual / QR flow (MANUAL bank transfer, or Alipay / WeChat Pay in QR mode) — store the
+      // customer's slip. SUBMITTED if a slip was attached, otherwise PENDING. Admin reviews +
+      // approves/rejects either way.
+      const manualMethod =
+        input.paymentMethod === "ALIPAY"
+          ? "ALIPAY"
+          : input.paymentMethod === "WECHAT_PAY"
+            ? "WECHAT"
+            : "BANK_TRANSFER";
       await prisma.payment.create({
         data: {
           orderId: order.id,
-          method: "BANK_TRANSFER",
+          method: manualMethod,
           status: input.slipUrl ? "SUBMITTED" : "PENDING",
           amountCents: total,
           currency: order.currency,

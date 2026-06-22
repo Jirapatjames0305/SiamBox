@@ -173,6 +173,9 @@ export type BuildConfig = {
   bankAccountNumber: string;
   storeWechatId: string;
   alipayQrUrl: string;
+  wechatQrUrl: string;
+  alipayMode: "QR" | "GATEWAY";
+  wechatMode: "QR" | "GATEWAY";
   heroBgUrl: string;
   storiesBgUrl: string;
   brandsBgUrl: string;

@@ -1,0 +1,3 @@
+ALTER TABLE "settings" ADD COLUMN "wechat_qr_url" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "settings" ADD COLUMN "alipay_mode" TEXT NOT NULL DEFAULT 'QR';
+ALTER TABLE "settings" ADD COLUMN "wechat_mode" TEXT NOT NULL DEFAULT 'QR';

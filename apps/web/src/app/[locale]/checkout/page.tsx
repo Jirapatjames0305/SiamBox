@@ -5,7 +5,7 @@ import { toPng } from "html-to-image";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { shippingAddressSchema } from "@siambox/shared";
-import { createOrder, getBuildConfig } from "@/lib/api";
+import { createOrder, getBuildConfig, uploadSlip } from "@/lib/api";
 import { Turnstile, captchaEnabled } from "@/components/Turnstile";
 import {
   cartLineName,
@@ -64,6 +64,12 @@ export default function CheckoutPage() {
   > | null>(null);
   const [storeWechatId, setStoreWechatId] = useState("");
   const [alipayQrUrl, setAlipayQrUrl] = useState("");
+  const [wechatQrUrl, setWechatQrUrl] = useState("");
+  const [alipayMode, setAlipayMode] = useState<"QR" | "GATEWAY">("QR");
+  const [wechatMode, setWechatMode] = useState<"QR" | "GATEWAY">("QR");
+  const [slipUrl, setSlipUrl] = useState("");
+  const [slipUploading, setSlipUploading] = useState(false);
+  const [slipError, setSlipError] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [shippingMethod, setShippingMethod] = useState<"NORMAL" | "EXPRESS">("NORMAL");
   const [shipping, setShipping] = useState<{ normal: number; express: number }>({ normal: 0, express: 0 });
@@ -72,6 +78,7 @@ export default function CheckoutPage() {
   const [copied, setCopied] = useState(false);
   const [savingImage, setSavingImage] = useState(false);
   const summaryRef = useRef<HTMLDivElement | null>(null);
+  const slipInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     getBuildConfig()
@@ -79,6 +86,9 @@ export default function CheckoutPage() {
         setMethodCfg(cfg.paymentMethods);
         setStoreWechatId(cfg.storeWechatId);
         setAlipayQrUrl(cfg.alipayQrUrl);
+        setWechatQrUrl(cfg.wechatQrUrl);
+        setAlipayMode(cfg.alipayMode);
+        setWechatMode(cfg.wechatMode);
         setShipping({ normal: cfg.shippingBaseCents, express: cfg.shippingExpressCents });
       })
       .catch(() => setMethodCfg(null));
@@ -114,6 +124,19 @@ export default function CheckoutPage() {
     }
   }
 
+  async function handleSlipFile(file: File) {
+    setSlipError(null);
+    setSlipUploading(true);
+    try {
+      const url = await uploadSlip(file);
+      setSlipUrl(url);
+    } catch (e) {
+      setSlipError(e instanceof Error ? e.message : t("slipUploadError"));
+    } finally {
+      setSlipUploading(false);
+    }
+  }
+
   // Once a MANUAL order is placed, auto-save the summary image (now stamped with the order
   // number) so the customer can forward it straight into the shop's WeChat chat.
   useEffect(() => {
@@ -131,6 +154,12 @@ export default function CheckoutPage() {
       if (first) setPaymentMethod(first);
     }
   }, [methodCfg, paymentMethod]);
+
+  // A slip belongs to the channel it was uploaded for — drop it when the customer switches method.
+  useEffect(() => {
+    setSlipUrl("");
+    setSlipError(null);
+  }, [paymentMethod]);
 
   if (!hydrated) return <main className="mx-auto max-w-5xl px-4 py-10" />;
 
@@ -194,6 +223,17 @@ export default function CheckoutPage() {
           ? "WeChat Pay"
           : t("payTest");
 
+  // Alipay / WeChat Pay run as a scan-the-QR + attach-slip flow when the admin set that channel
+  // to QR mode. `qrSrc` falls back to the seeded Alipay image so the page is never blank.
+  const qrChannel =
+    paymentMethod === "ALIPAY" && alipayMode === "QR"
+      ? { src: alipayQrUrl || "/alipay-qr.jpg" }
+      : paymentMethod === "WECHAT_PAY" && wechatMode === "QR"
+        ? { src: wechatQrUrl }
+        : null;
+  // Slip is the proof of payment for QR channels — required before the order can be placed.
+  const slipRequired = qrChannel !== null;
+
   function set<K extends keyof FormState>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
   }
@@ -244,6 +284,7 @@ export default function CheckoutPage() {
         shippingAddress: parsed.data,
         customerNote: form.customerNote || undefined,
         paymentMethod,
+        slipUrl: slipUrl || undefined,
         shippingMethod,
       }, captchaToken);
       if (order.authorizeUri) {
@@ -268,8 +309,8 @@ export default function CheckoutPage() {
 
   const allChoices: { value: PaymentMethod; label: string; hint: string; badge?: string }[] = [
     { value: "MANUAL", label: t("payManual"), hint: t("payManualHint") },
-    { value: "ALIPAY", label: "Alipay", hint: t("payOnlineHint") },
-    { value: "WECHAT_PAY", label: "WeChat Pay", hint: t("payOnlineHint") },
+    { value: "ALIPAY", label: "Alipay", hint: alipayMode === "QR" ? t("payQrHint") : t("payOnlineHint") },
+    { value: "WECHAT_PAY", label: "WeChat Pay", hint: wechatMode === "QR" ? t("payQrHint") : t("payOnlineHint") },
     { value: "TEST", label: t("payTest"), hint: t("payTestHint"), badge: "TEST" },
   ];
   // Drop hidden methods entirely; disabled ones stay visible but greyed-out / not selectable.
@@ -355,15 +396,69 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {paymentMethod === "ALIPAY" && (
-              <div className="mt-5 flex flex-col items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
-                <p className="text-sm text-blue-800">{t("alipayNote")}</p>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={alipayQrUrl || "/alipay-qr.jpg"}
-                  alt="Alipay QR"
-                  className="h-56 w-56 rounded-lg border border-blue-200 bg-white object-contain"
-                />
+            {qrChannel && (
+              <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4">
+                <p className="text-sm text-blue-800">{t("qrPayNote")}</p>
+                {qrChannel.src ? (
+                  <div className="mt-3 flex justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={qrChannel.src}
+                      alt={`${paymentLabel} QR`}
+                      className="h-56 w-56 rounded-lg border border-blue-200 bg-white object-contain"
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-3 text-center text-xs text-blue-700">{t("qrMissing")}</p>
+                )}
+
+                {/* Slip upload — required before the order can be placed. */}
+                <div className="mt-4 border-t border-blue-200 pt-4">
+                  <p className="text-sm font-semibold text-blue-900">
+                    {t("slipTitle")} <span className="text-red-500">*</span>
+                  </p>
+                  <div className="mt-2 flex items-center gap-3">
+                    {slipUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={slipUrl}
+                        alt="slip"
+                        className="h-20 w-20 rounded-lg border border-blue-200 bg-white object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-20 w-20 items-center justify-center rounded-lg border border-dashed border-blue-300 text-[10px] text-blue-400">
+                        {t("slipNone")}
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => slipInputRef.current?.click()}
+                        disabled={slipUploading}
+                        className="rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-sm font-medium text-blue-700 hover:border-blue-500 disabled:opacity-50 transition-colors"
+                      >
+                        {slipUploading ? t("slipUploading") : slipUrl ? t("slipChange") : t("slipUpload")}
+                      </button>
+                      {slipUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setSlipUrl("")}
+                          className="text-left text-xs text-red-600 hover:underline"
+                        >
+                          {t("slipRemove")}
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      ref={slipInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="hidden"
+                      onChange={(e) => e.target.files?.[0] && handleSlipFile(e.target.files[0])}
+                    />
+                  </div>
+                  {slipError && <p className="mt-1.5 text-xs text-red-600">{slipError}</p>}
+                </div>
               </div>
             )}
           </div>
@@ -477,7 +572,7 @@ export default function CheckoutPage() {
 
           <button
             type="submit"
-            disabled={submitting || (captchaEnabled && !captchaToken)}
+            disabled={submitting || (captchaEnabled && !captchaToken) || (slipRequired && !slipUrl)}
             className="mt-5 w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? t("submitting") : t("placeOrder")}
