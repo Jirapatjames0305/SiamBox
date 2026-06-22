@@ -171,6 +171,7 @@ export type BuildConfig = {
   bankQrUrl: string;
   bankAccountName: string;
   bankAccountNumber: string;
+  storeWechatId: string;
   heroBgUrl: string;
   storiesBgUrl: string;
   brandsBgUrl: string;

@@ -1,20 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toPng } from "html-to-image";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { shippingAddressSchema } from "@siambox/shared";
-import { createOrder, getBuildConfig, uploadSlip } from "@/lib/api";
+import { createOrder, getBuildConfig } from "@/lib/api";
 import { Turnstile, captchaEnabled } from "@/components/Turnstile";
 import {
-  cartLineImage,
   cartLineName,
   cartTotalCents,
   clearCart,
   useCart,
   useCartHydrated,
+  type PackageAddon,
 } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
+import { localizedName } from "@/lib/i18n-helpers";
 import type { Locale } from "@/i18n/routing";
 
 type FormState = {
@@ -60,35 +62,62 @@ export default function CheckoutPage() {
     PaymentMethod,
     { hidden: boolean; disabled: boolean }
   > | null>(null);
-  const [bank, setBank] = useState<{ qrUrl: string; name: string; number: string } | null>(null);
-  const [slipUrl, setSlipUrl] = useState<string | null>(null);
-  const [slipUploading, setSlipUploading] = useState(false);
-  const [slipError, setSlipError] = useState<string | null>(null);
+  const [storeWechatId, setStoreWechatId] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [shippingMethod, setShippingMethod] = useState<"NORMAL" | "EXPRESS">("NORMAL");
   const [shipping, setShipping] = useState<{ normal: number; express: number }>({ normal: 0, express: 0 });
+  // After a MANUAL order is placed we keep the user on this page and pop the WeChat contact modal.
+  const [placedOrderNumber, setPlacedOrderNumber] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [savingImage, setSavingImage] = useState(false);
+  const summaryRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     getBuildConfig()
       .then((cfg) => {
         setMethodCfg(cfg.paymentMethods);
-        setBank({ qrUrl: cfg.bankQrUrl, name: cfg.bankAccountName, number: cfg.bankAccountNumber });
+        setStoreWechatId(cfg.storeWechatId);
         setShipping({ normal: cfg.shippingBaseCents, express: cfg.shippingExpressCents });
       })
       .catch(() => setMethodCfg(null));
   }, []);
 
-  async function handleSlip(file: File) {
-    setSlipError(null);
-    setSlipUploading(true);
+  async function handleSaveImage() {
+    if (!summaryRef.current) return;
+    setSavingImage(true);
     try {
-      setSlipUrl(await uploadSlip(file));
+      const dataUrl = await toPng(summaryRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: "#ffffff",
+      });
+      const link = document.createElement("a");
+      link.download = `siambox-order-${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
     } catch {
-      setSlipError(t("slipUploadError"));
+      // Cross-origin images can taint the canvas; fail silently rather than block checkout.
     } finally {
-      setSlipUploading(false);
+      setSavingImage(false);
     }
   }
+
+  async function copyWechatId() {
+    try {
+      await navigator.clipboard.writeText(storeWechatId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // ignore clipboard permission errors
+    }
+  }
+
+  // Once a MANUAL order is placed, auto-save the summary image (now stamped with the order
+  // number) so the customer can forward it straight into the shop's WeChat chat.
+  useEffect(() => {
+    if (placedOrderNumber) void handleSaveImage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placedOrderNumber]);
 
   // If the selected method becomes hidden/disabled, fall back to the first selectable one.
   useEffect(() => {
@@ -118,6 +147,50 @@ export default function CheckoutPage() {
   const total = cartTotalCents(cart);
   const shippingCents = shippingMethod === "EXPRESS" ? shipping.express : shipping.normal;
   const grandTotal = total + shippingCents;
+
+  // Flatten custom packages into per-product rows and expose package add-ons, mirroring the
+  // cart page so the summary shows every item the customer actually picked.
+  const summaryRows: {
+    key: string;
+    image?: string;
+    name: string;
+    addons: PackageAddon[] | null;
+    unitPriceCents: number;
+    quantity: number;
+  }[] = cart.lines.flatMap((line) =>
+    line.kind === "custom"
+      ? line.products.map((p) => ({
+          key: `${line.lineId}:${p.productId}`,
+          image: p.image,
+          name: localizedName(p, locale),
+          addons: null,
+          unitPriceCents: p.priceCents,
+          quantity: p.quantity,
+        }))
+      : [
+          {
+            key: line.lineId,
+            image: line.image,
+            name: cartLineName(line, locale),
+            addons: line.addons && line.addons.length > 0 ? line.addons : null,
+            unitPriceCents: line.priceCents,
+            quantity: line.quantity,
+          },
+        ],
+  );
+
+  const fullAddress = [form.street, form.district, form.city, form.province, form.postalCode]
+    .filter(Boolean)
+    .join(" ");
+  const shippingLabel = shippingMethod === "EXPRESS" ? t("shippingExpress") : t("shippingNormal");
+  const paymentLabel =
+    paymentMethod === "MANUAL"
+      ? t("payManual")
+      : paymentMethod === "ALIPAY"
+        ? "Alipay"
+        : paymentMethod === "WECHAT_PAY"
+          ? "WeChat Pay"
+          : t("payTest");
 
   function set<K extends keyof FormState>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -149,12 +222,6 @@ export default function CheckoutPage() {
     }
     setErrors({});
 
-    // Manual bank transfer requires a payment slip.
-    if (paymentMethod === "MANUAL" && !slipUrl) {
-      setServerError(t("slipRequired"));
-      return;
-    }
-
     setSubmitting(true);
     try {
       const order = await createOrder({
@@ -175,14 +242,21 @@ export default function CheckoutPage() {
         shippingAddress: parsed.data,
         customerNote: form.customerNote || undefined,
         paymentMethod,
-        slipUrl: paymentMethod === "MANUAL" ? slipUrl ?? undefined : undefined,
         shippingMethod,
       }, captchaToken);
-      clearCart();
       if (order.authorizeUri) {
+        clearCart();
         window.location.href = order.authorizeUri;
         return;
       }
+      // Manual payment: keep the cart visible behind the WeChat contact modal until
+      // the customer leaves for the order page.
+      if (paymentMethod === "MANUAL") {
+        setPlacedOrderNumber(order.orderNumber);
+        setSubmitting(false);
+        return;
+      }
+      clearCart();
       router.push(`/orders/${order.orderNumber}?placed=1`);
     } catch (err) {
       setServerError(err instanceof Error ? err.message : t("submitError"));
@@ -270,55 +344,12 @@ export default function CheckoutPage() {
             </div>
 
             {paymentMethod === "MANUAL" && (
-              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <h3 className="text-sm font-semibold text-slate-900">{t("bankTransferTitle")}</h3>
-                {bank?.qrUrl && (
-                  <div className="mt-3 flex flex-col items-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={bank.qrUrl} alt="QR" className="h-48 w-48 rounded-lg border border-slate-200 object-contain bg-white" />
-                    <p className="mt-1.5 text-xs text-slate-500">{t("scanQr")}</p>
-                  </div>
-                )}
-                {(bank?.name || bank?.number) && (
-                  <dl className="mt-3 space-y-1 text-sm">
-                    {bank?.name && (
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-slate-500">{t("accountName")}</dt>
-                        <dd className="font-medium text-slate-800">{bank.name}</dd>
-                      </div>
-                    )}
-                    {bank?.number && (
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-slate-500">{t("accountNumber")}</dt>
-                        <dd className="font-mono font-medium text-slate-800">{bank.number}</dd>
-                      </div>
-                    )}
-                  </dl>
-                )}
-
-                <div className="mt-4">
-                  <label className="text-sm font-medium text-slate-700">
-                    {t("attachSlip")} <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    onChange={(e) => e.target.files?.[0] && handleSlip(e.target.files[0])}
-                    className="mt-1.5 block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-200 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-300"
-                  />
-                  {slipUploading && <p className="mt-2 text-xs text-slate-500">{t("uploadingSlip")}</p>}
-                  {slipError && <p className="mt-2 text-xs text-red-500">{slipError}</p>}
-                  {slipUrl && !slipUploading && (
-                    <div className="mt-2 flex items-center gap-2">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={slipUrl} alt="slip" className="h-16 w-16 rounded-md border border-slate-200 object-cover" />
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
-                        <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5" aria-hidden="true"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
-                        {t("slipUploaded")}
-                      </span>
-                    </div>
-                  )}
-                </div>
+              <div className="mt-5 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600" aria-hidden="true">
+                  <path d="M8.5 4C4.91 4 2 6.46 2 9.5c0 1.74.96 3.29 2.46 4.3l-.62 1.86 2.17-1.09c.78.22 1.62.34 2.49.34.2 0 .4-.01.6-.02a4.9 4.9 0 0 1-.1-.98c0-2.9 2.86-5.16 6.2-5.16.22 0 .43.01.64.03C15.2 5.62 12.13 4 8.5 4Z"/>
+                  <path d="M22 13.7c0-2.43-2.42-4.4-5.4-4.4s-5.4 1.97-5.4 4.4 2.42 4.4 5.4 4.4c.62 0 1.21-.08 1.76-.24l1.6.8-.44-1.33c1.5-.8 2.48-2.13 2.48-3.63Z"/>
+                </svg>
+                <p className="text-sm text-emerald-800">{t("wechatPayNote")}</p>
               </div>
             )}
           </div>
@@ -336,56 +367,94 @@ export default function CheckoutPage() {
         </div>
 
         {/* Right: order summary */}
-        <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-5 lg:sticky lg:top-24">
-          <h2 className="text-base font-bold text-slate-900">{t("orderSummary")}</h2>
+        <aside className="h-fit lg:sticky lg:top-24">
+          {/* Everything inside this ref is what gets saved as an image. */}
+          <div ref={summaryRef} className="rounded-2xl border border-slate-200 bg-white p-5">
+            <h2 className="text-base font-bold text-slate-900">{t("orderSummary")}</h2>
+            {placedOrderNumber && (
+              <p className="mt-1 text-sm">
+                <span className="text-slate-500">{t("orderNumber")}: </span>
+                <span className="font-mono font-semibold text-slate-900">{placedOrderNumber}</span>
+              </p>
+            )}
 
-          <ul className="mt-4 space-y-2">
-            {cart.lines.map((l) => {
-              const img = cartLineImage(l);
-              return (
-              <li key={l.lineId} className="flex gap-3">
-                <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-slate-100">
-                  {img && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={img} alt="" className="h-full w-full object-cover" />
-                  )}
-                </div>
-                <div className="flex flex-1 items-start justify-between gap-2 text-sm">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-slate-800">{cartLineName(l, locale)}</p>
-                    <p className="text-xs text-slate-500">× {l.quantity}</p>
+            <ul className="mt-4 space-y-3">
+              {summaryRows.map((row) => (
+                <li key={row.key} className="flex gap-3">
+                  <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                    {row.image && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={row.image} alt="" className="h-full w-full object-cover" />
+                    )}
                   </div>
-                  <span className="font-semibold text-slate-900 whitespace-nowrap">
-                    {formatPrice(l.priceCents * l.quantity)}
-                  </span>
-                </div>
-              </li>
-              );
-            })}
-          </ul>
+                  <div className="flex flex-1 items-start justify-between gap-2 text-sm">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-slate-800">{row.name}</p>
+                      <p className="text-xs text-slate-500">× {row.quantity}</p>
+                      {row.addons && (
+                        <ul className="mt-1 space-y-0.5">
+                          {row.addons.map((a) => (
+                            <li key={a.productId} className="text-xs text-slate-500">
+                              + {localizedName(a, locale)} × {a.quantity}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    <span className="font-semibold text-slate-900 whitespace-nowrap">
+                      {formatPrice(row.unitPriceCents * row.quantity)}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
 
-          <div className="my-4 border-t border-slate-200" />
+            <div className="my-4 border-t border-slate-200" />
 
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between text-slate-500">
-              <span>{tCart("subtotal")}</span>
-              <span>{formatPrice(total)}</span>
+            {/* Customer + delivery details, so the saved image is a complete order record. */}
+            <dl className="space-y-1.5 text-sm">
+              <SummaryRow label={t("recipient")} value={form.recipient} />
+              <SummaryRow label={t("phone")} value={form.phone} />
+              <SummaryRow label="WeChat" value={form.wechatId} />
+              <SummaryRow label={t("address")} value={fullAddress} />
+              <SummaryRow label={t("shippingMethodTitle")} value={shippingLabel} />
+              <SummaryRow label={t("paymentMethod")} value={paymentLabel} />
+              <SummaryRow label={t("note")} value={form.customerNote} />
+            </dl>
+
+            <div className="my-4 border-t border-slate-200" />
+
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between text-slate-500">
+                <span>{tCart("subtotal")}</span>
+                <span>{formatPrice(total)}</span>
+              </div>
+              <div className="flex justify-between text-slate-500">
+                <span>{t("shipping")}</span>
+                <span>{formatPrice(shippingCents)}</span>
+              </div>
             </div>
-            <div className="flex justify-between text-slate-500">
-              <span>{t("shipping")}</span>
-              <span>{formatPrice(shippingCents)}</span>
+
+            <div className="my-3 border-t border-slate-200" />
+
+            <div className="flex justify-between font-bold text-slate-900">
+              <span>{t("total")}</span>
+              <span className="text-blue-500">{formatPrice(grandTotal)}</span>
             </div>
           </div>
 
-          <div className="my-3 border-t border-slate-200" />
-
-          <div className="flex justify-between font-bold text-slate-900">
-            <span>{t("total")}</span>
-            <span className="text-blue-500">{formatPrice(grandTotal)}</span>
-          </div>
+          <button
+            type="button"
+            onClick={handleSaveImage}
+            disabled={savingImage}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white py-2.5 text-sm font-medium text-slate-700 hover:border-slate-500 disabled:opacity-50 transition-colors"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden="true"><path d="M10 12a1 1 0 0 1-.7-.29l-3-3a1 1 0 1 1 1.4-1.42L9 8.59V3a1 1 0 1 1 2 0v5.59l1.3-1.3a1 1 0 0 1 1.4 1.42l-3 3A1 1 0 0 1 10 12Z"/><path d="M4 14a1 1 0 0 1 1 1v1h10v-1a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1Z"/></svg>
+            {savingImage ? t("savingImage") : t("saveImage")}
+          </button>
 
           {serverError && (
-            <div className="mt-4 rounded-xl border border-red-900/40 bg-red-950/30 p-3 text-sm text-red-400">
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
               {serverError}
             </div>
           )}
@@ -394,17 +463,104 @@ export default function CheckoutPage() {
 
           <button
             type="submit"
-            disabled={submitting || slipUploading || (paymentMethod === "MANUAL" && !slipUrl) || (captchaEnabled && !captchaToken)}
-            className="mt-5 w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-slate-900 hover:bg-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors"
+            disabled={submitting || (captchaEnabled && !captchaToken)}
+            className="mt-5 w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? t("submitting") : t("placeOrder")}
           </button>
-          {paymentMethod === "MANUAL" && !slipUrl && (
-            <p className="mt-2 text-center text-xs text-slate-500">{t("slipRequired")}</p>
-          )}
         </aside>
       </form>
+
+      {placedOrderNumber && (
+        <WechatModal
+          orderNumber={placedOrderNumber}
+          wechatId={storeWechatId}
+          copied={copied}
+          onCopy={copyWechatId}
+          onClose={() => {
+            clearCart();
+            router.push(`/orders/${placedOrderNumber}?placed=1`);
+          }}
+          t={t}
+        />
+      )}
     </main>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  if (!value.trim()) return null;
+  return (
+    <div className="flex justify-between gap-3">
+      <dt className="flex-shrink-0 text-slate-500">{label}</dt>
+      <dd className="text-right font-medium text-slate-800">{value}</dd>
+    </div>
+  );
+}
+
+function WechatModal({
+  orderNumber,
+  wechatId,
+  copied,
+  onCopy,
+  onClose,
+  t,
+}: {
+  orderNumber: string;
+  wechatId: string;
+  copied: boolean;
+  onCopy: () => void;
+  onClose: () => void;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
+          <svg viewBox="0 0 24 24" fill="currentColor" className="h-7 w-7 text-emerald-600" aria-hidden="true">
+            <path d="M8.5 4C4.91 4 2 6.46 2 9.5c0 1.74.96 3.29 2.46 4.3l-.62 1.86 2.17-1.09c.78.22 1.62.34 2.49.34.2 0 .4-.01.6-.02a4.9 4.9 0 0 1-.1-.98c0-2.9 2.86-5.16 6.2-5.16.22 0 .43.01.64.03C15.2 5.62 12.13 4 8.5 4Z"/>
+            <path d="M22 13.7c0-2.43-2.42-4.4-5.4-4.4s-5.4 1.97-5.4 4.4 2.42 4.4 5.4 4.4c.62 0 1.21-.08 1.76-.24l1.6.8-.44-1.33c1.5-.8 2.48-2.13 2.48-3.63Z"/>
+          </svg>
+        </div>
+        <h3 className="mt-4 text-lg font-bold text-slate-900">{t("wechatModalTitle")}</h3>
+        <p className="mt-1.5 text-sm text-slate-500">{t("wechatModalDesc")}</p>
+
+        <div className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm">
+          <span className="text-slate-500">{t("orderNumber")}</span>{" "}
+          <span className="font-mono font-semibold text-slate-900">{orderNumber}</span>
+        </div>
+
+        {wechatId && (
+          <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-slate-200 px-4 py-3">
+            <div className="min-w-0 text-left">
+              <p className="text-xs text-slate-500">{t("storeWechat")}</p>
+              <p className="truncate font-semibold text-slate-900">{wechatId}</p>
+            </div>
+            <button
+              type="button"
+              onClick={onCopy}
+              className="flex-shrink-0 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors"
+            >
+              {copied ? t("copied") : t("copy")}
+            </button>
+          </div>
+        )}
+
+        <a
+          href="weixin://"
+          className="mt-3 block w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 transition-colors"
+        >
+          {t("openWechat")}
+        </a>
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-2 block w-full rounded-xl border border-slate-300 py-2.5 text-sm font-medium text-slate-700 hover:border-slate-500 transition-colors"
+        >
+          {t("viewMyOrder")}
+        </button>
+      </div>
+    </div>
   );
 }
 

@@ -247,7 +247,18 @@
     "shippingNormal": "ธรรมดา",
     "shippingExpress": "ด่วน",
     "daysNormal": "7-15 วัน",
-    "daysExpress": "3-5 วัน"
+    "daysExpress": "3-5 วัน",
+    "wechatPayNote": "หลังกดยืนยันสั่งซื้อ จะมีหน้าต่าง WeChat ร้านค้าเด้งขึ้นมาให้ติดต่อเพื่อชำระเงิน",
+    "saveImage": "บันทึกรูปภาพ",
+    "savingImage": "กำลังบันทึก…",
+    "wechatModalTitle": "ติดต่อร้านค้าผ่าน WeChat",
+    "wechatModalDesc": "เพิ่มเพื่อน WeChat ร้านค้าด้านล่าง แล้วแจ้งเลขออเดอร์เพื่อชำระเงิน",
+    "orderNumber": "เลขออเดอร์",
+    "storeWechat": "WeChat ร้านค้า",
+    "copy": "คัดลอก",
+    "copied": "คัดลอกแล้ว",
+    "openWechat": "เปิด WeChat",
+    "viewMyOrder": "ดูออเดอร์ของฉัน"
   },
   "Order": {
     "orderNumber": "ออเดอร์",

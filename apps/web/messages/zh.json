@@ -247,7 +247,18 @@
     "shippingNormal": "普通",
     "shippingExpress": "加急",
     "daysNormal": "7-15 天",
-    "daysExpress": "3-5 天"
+    "daysExpress": "3-5 天",
+    "wechatPayNote": "下单后会弹出微信窗口，请联系本店完成付款。",
+    "saveImage": "保存图片",
+    "savingImage": "保存中…",
+    "wechatModalTitle": "通过微信联系我们",
+    "wechatModalDesc": "请添加下方本店微信，并发送订单号以完成付款。",
+    "orderNumber": "订单号",
+    "storeWechat": "本店微信",
+    "copy": "复制",
+    "copied": "已复制",
+    "openWechat": "打开微信",
+    "viewMyOrder": "查看我的订单"
   },
   "Order": {
     "orderNumber": "订单",

@@ -749,6 +749,7 @@ const settingsSchema = z.object({
   bankQrUrl: z.string().max(1000),
   bankAccountName: z.string().max(200),
   bankAccountNumber: z.string().max(100),
+  storeWechatId: z.string().max(200),
   heroBgUrl: z.string().max(1000),
   storiesBgUrl: z.string().max(1000),
   brandsBgUrl: z.string().max(1000),

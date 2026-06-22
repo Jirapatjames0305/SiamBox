@@ -65,6 +65,21 @@ export default function BankAccountPage() {
             onChange={(v) => setForm({ ...form, bankQrUrl: v })}
           />
 
+          <div className="mt-6 border-t border-neutral-200 pt-6">
+            <h2 className="text-sm font-semibold text-neutral-800">WeChat ร้านค้า</h2>
+            <p className="mt-0.5 text-xs text-neutral-500">
+              WeChat ID ที่จะให้ลูกค้า copy ไปติดต่อร้าน เมื่อเลือก &quot;ชำระด้วยตนเอง&quot;
+            </p>
+            <div className="mt-3">
+              <Field
+                label="WeChat ID ร้านค้า"
+                value={form.storeWechatId}
+                onChange={(v) => setForm({ ...form, storeWechatId: v })}
+                placeholder="siambox-shop"
+              />
+            </div>
+          </div>
+
           {error && (
             <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               {error}

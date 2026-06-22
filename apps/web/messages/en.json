@@ -247,7 +247,18 @@
     "shippingNormal": "Standard",
     "shippingExpress": "Express",
     "daysNormal": "7-15 days",
-    "daysExpress": "3-5 days"
+    "daysExpress": "3-5 days",
+    "wechatPayNote": "After placing your order, a WeChat window will pop up so you can contact our shop to pay.",
+    "saveImage": "Save image",
+    "savingImage": "Saving…",
+    "wechatModalTitle": "Contact us on WeChat",
+    "wechatModalDesc": "Add our shop's WeChat below, then send your order number to pay.",
+    "orderNumber": "Order no.",
+    "storeWechat": "Shop WeChat",
+    "copy": "Copy",
+    "copied": "Copied",
+    "openWechat": "Open WeChat",
+    "viewMyOrder": "View my order"
   },
   "Order": {
     "orderNumber": "Order",
