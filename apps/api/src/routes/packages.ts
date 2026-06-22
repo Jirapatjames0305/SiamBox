@@ -28,6 +28,7 @@ packagesRouter.get("/config", async (_req, res, next) => {
         bankAccountName: settings.bankAccountName,
         bankAccountNumber: settings.bankAccountNumber,
         storeWechatId: settings.storeWechatId,
+        alipayQrUrl: settings.alipayQrUrl,
         heroBgUrl: settings.heroBgUrl,
         storiesBgUrl: settings.storiesBgUrl,
         brandsBgUrl: settings.brandsBgUrl,

@@ -249,6 +249,7 @@
     "daysNormal": "7-15 天",
     "daysExpress": "3-5 天",
     "wechatPayNote": "下单后会弹出微信窗口，请联系本店完成付款。",
+    "alipayNote": "请扫描下方支付宝二维码付款，然后提交订单。",
     "saveImage": "保存图片",
     "savingImage": "保存中…",
     "wechatModalTitle": "通过微信联系我们",

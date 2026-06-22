@@ -172,6 +172,7 @@ export type BuildConfig = {
   bankAccountName: string;
   bankAccountNumber: string;
   storeWechatId: string;
+  alipayQrUrl: string;
   heroBgUrl: string;
   storiesBgUrl: string;
   brandsBgUrl: string;

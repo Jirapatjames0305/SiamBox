@@ -423,6 +423,7 @@ model Settings {
   bankAccountName         String   @default("") @map("bank_account_name")
   bankAccountNumber       String   @default("") @map("bank_account_number")
   storeWechatId           String   @default("") @map("store_wechat_id")
+  alipayQrUrl             String   @default("") @map("alipay_qr_url")
   heroBgUrl               String   @default("") @map("hero_bg_url")
   storiesBgUrl            String   @default("") @map("stories_bg_url")
   brandsBgUrl             String   @default("") @map("brands_bg_url")

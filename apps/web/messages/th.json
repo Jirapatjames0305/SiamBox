@@ -249,6 +249,7 @@
     "daysNormal": "7-15 วัน",
     "daysExpress": "3-5 วัน",
     "wechatPayNote": "หลังกดยืนยันสั่งซื้อ จะมีหน้าต่าง WeChat ร้านค้าเด้งขึ้นมาให้ติดต่อเพื่อชำระเงิน",
+    "alipayNote": "สแกน QR Alipay ด้านล่างเพื่อชำระเงิน แล้วกดยืนยันสั่งซื้อ",
     "saveImage": "บันทึกรูปภาพ",
     "savingImage": "กำลังบันทึก…",
     "wechatModalTitle": "ติดต่อร้านค้าผ่าน WeChat",

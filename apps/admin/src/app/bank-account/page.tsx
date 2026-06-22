@@ -80,6 +80,20 @@ export default function BankAccountPage() {
             </div>
           </div>
 
+          <div className="mt-6 border-t border-neutral-200 pt-6">
+            <h2 className="text-sm font-semibold text-neutral-800">Alipay</h2>
+            <p className="mt-0.5 text-xs text-neutral-500">
+              QR Alipay ที่จะแสดงให้ลูกค้าตอนเลือก &quot;Alipay&quot; ในหน้าชำระเงิน
+            </p>
+            <div className="mt-3">
+              <QrUpload
+                label="QR Code Alipay"
+                value={form.alipayQrUrl}
+                onChange={(v) => setForm({ ...form, alipayQrUrl: v })}
+              />
+            </div>
+          </div>
+
           {error && (
             <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               {error}
@@ -102,7 +116,15 @@ export default function BankAccountPage() {
   );
 }
 
-function QrUpload({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function QrUpload({
+  value,
+  onChange,
+  label = "QR Code รับเงิน",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  label?: string;
+}) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -123,7 +145,7 @@ function QrUpload({ value, onChange }: { value: string; onChange: (v: string) =>
 
   return (
     <div>
-      <span className="text-sm font-medium text-neutral-700">QR Code รับเงิน</span>
+      <span className="text-sm font-medium text-neutral-700">{label}</span>
       <div className="mt-1.5 flex items-center gap-3">
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element

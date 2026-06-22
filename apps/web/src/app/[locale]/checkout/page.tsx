@@ -63,6 +63,7 @@ export default function CheckoutPage() {
     { hidden: boolean; disabled: boolean }
   > | null>(null);
   const [storeWechatId, setStoreWechatId] = useState("");
+  const [alipayQrUrl, setAlipayQrUrl] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [shippingMethod, setShippingMethod] = useState<"NORMAL" | "EXPRESS">("NORMAL");
   const [shipping, setShipping] = useState<{ normal: number; express: number }>({ normal: 0, express: 0 });
@@ -77,6 +78,7 @@ export default function CheckoutPage() {
       .then((cfg) => {
         setMethodCfg(cfg.paymentMethods);
         setStoreWechatId(cfg.storeWechatId);
+        setAlipayQrUrl(cfg.alipayQrUrl);
         setShipping({ normal: cfg.shippingBaseCents, express: cfg.shippingExpressCents });
       })
       .catch(() => setMethodCfg(null));
@@ -350,6 +352,18 @@ export default function CheckoutPage() {
                   <path d="M22 13.7c0-2.43-2.42-4.4-5.4-4.4s-5.4 1.97-5.4 4.4 2.42 4.4 5.4 4.4c.62 0 1.21-.08 1.76-.24l1.6.8-.44-1.33c1.5-.8 2.48-2.13 2.48-3.63Z"/>
                 </svg>
                 <p className="text-sm text-emerald-800">{t("wechatPayNote")}</p>
+              </div>
+            )}
+
+            {paymentMethod === "ALIPAY" && (
+              <div className="mt-5 flex flex-col items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
+                <p className="text-sm text-blue-800">{t("alipayNote")}</p>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={alipayQrUrl || "/alipay-qr.jpg"}
+                  alt="Alipay QR"
+                  className="h-56 w-56 rounded-lg border border-blue-200 bg-white object-contain"
+                />
               </div>
             )}
           </div>
