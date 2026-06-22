@@ -75,7 +75,7 @@ export default function TrackPage() {
         <button
           type="submit"
           disabled={loading || !phone.trim()}
-          className="h-11 rounded-xl bg-blue-600 px-6 text-sm font-semibold text-slate-900 hover:bg-blue-500 disabled:bg-slate-100 disabled:text-slate-500 transition-colors"
+          className="h-11 rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white hover:bg-blue-500 disabled:bg-slate-100 disabled:text-slate-500 transition-colors"
         >
           {loading ? t("looking") : t("lookupButton")}
         </button>

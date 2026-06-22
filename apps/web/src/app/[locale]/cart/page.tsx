@@ -85,7 +85,7 @@ export default function CartPage() {
           <p className="mt-4 text-slate-500">{t("empty")}</p>
           <Link
             href="/products"
-            className="mt-5 inline-block rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-slate-900 hover:bg-blue-500 transition-colors"
+            className="mt-5 inline-block rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 transition-colors"
           >
             {t("browseProducts")}
           </Link>
@@ -205,7 +205,7 @@ export default function CartPage() {
             {canCheckout ? (
               <Link
                 href="/checkout"
-                className="mt-5 block w-full rounded-xl bg-blue-600 py-3 text-center text-sm font-semibold text-slate-900 hover:bg-blue-500 transition-colors"
+                className="mt-5 block w-full rounded-xl bg-blue-600 py-3 text-center text-sm font-semibold text-white hover:bg-blue-500 transition-colors"
               >
                 {t("checkout")} &rarr;
               </Link>
