@@ -17,6 +17,7 @@ import {
 import { getSupabase, SUPABASE_BUCKET } from "../lib/supabase.js";
 import { syncStatusToPayment } from "./webhooks.js";
 import { verifyTurnstile } from "../middleware/turnstile.js";
+import { notifyLineGroup } from "../lib/line.js";
 
 export const ordersRouter = Router();
 
@@ -341,6 +342,17 @@ ordersRouter.post("/", verifyTurnstile, async (req, res, next) => {
     }
 
     res.status(201).json({ data: { ...order, authorizeUri } });
+
+    // Fire-and-forget — LINE notification must not block or fail the response.
+    const totalYuan = (total / 100).toFixed(2);
+    const itemSummary = order.items.map((i) => `• ${i.productNameTh} ×${i.quantity}`).join("\n");
+    notifyLineGroup(
+      `🛒 ออเดอร์ใหม่ ${order.orderNumber}\n` +
+        `👤 ${input.shippingAddress.recipient} (${input.shippingAddress.phone})\n` +
+        `📦 ${itemSummary}\n` +
+        `💰 รวม ¥${totalYuan}\n` +
+        `🚚 ${input.shippingMethod === "EXPRESS" ? "ด่วนพิเศษ" : "ปกติ"}`,
+    ).catch(() => undefined);
   } catch (err) {
     next(err);
   }
