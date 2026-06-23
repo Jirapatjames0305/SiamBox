@@ -10,8 +10,12 @@ export function isLineEnabled(): boolean {
 export async function notifyLineGroup(text: string): Promise<void> {
   const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
   const groupId = process.env.LINE_GROUP_ID;
-  if (!token || !groupId) return;
+  if (!token || !groupId) {
+    console.warn("[LINE] skipped — LINE_CHANNEL_ACCESS_TOKEN or LINE_GROUP_ID not set");
+    return;
+  }
 
+  console.log(`[LINE] sending to group ${groupId}`);
   const res = await fetch("https://api.line.me/v2/bot/message/push", {
     method: "POST",
     headers: {
@@ -27,5 +31,7 @@ export async function notifyLineGroup(text: string): Promise<void> {
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     console.error(`[LINE] push failed ${res.status}: ${body}`);
+  } else {
+    console.log("[LINE] sent ok");
   }
 }

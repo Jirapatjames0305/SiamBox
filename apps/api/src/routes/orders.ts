@@ -352,7 +352,7 @@ ordersRouter.post("/", verifyTurnstile, async (req, res, next) => {
         `📦 ${itemSummary}\n` +
         `💰 รวม ¥${totalYuan}\n` +
         `🚚 ${input.shippingMethod === "EXPRESS" ? "ด่วนพิเศษ" : "ปกติ"}`,
-    ).catch(() => undefined);
+    ).catch((err) => console.error("[LINE] unexpected error:", err));
   } catch (err) {
     next(err);
   }
