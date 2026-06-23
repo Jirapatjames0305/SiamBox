@@ -345,7 +345,24 @@ ordersRouter.post("/", verifyTurnstile, async (req, res, next) => {
 
     // Fire-and-forget — LINE notification must not block or fail the response.
     const totalYuan = (total / 100).toFixed(2);
-    const itemSummary = order.items.map((i) => `• ${i.productNameTh} ×${i.quantity}`).join("\n");
+    const itemSummary = input.items
+      .flatMap((item) => {
+        if (item.kind === "package") {
+          const pkg = packageMap.get(item.packageId)!;
+          const lines = [`• ${pkg.nameTh} ×${item.quantity}`];
+          for (const a of item.addons ?? []) {
+            const p = productMap.get(a.productId)!;
+            lines.push(`  - ${p.nameTh} ×${a.quantity * item.quantity}`);
+          }
+          return lines;
+        }
+        // Custom box — expand individual products
+        return item.products.map((p) => {
+          const product = productMap.get(p.productId)!;
+          return `• ${product.nameTh} ×${p.quantity}`;
+        });
+      })
+      .join("\n");
     notifyLineGroup(
       `🛒 ออเดอร์ใหม่ ${order.orderNumber}\n` +
         `👤 ${input.shippingAddress.recipient} (${input.shippingAddress.phone})\n` +
