@@ -279,7 +279,7 @@
     "address": "Shipping Address",
     "postal": "Postal Code",
     "payment": "Payment",
-    "paymentInstruction": "Please pay {amount} via WeChat / Alipay / USDT and send the receipt to support.",
+    "paymentInstruction": "Please pay {amount} via WeChat / Alipay and send the receipt to support.",
     "paymentNote": "Order # {order} · Admin will verify and confirm.",
     "tracking": "Tracking",
     "noTracking": "No tracking events yet",

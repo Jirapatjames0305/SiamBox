@@ -509,7 +509,6 @@ shipping_address
 
 * WeChat
 * Alipay
-* USDT
 
 Flow:
 

@@ -279,7 +279,7 @@
     "address": "ที่อยู่จัดส่ง",
     "postal": "รหัสไปรษณีย์",
     "payment": "วิธีชำระเงิน",
-    "paymentInstruction": "ชำระ {amount} ผ่าน WeChat / Alipay / USDT แล้วส่งสลิปให้แอดมิน",
+    "paymentInstruction": "ชำระ {amount} ผ่าน WeChat / Alipay แล้วส่งสลิปให้แอดมิน",
     "paymentNote": "เลขออเดอร์ {order} · แอดมินจะตรวจสอบและยืนยัน",
     "tracking": "การจัดส่ง",
     "noTracking": "ยังไม่มีข้อมูลการส่ง",

@@ -279,7 +279,7 @@
     "address": "收件地址",
     "postal": "邮编",
     "payment": "付款方式",
-    "paymentInstruction": "请使用 WeChat / Alipay / USDT 支付 {amount}，并将支付截图发送给客服。",
+    "paymentInstruction": "请使用 WeChat / Alipay 支付 {amount}，并将支付截图发送给客服。",
     "paymentNote": "订单号 {order} · 付款后由客服审核确认。",
     "tracking": "物流",
     "noTracking": "暂无物流信息",
