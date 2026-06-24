@@ -84,19 +84,38 @@ export default async function OrderTrackingPage({
       <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-6">
         <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">{t("items")}</h2>
         <ul className="mt-4 divide-y divide-slate-200">
-          {order.items.map((item) => (
-            <li key={item.id} className="flex justify-between py-3 text-sm">
-              <div className="min-w-0 flex-1 pr-4">
-                <p className="font-medium text-slate-800">
-                  {locale === "zh"
-                    ? item.productNameZh ?? item.productNameTh
-                    : item.productNameTh}
-                </p>
-                <p className="text-xs text-slate-500">× {item.quantity}</p>
-              </div>
-              <span className="font-semibold text-slate-900">{formatPrice(item.totalCents, order.currency)}</span>
-            </li>
-          ))}
+          {order.items.map((item) => {
+            const isCustom = item.package?.active === false;
+            return (
+              <li key={item.id} className="py-3 text-sm">
+                {isCustom ? (
+                  <div className="flex justify-between">
+                    <div className="min-w-0 flex-1 pr-4">
+                      {item.package!.items.map((pi, i) => (
+                        <div key={i} className="flex items-baseline gap-1">
+                          <span className="font-medium text-slate-800">
+                            {locale === "zh" ? pi.product.nameZh ?? pi.product.nameTh : pi.product.nameTh}
+                          </span>
+                          <span className="text-xs text-slate-500">× {pi.quantity * item.quantity}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <span className="font-semibold text-slate-900">{formatPrice(item.totalCents, order.currency)}</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between">
+                    <div className="min-w-0 flex-1 pr-4">
+                      <p className="font-medium text-slate-800">
+                        {locale === "zh" ? item.productNameZh ?? item.productNameTh : item.productNameTh}
+                      </p>
+                      <p className="text-xs text-slate-500">× {item.quantity}</p>
+                    </div>
+                    <span className="font-semibold text-slate-900">{formatPrice(item.totalCents, order.currency)}</span>
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
         <div className="mt-4 space-y-1.5 border-t border-slate-200 pt-4 text-sm">
           <Row label={t("shipping")} value={formatPrice(order.shippingCents, order.currency)} />
