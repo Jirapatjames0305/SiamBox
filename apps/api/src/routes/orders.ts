@@ -258,11 +258,11 @@ ordersRouter.post("/", async (req, res, next) => {
     // Online (gateway) methods → Beam payment-link method groups + the Payment.method we store.
     // eWallets covers Alipay / WeChat Pay; TEST uses PromptPay QR (easy to test in the sandbox).
     const GATEWAY_CHANNELS = {
-      ALIPAY: { methods: { eWallets: true }, method: "ALIPAY" as const },
-      WECHAT_PAY: { methods: { eWallets: true }, method: "WECHAT" as const },
+      ALIPAY: { methods: { eWallets: true, card: true }, method: "ALIPAY" as const },
+      WECHAT_PAY: { methods: { eWallets: true, card: true }, method: "WECHAT" as const },
       TEST: { methods: { qrPromptPay: true }, method: "GATEWAY" as const },
       // BEAM = testing option: open the hosted page with all methods enabled.
-      BEAM: { methods: { eWallets: true, qrPromptPay: true }, method: "GATEWAY" as const },
+      BEAM: { methods: { eWallets: true, qrPromptPay: true, card: true }, method: "GATEWAY" as const },
     };
 
     // Alipay / WeChat Pay can run either as a manual QR (customer scans, then attaches a slip)

@@ -44,8 +44,9 @@ export function cnyCentsToSatang(cnyCents: number): number {
   return Math.round(cnyCents * rate);
 }
 
-// linkSettings toggles (groups). eWallets covers Alipay / WeChat Pay; qrPromptPay is Thai QR.
-export type LinkMethods = { eWallets?: boolean; qrPromptPay?: boolean };
+// linkSettings toggles (groups). eWallets covers Alipay / WeChat Pay; qrPromptPay is Thai QR;
+// card is debit/credit card.
+export type LinkMethods = { eWallets?: boolean; qrPromptPay?: boolean; card?: boolean };
 
 export type CreatePaymentLinkInput = {
   /** Integer, smallest currency unit (satang for THB). */
@@ -66,6 +67,7 @@ export async function createPaymentLink(input: CreatePaymentLinkInput): Promise<
   const linkSettings: Record<string, { isEnabled: boolean }> = {};
   if (input.methods.eWallets) linkSettings.eWallets = { isEnabled: true };
   if (input.methods.qrPromptPay) linkSettings.qrPromptPay = { isEnabled: true };
+  if (input.methods.card) linkSettings.card = { isEnabled: true };
 
   const res = await fetch(`${cfg.apiBase}/api/v1/payment-links`, {
     method: "POST",
