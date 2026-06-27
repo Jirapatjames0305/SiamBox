@@ -44,8 +44,9 @@ export const checkoutItemSchema = z.discriminatedUnion("kind", [
   checkoutCustomItemSchema,
 ]);
 
-// TEST routes through ChillPay's browser-testable sandbox channel (credit card) — for testing only.
-export const paymentMethodSchema = z.enum(["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST"]);
+// TEST routes through Beam's browser-testable sandbox (Alipay redirect) — for testing only.
+// BEAM is a testing option that opens the Beam hosted page with all methods enabled.
+export const paymentMethodSchema = z.enum(["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST", "BEAM"]);
 export type PaymentMethodInput = z.infer<typeof paymentMethodSchema>;
 
 export const checkoutSchema = z.object({

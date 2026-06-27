@@ -258,8 +258,7 @@ model Payment {
   approvedById   String?       @map("approved_by_id")
   rejectedAt     DateTime?     @map("rejected_at")
   notes          String?       @db.Text
-  chillpayTransactionId String? @unique @map("chillpay_transaction_id")
-  chillpayToken         String? @map("chillpay_token")
+  beamPaymentLinkId String?    @unique @map("beam_payment_link_id")
   failureMessage String?       @map("failure_message")
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")

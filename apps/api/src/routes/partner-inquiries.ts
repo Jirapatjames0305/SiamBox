@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "@siambox/database";
-import { verifyTurnstile } from "../middleware/turnstile.js";
 
 export const partnerInquiriesRouter = Router();
 
@@ -15,7 +14,7 @@ const inquirySchema = z.object({
 });
 
 // Public — anyone can submit a partnership inquiry.
-partnerInquiriesRouter.post("/", verifyTurnstile, async (req, res, next) => {
+partnerInquiriesRouter.post("/", async (req, res, next) => {
   try {
     const input = inquirySchema.parse(req.body);
     const created = await prisma.partnerInquiry.create({

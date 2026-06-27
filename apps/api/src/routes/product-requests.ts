@@ -5,7 +5,6 @@ import sharp from "sharp";
 import { randomBytes } from "node:crypto";
 import { prisma } from "@siambox/database";
 import { getSupabase, SUPABASE_BUCKET } from "../lib/supabase.js";
-import { verifyTurnstile } from "../middleware/turnstile.js";
 
 export const productRequestsRouter = Router();
 
@@ -53,7 +52,7 @@ productRequestsRouter.post("/upload", upload.single("file"), async (req, res, ne
 });
 
 // Public — anyone can request a product.
-productRequestsRouter.post("/", verifyTurnstile, async (req, res, next) => {
+productRequestsRouter.post("/", async (req, res, next) => {
   try {
     const input = requestSchema.parse(req.body);
     const created = await prisma.productRequest.create({

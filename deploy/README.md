@@ -10,7 +10,7 @@ on separate subdomains.
 
 > Why Alibaba HK: best network into mainland China that still needs **no ICP license**,
 > and ports 80/443 work without ICP (mainland regions block web ports until ICP clears).
-> Always-on (no Render free-tier cold start) — important for ChillPay webhooks.
+> Always-on (no Render free-tier cold start) — important for Beam webhooks.
 
 ## 1. Create the ECS instance (Alibaba console → ECS, region **China (Hong Kong)**)
 
@@ -87,12 +87,12 @@ docker compose logs -f web              # watch the Next.js build/start
 
 When ready to move the API off Render onto this instance:
 
-1. Fill the API secrets in `.env` (DATABASE_URL, ADMIN_TOKEN, CHILLPAY_*, SUPABASE_*, CORS_ORIGIN, etc.) — copy from the Render dashboard.
+1. Fill the API secrets in `.env` (DATABASE_URL, ADMIN_TOKEN, BEAM_*, SUPABASE_*, CORS_ORIGIN, etc.) — copy from the Render dashboard.
 2. Add the `api.<yourdomain>` A record → EIP.
 3. Uncomment the API block in `Caddyfile`.
 4. `docker compose up -d --build` (brings up `api` too; migrations run on start).
 5. Set `NEXT_PUBLIC_API_URL=https://api.<yourdomain>` in `.env`, rebuild web: `docker compose up -d --build web`.
-6. Update the **ChillPay dashboard** Result/Webhook URLs → `https://api.<yourdomain>/...`, then delete the Render service.
+6. Update the **Beam dashboard** webhook URL → `https://api.<yourdomain>/api/webhooks/beam`, then delete the Render service.
 
 ## Redeploying later
 
@@ -102,5 +102,5 @@ cd SiamBox && git pull && cd deploy && docker compose up -d --build
 
 ## Notes / follow-ups
 
-- **CAPTCHA:** Turnstile may not load in mainland China — left disabled (blank `TURNSTILE_SECRET_KEY`). Revisit with GeeTest if spam appears.
+- **Bot protection:** no CAPTCHA (Cloudflare Turnstile is unreliable in mainland China). Public forms rely on the API rate limiter; add a China-friendly CAPTCHA (GeeTest / Tencent) if spam appears.
 - **China speed:** HK is outside the GFW. If load times into China are still poor, add a China CDN (Aliyun DCDN / CDNetworks) in front — no app changes needed.

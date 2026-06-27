@@ -116,11 +116,6 @@ export type Review = {
   createdAt: string;
 };
 
-// Cloudflare Turnstile token header for protected form submissions.
-function captchaHeader(token?: string | null): Record<string, string> {
-  return token ? { "cf-turnstile-token": token } : {};
-}
-
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -240,20 +235,16 @@ export type CheckoutPayload = {
     postalCode: string;
   };
   customerNote?: string;
-  paymentMethod?: "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST";
+  paymentMethod?: "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST" | "BEAM";
   slipUrl?: string;
   shippingMethod?: "NORMAL" | "EXPRESS";
 };
 
 export type OrderWithAuth = Order & { authorizeUri: string | null };
 
-export async function createOrder(
-  payload: CheckoutPayload,
-  captchaToken?: string | null,
-): Promise<OrderWithAuth> {
+export async function createOrder(payload: CheckoutPayload): Promise<OrderWithAuth> {
   const json = await request<{ data: OrderWithAuth }>("/api/orders", {
     method: "POST",
-    headers: captchaHeader(captchaToken),
     body: JSON.stringify(payload),
   });
   return json.data;
@@ -285,11 +276,9 @@ export async function createProductRequest(
     contact?: string;
     imageUrl?: string;
   },
-  captchaToken?: string | null,
 ): Promise<void> {
   await request("/api/product-requests", {
     method: "POST",
-    headers: captchaHeader(captchaToken),
     body: JSON.stringify(payload),
   });
 }
@@ -303,11 +292,9 @@ export async function createPartnerInquiry(
     partnerType?: string;
     message?: string;
   },
-  captchaToken?: string | null,
 ): Promise<void> {
   await request("/api/partner-inquiries", {
     method: "POST",
-    headers: captchaHeader(captchaToken),
     body: JSON.stringify(payload),
   });
 }
@@ -369,11 +356,9 @@ export async function getOrderReviewState(orderNumber: string): Promise<OrderRev
 export async function submitReview(
   orderNumber: string,
   payload: { authorName: string; rating: number; comment: string },
-  captchaToken?: string | null,
 ): Promise<void> {
   await request(`/api/reviews/order/${orderNumber}`, {
     method: "POST",
-    headers: captchaHeader(captchaToken),
     body: JSON.stringify(payload),
   });
 }

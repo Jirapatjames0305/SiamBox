@@ -4,7 +4,6 @@ import { use, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { getOrderReviewState, submitReview, type OrderReviewState } from "@/lib/api";
-import { Turnstile, captchaEnabled } from "@/components/Turnstile";
 
 export default function ReviewPage({
   params,
@@ -22,7 +21,6 @@ export default function ReviewPage({
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   useEffect(() => {
     getOrderReviewState(orderNumber)
@@ -39,7 +37,7 @@ export default function ReviewPage({
     setSubmitting(true);
     setError(null);
     try {
-      await submitReview(orderNumber, { authorName: name.trim(), rating, comment: comment.trim() }, captchaToken);
+      await submitReview(orderNumber, { authorName: name.trim(), rating, comment: comment.trim() });
       setDone(true);
     } catch {
       setError(t("error"));
@@ -132,13 +130,11 @@ export default function ReviewPage({
           />
         </label>
 
-        <Turnstile onVerify={setCaptchaToken} />
-
         {error && <p className="text-sm text-red-500">{error}</p>}
 
         <button
           type="submit"
-          disabled={submitting || !comment.trim() || !name.trim() || (captchaEnabled && !captchaToken)}
+          disabled={submitting || !comment.trim() || !name.trim()}
           className="w-full rounded-xl bg-maroon-800 py-3 text-sm font-semibold text-cream-100 transition hover:bg-maroon-700 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500"
         >
           {submitting ? t("submitting") : t("submit")}

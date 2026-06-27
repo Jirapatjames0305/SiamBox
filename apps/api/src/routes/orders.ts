@@ -6,17 +6,13 @@ import { randomBytes } from "node:crypto";
 import { prisma } from "@siambox/database";
 import { checkoutSchema } from "@siambox/shared";
 import {
-  CHANNEL_ALIPAY,
-  CHANNEL_CREDITCARD,
-  CHANNEL_WECHATPAY,
   cnyCentsToSatang,
-  createPayment,
-  getPaymentStatus,
-  isChillpayEnabled,
-} from "../lib/chillpay.js";
+  createPaymentLink,
+  getPaymentLink,
+  isBeamEnabled,
+} from "../lib/beam.js";
 import { getSupabase, SUPABASE_BUCKET } from "../lib/supabase.js";
-import { syncStatusToPayment } from "./webhooks.js";
-import { verifyTurnstile } from "../middleware/turnstile.js";
+import { syncBeamLink } from "./webhooks.js";
 import { notifyLineGroup } from "../lib/line.js";
 
 export const ordersRouter = Router();
@@ -64,7 +60,7 @@ function generateOrderNumber(): string {
   return `SB-${ts}-${rand}`;
 }
 
-ordersRouter.post("/", verifyTurnstile, async (req, res, next) => {
+ordersRouter.post("/", async (req, res, next) => {
   try {
     const input = checkoutSchema.parse(req.body);
 
@@ -256,11 +252,14 @@ ordersRouter.post("/", verifyTurnstile, async (req, res, next) => {
       include: { items: true, shippingAddress: true },
     });
 
-    // Online (gateway) methods → ChillPay channel + the Payment.method we store.
+    // Online (gateway) methods → Beam payment-link method groups + the Payment.method we store.
+    // eWallets covers Alipay / WeChat Pay; TEST uses PromptPay QR (easy to test in the sandbox).
     const GATEWAY_CHANNELS = {
-      ALIPAY: { channel: CHANNEL_ALIPAY, method: "ALIPAY" as const },
-      WECHAT_PAY: { channel: CHANNEL_WECHATPAY, method: "WECHAT" as const },
-      TEST: { channel: CHANNEL_CREDITCARD, method: "GATEWAY" as const },
+      ALIPAY: { methods: { eWallets: true }, method: "ALIPAY" as const },
+      WECHAT_PAY: { methods: { eWallets: true }, method: "WECHAT" as const },
+      TEST: { methods: { qrPromptPay: true }, method: "GATEWAY" as const },
+      // BEAM = testing option: open the hosted page with all methods enabled.
+      BEAM: { methods: { eWallets: true, qrPromptPay: true }, method: "GATEWAY" as const },
     };
 
     // Alipay / WeChat Pay can run either as a manual QR (customer scans, then attaches a slip)
@@ -271,7 +270,7 @@ ordersRouter.post("/", verifyTurnstile, async (req, res, next) => {
         ? settings.alipayMode
         : input.paymentMethod === "WECHAT_PAY"
           ? settings.wechatMode
-          : input.paymentMethod === "TEST"
+          : input.paymentMethod === "TEST" || input.paymentMethod === "BEAM"
             ? "GATEWAY"
             : "QR";
 
@@ -284,28 +283,22 @@ ordersRouter.post("/", verifyTurnstile, async (req, res, next) => {
       throw Object.assign(new Error("PaymentSlipRequired"), { status: 400 });
     }
 
-    // Gateway flow — create a ChillPay transaction for online methods.
+    // Gateway flow — create a Beam payment link for online methods.
     let authorizeUri: string | null = null;
     const gateway =
       channelMode === "GATEWAY"
         ? GATEWAY_CHANNELS[input.paymentMethod as keyof typeof GATEWAY_CHANNELS]
         : undefined;
     if (gateway) {
-      if (!isChillpayEnabled()) {
+      if (!isBeamEnabled()) {
         throw Object.assign(new Error("PaymentGatewayDisabled"), { status: 503 });
       }
       const amountSatang = cnyCentsToSatang(total);
-      // ChillPay OrderNo disallows special characters (e.g. "-"); send an alphanumeric form.
-      const orderNo = order.orderNumber.replace(/-/g, "");
-      const ipAddress = req.ip && /^\d{1,3}(\.\d{1,3}){3}$/.test(req.ip) ? req.ip : "127.0.0.1";
 
-      const payment = await createPayment({
-        orderNo,
-        customerId: user.id,
-        amountSatang,
-        channelCode: gateway.channel,
-        description: `SiamBox ${order.orderNumber}`,
-        ipAddress,
+      const link = await createPaymentLink({
+        netAmount: amountSatang,
+        referenceId: order.orderNumber,
+        methods: gateway.methods,
       });
       await prisma.payment.create({
         data: {
@@ -314,11 +307,10 @@ ordersRouter.post("/", verifyTurnstile, async (req, res, next) => {
           status: "PENDING",
           amountCents: amountSatang,
           currency: "THB",
-          chillpayTransactionId: String(payment.TransactionId),
-          chillpayToken: payment.Token,
+          beamPaymentLinkId: link.paymentLinkId,
         },
       });
-      authorizeUri = payment.PaymentUrl;
+      authorizeUri = link.url;
     } else {
       // Manual / QR flow (MANUAL bank transfer, or Alipay / WeChat Pay in QR mode) — store the
       // customer's slip. SUBMITTED if a slip was attached, otherwise PENDING. Admin reviews +
@@ -404,9 +396,9 @@ ordersRouter.post("/lookup", async (req, res, next) => {
   }
 });
 
-// Public endpoint — refresh order's ChillPay payments from the PaymentStatus API and return current status.
-// Used by /[locale]/orders/[orderNumber] poller in dev (when the background URL isn't public).
-// Safe because it only syncs from ChillPay (source of truth), no client-side state mutation.
+// Public endpoint — refresh order's Beam payments from the Get Payment Link API and return current status.
+// Used by /[locale]/orders/[orderNumber] poller in dev (when the webhook isn't public).
+// Safe because it only syncs from Beam (source of truth), no client-side state mutation.
 ordersRouter.post("/:orderNumber/refresh-payment", async (req, res, next) => {
   try {
     const order = await prisma.order.findUnique({
@@ -417,11 +409,10 @@ ordersRouter.post("/:orderNumber/refresh-payment", async (req, res, next) => {
       res.status(404).json({ error: "OrderNotFound" });
       return;
     }
-    if (isChillpayEnabled()) {
+    if (isBeamEnabled()) {
       for (const payment of order.payments) {
-        if (!payment.chillpayTransactionId || payment.status !== "PENDING") continue;
-        const status = await getPaymentStatus(payment.chillpayTransactionId);
-        await syncStatusToPayment(status);
+        if (!payment.beamPaymentLinkId || payment.status !== "PENDING") continue;
+        await syncBeamLink(await getPaymentLink(payment.beamPaymentLinkId));
       }
     }
     const fresh = await prisma.order.findUnique({

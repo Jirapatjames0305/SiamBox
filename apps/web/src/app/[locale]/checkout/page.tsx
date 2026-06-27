@@ -6,7 +6,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { shippingAddressSchema } from "@siambox/shared";
 import { createOrder, getBuildConfig, uploadSlip } from "@/lib/api";
-import { Turnstile, captchaEnabled } from "@/components/Turnstile";
 import {
   cartLineName,
   cartTotalCents,
@@ -31,7 +30,7 @@ type FormState = {
   customerNote: string;
 };
 
-type PaymentMethod = "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST";
+type PaymentMethod = "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST" | "BEAM";
 
 const empty: FormState = {
   recipient: "",
@@ -58,10 +57,10 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   // Per-method visibility set by admin (null = not loaded yet).
-  const [methodCfg, setMethodCfg] = useState<Record<
+  const [methodCfg, setMethodCfg] = useState<Partial<Record<
     PaymentMethod,
     { hidden: boolean; disabled: boolean }
-  > | null>(null);
+  >> | null>(null);
   const [storeWechatId, setStoreWechatId] = useState("");
   const [alipayQrUrl, setAlipayQrUrl] = useState("");
   const [wechatQrUrl, setWechatQrUrl] = useState("");
@@ -70,7 +69,6 @@ export default function CheckoutPage() {
   const [slipUrl, setSlipUrl] = useState("");
   const [slipUploading, setSlipUploading] = useState(false);
   const [slipError, setSlipError] = useState<string | null>(null);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [shippingMethod, setShippingMethod] = useState<"NORMAL" | "EXPRESS">("NORMAL");
   const [shipping, setShipping] = useState<{ normal: number; express: number }>({ normal: 0, express: 0 });
   // After a MANUAL order is placed we keep the user on this page and pop the WeChat contact modal.
@@ -147,8 +145,8 @@ export default function CheckoutPage() {
   // If the selected method becomes hidden/disabled, fall back to the first selectable one.
   useEffect(() => {
     if (!methodCfg) return;
-    const order: PaymentMethod[] = ["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST"];
-    const selectable = (m: PaymentMethod) => !methodCfg[m].hidden && !methodCfg[m].disabled;
+    const order: PaymentMethod[] = ["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST", "BEAM"];
+    const selectable = (m: PaymentMethod) => !methodCfg[m]?.hidden && !methodCfg[m]?.disabled;
     if (!selectable(paymentMethod)) {
       const first = order.find(selectable);
       if (first) setPaymentMethod(first);
@@ -221,7 +219,9 @@ export default function CheckoutPage() {
         ? "Alipay"
         : paymentMethod === "WECHAT_PAY"
           ? "WeChat Pay"
-          : t("payTest");
+          : paymentMethod === "BEAM"
+            ? "Beam Gateway"
+            : t("payTest");
 
   // Alipay / WeChat Pay run as a scan-the-QR + attach-slip flow when the admin set that channel
   // to QR mode. `qrSrc` falls back to the seeded Alipay image so the page is never blank.
@@ -286,7 +286,7 @@ export default function CheckoutPage() {
         paymentMethod,
         slipUrl: slipUrl || undefined,
         shippingMethod,
-      }, captchaToken);
+      });
       if (order.authorizeUri) {
         clearCart();
         window.location.href = order.authorizeUri;
@@ -312,6 +312,12 @@ export default function CheckoutPage() {
     { value: "ALIPAY", label: "Alipay", hint: alipayMode === "QR" ? t("payQrHint") : t("payOnlineHint") },
     { value: "WECHAT_PAY", label: "WeChat Pay", hint: wechatMode === "QR" ? t("payQrHint") : t("payOnlineHint") },
     { value: "TEST", label: t("payTest"), hint: t("payTestHint"), badge: "TEST" },
+    {
+      value: "BEAM",
+      label: "Beam Gateway",
+      hint: "ทดสอบผ่าน Beam — เปิดหน้า hosted (Alipay / WeChat / PromptPay)",
+      badge: "TEST",
+    },
   ];
   // Drop hidden methods entirely; disabled ones stay visible but greyed-out / not selectable.
   const paymentChoices = allChoices
@@ -568,11 +574,9 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          <Turnstile onVerify={setCaptchaToken} />
-
           <button
             type="submit"
-            disabled={submitting || (captchaEnabled && !captchaToken) || (slipRequired && !slipUrl)}
+            disabled={submitting || (slipRequired && !slipUrl)}
             className="mt-5 w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? t("submitting") : t("placeOrder")}

@@ -1133,40 +1133,40 @@ Smoke verified: phone +8613900000999 → คืน 2 ออเดอร์, phon
 
 ---
 
-# Phase 2A — Payment Gateway (ChillPay sandbox) ✅
+# Phase 2A — Payment Gateway (Beam Checkout sandbox) ✅
 
-Code พร้อมเทส — รอใส่ sandbox credentials (MerchantCode / ApiKey / MD5 Secret) ใน `.env` ก็ลองรันได้
+Code พร้อมเทส — รอใส่ sandbox credentials (Merchant ID / API Key) ใน `.env` ก็ลองรันได้
 
 Setup:
 
 ```text
-.env  CHILLPAY_MERCHANT_CODE + CHILLPAY_API_KEY + CHILLPAY_MD5_SECRET
-      + CHILLPAY_API_BASE (default sandbox) + CNY_TO_THB_RATE (default 4.9)
-apps/api/src/lib/chillpay.ts               config + MD5 checksum + createPayment() + getPaymentStatus() + cnyCentsToSatang()
-ไม่มี SDK — ใช้ node:crypto (md5) + global fetch (form-urlencoded)
+.env  BEAM_MERCHANT_ID + BEAM_API_KEY
+      + BEAM_API_BASE (default playground) + CNY_TO_THB_RATE (default 4.9)
+apps/api/src/lib/beam.ts                   config + createPaymentLink() + getPaymentLink() + cnyCentsToSatang()
+ไม่มี SDK — ใช้ global fetch (JSON) + HTTP Basic base64(merchantId:apiKey)
 ```
 
 Schema:
 
 ```text
-Payment + chillpayTransactionId (unique), chillpayToken, failureMessage
-migration 20260529000000_omise_to_chillpay = RENAME COLUMN (เก็บ data เดิมไว้)
+Payment + beamPaymentLinkId (unique), failureMessage
+migration 20260627000001_chillpay_to_beam = RENAME COLUMN → beam_payment_link_id, DROP chillpay_token
 ```
 
 Backend:
 
 ```text
-POST /api/orders                          รับ paymentMethod (MANUAL|ALIPAY|WECHAT_PAY)
-                                          ถ้า online → POST /api/v2/Payment/ → เก็บ TransactionId
-                                          คืน { ...order, authorizeUri = PaymentUrl }
-POST /api/webhooks/chillpay               background notify (form-urlencoded) → re-query PaymentStatus by TransactionId → sync
-POST /api/admin/payments/:id/refresh-chillpay  สำหรับ dev (ไม่มี public background URL)
+POST /api/orders                          รับ paymentMethod (MANUAL|ALIPAY|WECHAT_PAY|TEST)
+                                          ถ้า online → POST /api/v1/payment-links → เก็บ paymentLinkId
+                                          คืน { ...order, authorizeUri = url (hosted checkout page) }
+POST /api/webhooks/beam                   background notify (JSON) → re-query GET payment-link by id → sync
+POST /api/admin/payments/:id/refresh-payment  สำหรับ dev (ไม่มี public webhook URL)
 ```
 
 Frontend:
 
 ```text
-/checkout                                  radio 3 ตัว (โอนเอง / Alipay / WeChat Pay)
+/checkout                                  radio (โอนเอง / Alipay / WeChat Pay / TEST)
                                            หลังกดสั่งซื้อ ถ้ามี authorizeUri → window.location.href = authorizeUri
 /orders/[orderNumber]?charge=1             OrderStatusPoller (client component)
                                            poll POST /api/orders/{orderNumber}/refresh-payment ทุก 4 วินาที (max 30 รอบ)
@@ -1175,33 +1175,33 @@ Frontend:
 
 Decisions:
 
-* **Channel codes**: Alipay = `epayment_alipay`, WeChat Pay = `epayment_wechatpay` (Appendix E)
-* **Currency**: ChillPay PG รับ THB เท่านั้น → convert CNY cents → THB satang ด้วย `CNY_TO_THB_RATE` (default 4.9). Amount ส่งเป็น satang (2 หลักท้าย = ทศนิยม), Currency = `764`
-* **Checksum**: ทุก request เซ็นด้วย `md5(concat(fields) + MD5SecretKey)` ตามลำดับ field ใน manual
-* **Verification**: ไม่ trust background notify ตรง ๆ — เอา `TransactionId` ไป re-query `POST /api/v2/PaymentStatus/` (authenticated) แล้วใช้ค่าจาก API (เหมือนเดิมที่ re-fetch charge)
-* **Sync logic** (Appendix C): `PaymentStatus === 0` → Payment=APPROVED + Order=PAID, `1/2/3` (fail/cancel/error) → Payment=REJECTED + `failureMessage`, `9` (pending) → ไม่เปลี่ยน
-* **OrderNo**: ChillPay ห้ามอักขระพิเศษ → ตัด `-` ออกจาก orderNumber ก่อนส่ง; **CustomerId** ใช้ `user.id` (cuid, alphanumeric)
-* **Result/Background URL**: ตั้งใน ChillPay dashboard ต่อ RouteNo (ไม่ได้ส่งผ่าน API); Background URL ชี้ที่ `/api/webhooks/chillpay`
-* **Stored amount**: Payment.amountCents เก็บเป็น THB satang ที่ ChillPay ใช้จริง (ไม่ใช่ CNY cents) — สำหรับ reconcile กับ ChillPay dashboard
+* **linkSettings**: Alipay/WeChat → `eWallets.isEnabled=true` (group toggle); TEST → `qrPromptPay.isEnabled=true` (PromptPay QR, เทสง่ายใน sandbox) — ลูกค้าเลือก method บนหน้า hosted ของ Beam
+* **Charges API คืน QR (ENCODED_IMAGE) ไม่ redirect** → จึงใช้ Payment Links API ที่คืน hosted URL แทน (redirect ตรงกับ flow เดิม)
+* **Currency**: Beam รับ THB เท่านั้น → convert CNY cents → THB satang ด้วย `CNY_TO_THB_RATE` (default 4.9). `order.netAmount` เป็น satang (smallest unit), Currency = `THB`
+* **Auth**: ทุก request ใช้ HTTP Basic `Authorization: Basic base64(merchantId:apiKey)`
+* **Verification**: ไม่ trust webhook body ตรง ๆ — เอา `paymentLinkId` ไป re-query `GET /api/v1/payment-links/{id}` (authenticated) แล้วใช้ค่าจาก API
+* **Sync logic**: link status `COMPLETED`/`PAID` → Payment=APPROVED + Order=PAID, `EXPIRED`/`CANCELED`/`FAILED` → Payment=REJECTED + `failureMessage`, `ACTIVE` → ไม่เปลี่ยน
+* **referenceId**: ส่ง `order.orderNumber` ตรง ๆ (ใช้ match กับ order)
+* **Stored amount**: Payment.amountCents เก็บเป็น THB satang ที่ Beam ใช้จริง (ไม่ใช่ CNY cents) — สำหรับ reconcile กับ Beam dashboard
 
 Out of scope (เลื่อน):
 
-* Refund/Void ผ่าน ChillPay — ตอนนี้ admin ใช้ปุ่ม "คืนเงิน" manual (Phase 1F) เพียงพอ
-* PromptPay / QR / credit card / installment channels อื่น ๆ
-* Saved card (CreditToken) / subscription
+* Webhook signature verification — ยังไม่ทำ (เพิ่มตอน setup webhook จริง)
+* Post-payment redirect กลับเว็บอัตโนมัติ — ยังไม่ตั้ง (ตอนนี้พึ่ง poller); credit card / installment
+* Refund/Void ผ่าน Beam — ตอนนี้ admin ใช้ปุ่ม "คืนเงิน" manual (Phase 1F) เพียงพอ
 * Multi-attempt — ถ้าลูกค้าจ่ายไม่สำเร็จ ตอนนี้ต้องสั่งใหม่
 
 Test plan (รอ credentials):
 
 ```text
-1. ใส่ sandbox credentials ใน .env (จาก ChillPay dashboard > Settings > API)
+1. ใส่ sandbox credentials ใน .env (BEAM_MERCHANT_ID + BEAM_API_KEY จาก Beam dashboard / Lighthouse → Developers)
 2. รัน migration: pnpm --filter @siambox/database migrate:deploy
 3. pnpm dev → กดสั่งซื้อ → เลือก Alipay/WeChat Pay
-4. ระบบ redirect ไป ChillPay sandbox (PaymentUrl)
-5. Alipay/WeChat sandbox ต้องนัดทีม support ของ ChillPay ผ่าน LINE Official เพื่อเทส
-6. กลับมาที่ /orders/[orderNumber]?charge=1 → poller จะ re-query PaymentStatus
-7. ถ้า background URL ไม่ทำงาน (dev ไม่มี public URL) → ใน admin กด "Refresh from ChillPay"
-   /api/admin/payments/:id/refresh-chillpay → sync สถานะ
+4. ระบบ redirect ไป Beam hosted page (payment-link url)
+5. จ่ายในหน้า hosted ของ Beam (เลือก Alipay/WeChat/PromptPay)
+6. กลับมาที่ /orders/[orderNumber]?charge=1 → poller จะ re-query GET payment-link
+7. ถ้า webhook ไม่ทำงาน (dev ไม่มี public URL) → ใน admin กด "Refresh"
+   /api/admin/payments/:id/refresh-payment → sync สถานะ
 ```
 
 ---
@@ -1361,4 +1361,4 @@ i18n: ตอนนี้ ~328 keys/locale (zh/th/en) — โตจาก ~50 key
 # Phase 2+ — ตามแผนเดิม
 
 CMS (Payload — หรือคง CMS-lite ปัจจุบันต่อ) · CRM เต็ม (support ticket UI, segmentation, broadcast) ·
-Auto translation · Notification · Tracking sync · ChillPay refund/void · OTP/WeChat login
+Auto translation · Notification · Tracking sync · Beam refund/void · OTP/WeChat login

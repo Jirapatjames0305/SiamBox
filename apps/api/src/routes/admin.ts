@@ -5,9 +5,9 @@ import sharp from "sharp";
 import { randomBytes } from "node:crypto";
 import { prisma, OrderStatus, PaymentStatus, ShippingCarrier, CustomerStatus } from "@siambox/database";
 import { adminAuth } from "../middleware/admin-auth.js";
-import { getPaymentStatus } from "../lib/chillpay.js";
+import { getPaymentLink } from "../lib/beam.js";
 import { getSupabase, SUPABASE_BUCKET } from "../lib/supabase.js";
-import { syncStatusToPayment } from "./webhooks.js";
+import { syncBeamLink } from "./webhooks.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -514,19 +514,19 @@ adminRouter.delete("/customers/:userId/notes/:noteId", async (req, res, next) =>
   }
 });
 
-// Manual refresh of ChillPay transaction status (use during dev without a public background URL).
-adminRouter.post("/payments/:id/refresh-chillpay", async (req, res, next) => {
+// Manual refresh of Beam payment-link status (use during dev without a public webhook URL).
+adminRouter.post("/payments/:id/refresh-payment", async (req, res, next) => {
   try {
     const payment = await prisma.payment.findUnique({ where: { id: req.params.id } });
-    if (!payment || !payment.chillpayTransactionId) {
-      res.status(404).json({ error: "PaymentOrTransactionNotFound" });
+    if (!payment || !payment.beamPaymentLinkId) {
+      res.status(404).json({ error: "PaymentOrLinkNotFound" });
       return;
     }
-    const status = await getPaymentStatus(payment.chillpayTransactionId);
-    const result = await syncStatusToPayment(status);
+    const link = await getPaymentLink(payment.beamPaymentLinkId);
+    const result = await syncBeamLink(link);
     const fresh = await prisma.payment.findUnique({ where: { id: payment.id } });
     res.json({
-      data: { payment: fresh, chillpayStatus: status.PaymentStatus, updated: result.updated },
+      data: { payment: fresh, beamStatus: link.status, updated: result.updated },
     });
   } catch (err) {
     next(err);
