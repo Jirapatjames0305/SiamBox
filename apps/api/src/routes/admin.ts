@@ -5,7 +5,7 @@ import sharp from "sharp";
 import { randomBytes } from "node:crypto";
 import { prisma, OrderStatus, PaymentStatus, ShippingCarrier, CustomerStatus } from "@siambox/database";
 import { adminAuth } from "../middleware/admin-auth.js";
-import { getPaymentLink } from "../lib/beam.js";
+import { getPaymentLink, listChargesByReference, refundCharge } from "../lib/beam.js";
 import { getSupabase, SUPABASE_BUCKET } from "../lib/supabase.js";
 import { syncBeamLink } from "./webhooks.js";
 
@@ -89,7 +89,15 @@ adminRouter.get("/orders/:orderNumber", async (req, res, next) => {
     const order = await prisma.order.findUnique({
       where: { orderNumber: req.params.orderNumber },
       include: {
-        items: true,
+        items: {
+          include: {
+            package: {
+              include: {
+                items: { include: { product: { select: { nameTh: true, nameZh: true } } } },
+              },
+            },
+          },
+        },
         shippingAddress: true,
         payments: { orderBy: { createdAt: "desc" } },
         shipments: { orderBy: { createdAt: "desc" } },
@@ -178,12 +186,32 @@ const refundPaymentSchema = z.object({
 adminRouter.post("/payments/:id/refund", async (req, res, next) => {
   try {
     const input = refundPaymentSchema.parse(req.body);
-    const payment = await prisma.payment.update({
+    const payment = await prisma.payment.findUnique({
       where: { id: req.params.id },
-      data: {
-        status: PaymentStatus.REFUNDED,
-        notes: input.reason ?? undefined,
-      },
+      include: { order: { select: { orderNumber: true } } },
+    });
+    if (!payment) {
+      res.status(404).json({ error: "PaymentNotFound" });
+      return;
+    }
+
+    // Beam payment → issue a real refund via Beam before marking our records.
+    // (Manual / bank-transfer payments have no beamPaymentLinkId — handled by admin offline.)
+    let refundId: string | undefined;
+    if (payment.beamPaymentLinkId) {
+      const charges = await listChargesByReference(payment.order.orderNumber);
+      const charge = charges.find((c) => String(c.status).toUpperCase() === "SUCCEEDED");
+      if (!charge) {
+        res.status(409).json({ error: "NoRefundableCharge" });
+        return;
+      }
+      // Full refund (omit amount) — partial is only supported for CARD charges.
+      ({ refundId } = await refundCharge({ chargeId: charge.chargeId, reason: input.reason }));
+    }
+
+    const updated = await prisma.payment.update({
+      where: { id: payment.id },
+      data: { status: PaymentStatus.REFUNDED, notes: input.reason ?? undefined },
     });
     if (input.alsoRefundOrder) {
       await prisma.order.update({
@@ -191,7 +219,7 @@ adminRouter.post("/payments/:id/refund", async (req, res, next) => {
         data: { status: "REFUNDED" },
       });
     }
-    res.json({ data: payment });
+    res.json({ data: updated, refundId });
   } catch (err) {
     next(err);
   }

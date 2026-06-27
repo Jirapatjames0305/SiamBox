@@ -12,10 +12,12 @@ import {
 } from "@/lib/api";
 import { STATUS_LABEL_TH, formatDate, formatPrice, statusBadgeClass } from "@/lib/format";
 import type { Customer } from "@/lib/types";
+import { useDialog } from "@/components/Dialog";
 
 export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const { confirm } = useDialog();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [noteBody, setNoteBody] = useState("");
@@ -73,7 +75,7 @@ export default function CustomerDetailPage() {
   }
 
   async function removeNote(noteId: string) {
-    if (!confirm("ลบโน้ตนี้?")) return;
+    if (!(await confirm({ message: "ลบโน้ตนี้?", danger: true, confirmText: "ลบ" }))) return;
     await deleteCustomerNote(id, noteId);
     await load();
   }

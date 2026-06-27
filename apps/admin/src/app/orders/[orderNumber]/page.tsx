@@ -20,6 +20,7 @@ import {
   statusBadgeClass,
 } from "@/lib/format";
 import type { Order } from "@/lib/types";
+import { useDialog } from "@/components/Dialog";
 
 const CARRIERS = ["EMS", "DHL", "FEDEX", "OTHER"] as const;
 
@@ -29,6 +30,7 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savingStatus, setSavingStatus] = useState(false);
+  const { confirm, prompt } = useDialog();
   const [note, setNote] = useState("");
   const [savingNote, setSavingNote] = useState(false);
 
@@ -198,9 +200,16 @@ export default function OrderDetailPage() {
                         <button
                           type="button"
                           onClick={async () => {
-                            const reason = prompt("เหตุผลคืนเงิน (ไม่บังคับ):");
+                            const reason = await prompt({
+                              title: "คืนเงิน",
+                              message: "เหตุผลคืนเงิน (ไม่บังคับ):",
+                              placeholder: "เหตุผล…",
+                              confirmText: "ถัดไป",
+                            });
                             if (reason === null) return;
-                            const alsoOrder = confirm("เปลี่ยนสถานะออเดอร์เป็น REFUNDED ด้วยหรือไม่?");
+                            const alsoOrder = await confirm(
+                              "เปลี่ยนสถานะออเดอร์เป็น REFUNDED ด้วยหรือไม่?",
+                            );
                             await refundPayment(p.id, {
                               reason: reason || undefined,
                               alsoRefundOrder: alsoOrder,

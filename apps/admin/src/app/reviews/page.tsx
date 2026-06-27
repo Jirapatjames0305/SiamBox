@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ApiError, deleteReview, fetchReviews, setReviewStatus } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import type { Review } from "@/lib/types";
+import { useDialog } from "@/components/Dialog";
 
 const STATUS_BADGE: Record<Review["status"], { label: string; className: string }> = {
   PENDING: { label: "รออนุมัติ", className: "bg-amber-100 text-amber-800" },
@@ -24,6 +25,7 @@ function Stars({ rating }: { rating: number }) {
 }
 
 export default function ReviewsPage() {
+  const { confirm } = useDialog();
   const [rows, setRows] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +122,7 @@ export default function ReviewsPage() {
                     <button
                       type="button"
                       onClick={async () => {
-                        if (!confirm("ลบรีวิวนี้?")) return;
+                        if (!(await confirm({ message: "ลบรีวิวนี้?", danger: true, confirmText: "ลบ" }))) return;
                         await deleteReview(r.id);
                         await load();
                       }}

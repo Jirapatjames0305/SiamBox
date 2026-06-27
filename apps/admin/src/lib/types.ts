@@ -6,6 +6,10 @@ export type OrderItem = {
   quantity: number;
   unitPriceCents: number;
   totalCents: number;
+  // For package lines (incl. custom packages): the products inside, for packing.
+  package?: {
+    items: { quantity: number; product: { nameTh: string; nameZh: string | null } }[];
+  } | null;
 };
 
 export type ShippingAddress = {

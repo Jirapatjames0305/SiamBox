@@ -1185,11 +1185,16 @@ Decisions:
 * **redirectUrl**: `${WEB_BASE_URL}/zh/orders/{orderNumber}?charge=1` — Beam เด้งลูกค้ากลับหน้า order หลังจ่ายสำเร็จ
 * **Stored amount**: Payment.amountCents เก็บเป็น THB satang ที่ Beam ใช้จริง (ไม่ใช่ CNY cents) — สำหรับ reconcile กับ Beam dashboard
 
+Refund (admin → ปุ่ม "คืนเงิน"):
+
+* ถ้า payment เป็น Beam (มี `beamPaymentLinkId`) → `GET /charges?referenceId={orderNumber}` หา charge `SUCCEEDED` → `POST /api/v1/refunds {chargeId, reason}` (refund เต็ม, omit amount; partial เฉพาะ CARD) → แล้ว mark Payment=REFUNDED
+* ถ้าไม่มี `beamPaymentLinkId` (โอนเอง) → mark record เฉย ๆ (คืนเงิน offline)
+* Beam refund fail → ไม่ mark REFUNDED (ทำ Beam ก่อน DB)
+
 Out of scope (เลื่อน):
 
-* Webhook signature verification — ยังไม่ทำ (เพิ่มตอน setup webhook จริง)
 * credit card (CARD, ต้องเก็บ PAN) / installment
-* Refund/Void ผ่าน Beam — ตอนนี้ admin ใช้ปุ่ม "คืนเงิน" manual (Phase 1F) เพียงพอ
+* Partial refund (ตอนนี้ refund เต็มจำนวนเท่านั้น)
 * Multi-attempt — ถ้าลูกค้าจ่ายไม่สำเร็จ ตอนนี้ต้องสั่งใหม่
 
 Test plan (รอ credentials):

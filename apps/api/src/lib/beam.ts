@@ -109,3 +109,48 @@ export async function getPaymentLink(paymentLinkId: string): Promise<BeamPayment
   }
   return (await res.json()) as BeamPaymentLinkDetail;
 }
+
+export type BeamChargeListItem = {
+  chargeId: string;
+  status: string;
+  paymentMethodType?: string;
+};
+
+// GET /api/v1/charges?referenceId={ref} — find the charge(s) for an order (we set referenceId = orderNumber).
+export async function listChargesByReference(referenceId: string): Promise<BeamChargeListItem[]> {
+  const cfg = getConfig();
+  const res = await fetch(
+    `${cfg.apiBase}/api/v1/charges?referenceId=${encodeURIComponent(referenceId)}`,
+    { method: "GET", headers: { Authorization: authHeader(cfg) } },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw Object.assign(new Error(`BeamListChargesFailed: ${res.status} ${text}`), { status: 502 });
+  }
+  const data = (await res.json()) as { data?: BeamChargeListItem[] };
+  return data.data ?? [];
+}
+
+// POST /api/v1/refunds — refund a charge. Omit `amount` for a full refund
+// (partial refund is only supported for CARD charges).
+export async function refundCharge(input: {
+  chargeId: string;
+  amount?: number;
+  reason?: string;
+}): Promise<{ refundId: string }> {
+  const cfg = getConfig();
+  const res = await fetch(`${cfg.apiBase}/api/v1/refunds`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: authHeader(cfg) },
+    body: JSON.stringify({
+      chargeId: input.chargeId,
+      ...(input.amount != null ? { amount: input.amount } : {}),
+      ...(input.reason ? { reason: input.reason } : {}),
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw Object.assign(new Error(`BeamRefundFailed: ${res.status} ${text}`), { status: 502 });
+  }
+  return (await res.json()) as { refundId: string };
+}

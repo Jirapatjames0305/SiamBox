@@ -132,14 +132,27 @@ export default function ShippingLabelPage() {
         {/* Items list */}
         <div className="text-[10px] uppercase tracking-widest text-neutral-500">Items</div>
         <ul className="mt-1 space-y-1">
-          {order.items.map((item) => (
-            <li key={item.id} className="flex justify-between text-xs">
-              <span className="flex-1 pr-2">
-                {item.productNameZh ?? item.productNameTh}
-              </span>
-              <span className="font-mono">× {item.quantity}</span>
-            </li>
-          ))}
+          {order.items.map((item) => {
+            const contents = item.package?.items ?? [];
+            return (
+              <li key={item.id} className="text-xs">
+                <div className="flex justify-between">
+                  <span className="flex-1 pr-2">{item.productNameZh ?? item.productNameTh}</span>
+                  <span className="font-mono">× {item.quantity}</span>
+                </div>
+                {contents.length > 0 && (
+                  <ul className="mt-0.5 ml-3 space-y-0.5 border-l border-neutral-200 pl-2 text-[11px] text-neutral-600">
+                    {contents.map((c, idx) => (
+                      <li key={idx} className="flex justify-between">
+                        <span className="flex-1 pr-2">{c.product.nameZh ?? c.product.nameTh}</span>
+                        <span className="font-mono">× {c.quantity * item.quantity}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
         </ul>
 
         {shipment && (

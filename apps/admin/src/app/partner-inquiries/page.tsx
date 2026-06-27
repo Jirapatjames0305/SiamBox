@@ -9,6 +9,7 @@ import {
 } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import type { PartnerInquiry } from "@/lib/types";
+import { useDialog } from "@/components/Dialog";
 
 const TYPE_LABEL: Record<string, string> = {
   wholesale: "ขายส่ง",
@@ -19,6 +20,7 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export default function PartnerInquiriesPage() {
+  const { confirm } = useDialog();
   const [rows, setRows] = useState<PartnerInquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +117,7 @@ export default function PartnerInquiriesPage() {
                   <button
                     type="button"
                     onClick={async () => {
-                      if (!confirm("ลบรายการนี้?")) return;
+                      if (!(await confirm({ message: "ลบรายการนี้?", danger: true, confirmText: "ลบ" }))) return;
                       await deletePartnerInquiry(r.id);
                       await load();
                     }}

@@ -13,8 +13,10 @@ import {
 } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import type { Package, Product } from "@/lib/types";
+import { useDialog } from "@/components/Dialog";
 
 export default function PackagesPage() {
+  const { confirm, alert } = useDialog();
   const [packages, setPackages] = useState<Package[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -41,12 +43,13 @@ export default function PackagesPage() {
   }, []);
 
   async function handleDelete(pkg: Package) {
-    if (!confirm(`ลบแพ็กเกจ "${pkg.nameTh}"?`)) return;
+    if (!(await confirm({ message: `ลบแพ็กเกจ "${pkg.nameTh}"?`, danger: true, confirmText: "ลบ" })))
+      return;
     try {
       await deletePackage(pkg.id);
       load();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "ลบไม่สำเร็จ");
+      await alert(err instanceof Error ? err.message : "ลบไม่สำเร็จ");
     }
   }
 

@@ -9,8 +9,10 @@ import {
 } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import type { ProductRequest } from "@/lib/types";
+import { useDialog } from "@/components/Dialog";
 
 export default function ProductRequestsPage() {
+  const { confirm } = useDialog();
   const [rows, setRows] = useState<ProductRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +110,7 @@ export default function ProductRequestsPage() {
                   <button
                     type="button"
                     onClick={async () => {
-                      if (!confirm("ลบคำขอนี้?")) return;
+                      if (!(await confirm({ message: "ลบคำขอนี้?", danger: true, confirmText: "ลบ" }))) return;
                       await deleteProductRequest(r.id);
                       await load();
                     }}
