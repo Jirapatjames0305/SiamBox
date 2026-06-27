@@ -1182,12 +1182,13 @@ Decisions:
 * **Verification**: ไม่ trust webhook body ตรง ๆ — เอา `paymentLinkId` ไป re-query `GET /api/v1/payment-links/{id}` (authenticated) แล้วใช้ค่าจาก API
 * **Sync logic**: link status `COMPLETED`/`PAID` → Payment=APPROVED + Order=PAID, `EXPIRED`/`CANCELED`/`FAILED` → Payment=REJECTED + `failureMessage`, `ACTIVE` → ไม่เปลี่ยน
 * **referenceId**: ส่ง `order.orderNumber` ตรง ๆ (ใช้ match กับ order)
+* **redirectUrl**: `${WEB_BASE_URL}/zh/orders/{orderNumber}?charge=1` — Beam เด้งลูกค้ากลับหน้า order หลังจ่ายสำเร็จ
 * **Stored amount**: Payment.amountCents เก็บเป็น THB satang ที่ Beam ใช้จริง (ไม่ใช่ CNY cents) — สำหรับ reconcile กับ Beam dashboard
 
 Out of scope (เลื่อน):
 
 * Webhook signature verification — ยังไม่ทำ (เพิ่มตอน setup webhook จริง)
-* Post-payment redirect กลับเว็บอัตโนมัติ — ยังไม่ตั้ง (ตอนนี้พึ่ง poller); credit card / installment
+* credit card (CARD, ต้องเก็บ PAN) / installment
 * Refund/Void ผ่าน Beam — ตอนนี้ admin ใช้ปุ่ม "คืนเงิน" manual (Phase 1F) เพียงพอ
 * Multi-attempt — ถ้าลูกค้าจ่ายไม่สำเร็จ ตอนนี้ต้องสั่งใหม่
 

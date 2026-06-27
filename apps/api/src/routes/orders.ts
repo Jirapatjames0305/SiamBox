@@ -17,6 +17,9 @@ import { notifyLineGroup } from "../lib/line.js";
 
 export const ordersRouter = Router();
 
+// Web app base — where Beam redirects the customer back to after payment.
+const WEB_BASE = process.env.WEB_BASE_URL ?? "http://localhost:3000";
+
 const slipUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -299,6 +302,7 @@ ordersRouter.post("/", async (req, res, next) => {
         netAmount: amountSatang,
         referenceId: order.orderNumber,
         methods: gateway.methods,
+        redirectUrl: `${WEB_BASE}/zh/orders/${order.orderNumber}?charge=1`,
       });
       await prisma.payment.create({
         data: {

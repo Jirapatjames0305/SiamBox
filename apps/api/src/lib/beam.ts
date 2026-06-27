@@ -54,6 +54,8 @@ export type CreatePaymentLinkInput = {
   referenceId: string;
   /** Which payment-method groups to enable on the hosted page. */
   methods: LinkMethods;
+  /** Where Beam sends the customer back to after a successful payment. */
+  redirectUrl: string;
 };
 
 export type BeamPaymentLink = { paymentLinkId: string; url: string };
@@ -71,6 +73,7 @@ export async function createPaymentLink(input: CreatePaymentLinkInput): Promise<
     body: JSON.stringify({
       order: { netAmount: input.netAmount, currency: THB, referenceId: input.referenceId },
       linkSettings,
+      redirectUrl: input.redirectUrl,
     }),
   });
   if (!res.ok) {
