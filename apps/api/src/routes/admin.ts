@@ -819,7 +819,10 @@ adminRouter.put("/settings", async (req, res, next) => {
 
 // ---------- Payment channel visibility ----------
 
-const PAYMENT_METHOD_IDS = ["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST"] as const;
+const PAYMENT_METHOD_IDS = ["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST", "BEAM"] as const;
+const PAYMENT_METHOD_DEFAULTS: Record<string, { hidden: boolean; disabled: boolean }> = {
+  BEAM: { hidden: true, disabled: false },
+};
 
 const paymentMethodsSchema = z.object({
   methods: z.array(
@@ -837,7 +840,8 @@ adminRouter.get("/payment-methods", async (_req, res, next) => {
     const byMethod = new Map(rows.map((r) => [r.method, r]));
     const data = PAYMENT_METHOD_IDS.map((method) => {
       const row = byMethod.get(method);
-      return { method, hidden: row?.hidden ?? false, disabled: row?.disabled ?? false };
+      const def = PAYMENT_METHOD_DEFAULTS[method] ?? { hidden: false, disabled: false };
+      return { method, hidden: row?.hidden ?? def.hidden, disabled: row?.disabled ?? def.disabled };
     });
     res.json({ data });
   } catch (err) {

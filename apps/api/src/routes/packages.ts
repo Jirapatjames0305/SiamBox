@@ -3,7 +3,10 @@ import { prisma } from "@siambox/database";
 
 export const packagesRouter = Router();
 
-const PAYMENT_METHODS = ["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST"] as const;
+const PAYMENT_METHODS = ["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST", "BEAM"] as const;
+const PAYMENT_METHOD_DEFAULTS: Record<string, { hidden: boolean; disabled: boolean }> = {
+  BEAM: { hidden: true, disabled: false },
+};
 
 packagesRouter.get("/config", async (_req, res, next) => {
   try {
@@ -15,7 +18,8 @@ packagesRouter.get("/config", async (_req, res, next) => {
     const paymentMethods = Object.fromEntries(
       PAYMENT_METHODS.map((m) => {
         const row = byMethod.get(m);
-        return [m, { hidden: row?.hidden ?? false, disabled: row?.disabled ?? false }];
+        const def = PAYMENT_METHOD_DEFAULTS[m] ?? { hidden: false, disabled: false };
+        return [m, { hidden: row?.hidden ?? def.hidden, disabled: row?.disabled ?? def.disabled }];
       }),
     );
     res.json({

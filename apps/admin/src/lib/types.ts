@@ -226,7 +226,7 @@ export type BestSeller = {
   product: Product;
 };
 
-export type PaymentMethodId = "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST";
+export type PaymentMethodId = "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST" | "BEAM";
 
 export type PaymentMethodSetting = {
   method: PaymentMethodId;
