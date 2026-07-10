@@ -8,6 +8,7 @@ import { adminAuth } from "../middleware/admin-auth.js";
 import { getPaymentLink, listChargesByReference, refundCharge } from "../lib/beam.js";
 import { getSupabase, SUPABASE_BUCKET } from "../lib/supabase.js";
 import { syncBeamLink } from "./webhooks.js";
+import { listOnlineSessions } from "./presence.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -24,6 +25,12 @@ const upload = multer({
 export const adminRouter = Router();
 
 adminRouter.use(adminAuth);
+
+// ---------- Online visitors ----------
+
+adminRouter.get("/presence", (_req, res) => {
+  res.json({ data: listOnlineSessions() });
+});
 
 // ---------- Stats ----------
 

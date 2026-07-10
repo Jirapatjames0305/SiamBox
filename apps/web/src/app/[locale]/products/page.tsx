@@ -1,6 +1,8 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/routing";
+import type { Locale } from "@/i18n/routing";
 import { getBuildConfig, listProducts } from "@/lib/api";
+import { alternatesFor } from "@/lib/seo";
 import { FadeInUp } from "@/components/FadeInUp";
 import { ProductCard } from "./ProductCard";
 import { CategoryCarousel } from "./CategoryCarousel";
@@ -12,7 +14,12 @@ const OTHER = "__other__";
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Products" });
-  return { title: `${t("title")} · SiamBox` };
+  const tMeta = await getTranslations({ locale, namespace: "Meta" });
+  return {
+    title: t("title"),
+    description: tMeta("description"),
+    alternates: alternatesFor("/products", locale as Locale),
+  };
 }
 
 export default async function ProductsPage({

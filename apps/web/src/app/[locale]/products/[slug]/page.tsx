@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/routing";
@@ -5,10 +6,34 @@ import { getBuildConfig, getPackageBySlug, getProductBySlug, listProducts } from
 import { formatPrice } from "@/lib/format";
 import { localizedDescription, localizedName } from "@/lib/i18n-helpers";
 import type { Locale } from "@/i18n/routing";
+import { alternatesFor, localeUrl } from "@/lib/seo";
 import { AddToBoxButton } from "@/components/AddToBoxButton";
 import { CategoryCarousel } from "../CategoryCarousel";
 import { AddToCartButton } from "./AddToCartButton";
 import { ImageGallery } from "./ImageGallery";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; locale: string }>;
+}): Promise<Metadata> {
+  const { slug, locale } = await params;
+  const item = (await getProductBySlug(slug)) ?? (await getPackageBySlug(slug));
+  if (!item) return {};
+  const loc = locale as Locale;
+  const name = localizedName(item, loc);
+  const description = localizedDescription(item, loc) || undefined;
+  return {
+    title: name,
+    description,
+    alternates: alternatesFor(`/products/${slug}`, loc),
+    openGraph: {
+      title: name,
+      description,
+      images: item.images.slice(0, 1),
+    },
+  };
+}
 
 export default async function ProductDetailPage({
   params,
@@ -63,8 +88,25 @@ async function ProductView({
       : product.category
     : null;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name,
+    description: description || undefined,
+    image: product.images,
+    sku: product.sku,
+    offers: {
+      "@type": "Offer",
+      url: localeUrl(locale, `/products/${product.slug}`),
+      price: (product.priceCents / 100).toFixed(2),
+      priceCurrency: product.currency,
+      availability: inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+    },
+  };
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <nav className="mb-8 flex flex-wrap items-center gap-2 text-sm text-slate-500">
         <Link href="/products" className="transition-colors hover:text-blue-600">
           {tProducts("title")}

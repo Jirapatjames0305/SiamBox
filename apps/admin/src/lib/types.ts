@@ -235,3 +235,14 @@ export type PaymentMethodSetting = {
   hidden: boolean;
   disabled: boolean;
 };
+
+export type OnlineSession = {
+  sessionId: string;
+  ip: string;
+  country: string | null;
+  path: string;
+  locale: string | null;
+  userAgent: string | null;
+  firstSeenAt: number;
+  lastSeenAt: number;
+};

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ApiError, fetchStats } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { Fireworks } from "@/components/Fireworks";
+import { OnlineVisitors } from "@/components/OnlineVisitors";
 import type { Stats } from "@/lib/types";
 
 // Order milestones — fireworks fire when a new one is crossed.
@@ -67,6 +68,8 @@ export default function DashboardPage() {
 
       <h1 className="text-2xl font-semibold tracking-tight">แดชบอร์ด</h1>
       <p className="mt-1 text-sm text-neutral-500">ภาพรวมร้านวันนี้</p>
+
+      <OnlineVisitors />
 
       {error && (
         <div className="mt-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">

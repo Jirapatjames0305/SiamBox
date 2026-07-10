@@ -1,15 +1,38 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages, setRequestLocale } from "next-intl/server";
+import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { ContactWidget } from "@/components/ContactWidget";
+import { PresencePinger } from "@/components/PresencePinger";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/Toaster";
 import { getBuildConfig } from "@/lib/api";
 import { routing } from "@/i18n/routing";
+import { SITE_URL } from "@/lib/seo";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "Meta" });
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: { default: t("title"), template: "%s · SiamBox" },
+    description: t("description"),
+    keywords: t("keywords").split(","),
+    openGraph: {
+      siteName: "SiamBox",
+      locale: locale === "zh" ? "zh_CN" : locale,
+      type: "website",
+    },
+  };
 }
 
 export default async function LocaleLayout({
@@ -39,6 +62,7 @@ export default async function LocaleLayout({
       {children}
       <Footer logoUrl={logoUrl} />
       <ContactWidget />
+      <PresencePinger />
       <Toaster />
     </NextIntlClientProvider>
   );

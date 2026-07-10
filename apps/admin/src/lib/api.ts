@@ -4,6 +4,7 @@ import { getToken } from "./auth";
 import type {
   Customer,
   CustomerNote,
+  OnlineSession,
   Order,
   Package,
   PartnerInquiry,
@@ -63,6 +64,11 @@ export async function pingAuth(): Promise<void> {
 
 export async function fetchStats(): Promise<Stats> {
   const json = await request<{ data: Stats }>("/api/admin/stats");
+  return json.data;
+}
+
+export async function fetchOnlineSessions(): Promise<OnlineSession[]> {
+  const json = await request<{ data: OnlineSession[] }>("/api/admin/presence");
   return json.data;
 }
 

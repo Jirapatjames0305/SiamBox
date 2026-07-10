@@ -4,8 +4,14 @@ import { getBuildConfig, listBestSellers, listProducts, listReviews, type Review
 import { formatPrice } from "@/lib/format";
 import { localizedName } from "@/lib/i18n-helpers";
 import type { Locale } from "@/i18n/routing";
+import { alternatesFor } from "@/lib/seo";
 import { FadeInUp } from "@/components/FadeInUp";
 import { AddToBoxButton } from "@/components/AddToBoxButton";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  return { alternates: alternatesFor("", locale as Locale) };
+}
 
 // Outline SVG icons (Heroicons stroke style, viewBox 24×24)
 const BADGE_ICONS = [
