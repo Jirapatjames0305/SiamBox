@@ -203,6 +203,7 @@ function ProductForm({
     priceCents: product?.priceCents ?? 0,
     currency: product?.currency ?? "CNY",
     stock: product?.stock ?? 9999,
+    maxQtyPerOrder: product?.maxQtyPerOrder ?? 0,
     weightGrams: product?.weightGrams ?? 0,
     category: product?.category ?? "",
     tags: (product?.tags ?? []).join(", "),
@@ -212,6 +213,7 @@ function ProductForm({
   const [priceText, setPriceText] = useState((product ? product.priceCents / 100 : 0).toFixed(2));
   const [stockText, setStockText] = useState(product ? String(product.stock) : "9999");
   const [weightText, setWeightText] = useState(product?.weightGrams ? String(product.weightGrams) : "0");
+  const [maxQtyText, setMaxQtyText] = useState(product?.maxQtyPerOrder ? String(product.maxQtyPerOrder) : "0");
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -235,6 +237,8 @@ function ProductForm({
       priceCents: Number(form.priceCents),
       currency: form.currency,
       stock: Number(form.stock),
+      // 0 = ไม่จำกัด (ส่ง null ให้ API ล้างค่าเดิม)
+      maxQtyPerOrder: form.maxQtyPerOrder ? Number(form.maxQtyPerOrder) : null,
       weightGrams: form.weightGrams ? Number(form.weightGrams) : undefined,
       category: form.category || undefined,
       tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
@@ -299,6 +303,16 @@ function ProductForm({
             onChange={(v) => {
               setWeightText(v);
               set("weightGrams", Number(v) || (0 as never));
+            }}
+          />
+          <Field
+            label="จำกัดซื้อ/ออร์เดอร์ (0 = ไม่จำกัด)"
+            type="number"
+            selectOnFocus
+            value={maxQtyText}
+            onChange={(v) => {
+              setMaxQtyText(v);
+              set("maxQtyPerOrder", Number(v) || (0 as never));
             }}
           />
           <Field label="สกุลเงิน" value={form.currency} onChange={(v) => set("currency", v)} />

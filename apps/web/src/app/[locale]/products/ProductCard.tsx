@@ -8,7 +8,15 @@ import { AddToBoxButton } from "@/components/AddToBoxButton";
 import type { Product } from "@/lib/api";
 import type { Locale } from "@/i18n/routing";
 
-export function ProductCard({ product: p, minCents = 0 }: { product: Product; minCents?: number }) {
+export function ProductCard({
+  product: p,
+  minCents = 0,
+  limitEnabled = true,
+}: {
+  product: Product;
+  minCents?: number;
+  limitEnabled?: boolean;
+}) {
   const t = useTranslations("Products");
   const locale = useLocale() as Locale;
   const name = localizedName(p, locale);
@@ -40,12 +48,18 @@ export function ProductCard({ product: p, minCents = 0 }: { product: Product; mi
           {name}
         </Link>
         <p className="mt-1 text-base font-bold text-blue-600">{formatPrice(p.priceCents, p.currency)}</p>
+        {limitEnabled && p.maxQtyPerOrder != null && (
+          <p className="mt-0.5 text-[11px] font-medium text-amber-600">
+            * {t("limitBadge", { max: p.maxQtyPerOrder })}
+          </p>
+        )}
         {p.stock <= 0 ? (
           <p className="mt-auto pt-2 text-xs text-red-500">{t("outOfStock")}</p>
         ) : (
           <AddToBoxButton
             product={p}
             minCents={minCents}
+            limitEnabled={limitEnabled}
             className="mt-auto block w-full rounded-lg bg-blue-600 py-1.5 text-center text-xs font-semibold text-white transition-colors hover:bg-blue-700"
           />
         )}

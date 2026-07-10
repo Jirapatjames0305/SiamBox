@@ -155,7 +155,9 @@
     "searchPlaceholder": "Search products...",
     "addedToBox": "Added to your package",
     "toastRemaining": "Added — {amount} more to reach the minimum order",
-    "toastReady": "Added — minimum order reached, ready to checkout"
+    "toastReady": "Added — minimum order reached, ready to checkout",
+    "limitReached": "Limited to {max} per order to avoid import duty. Please contact admin to order more",
+    "limitBadge": "Limit {max}/order"
   },
   "Categories": {
     "seasoning": "Seasoning",
@@ -204,7 +206,8 @@
     "tbd": "TBD",
     "belowMin": "Minimum order {min}",
     "minOk": "Minimum order {min} reached",
-    "addMore": "Add {amount} more to reach the minimum"
+    "addMore": "Add {amount} more to reach the minimum",
+    "limitReached": "Limited to {max} per order to avoid import duty. Please contact admin to order more"
   },
   "Checkout": {
     "title": "Checkout",

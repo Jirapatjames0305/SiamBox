@@ -4,7 +4,15 @@ import { useRef } from "react";
 import type { Product } from "@/lib/api";
 import { ProductCard } from "./ProductCard";
 
-export function CategoryCarousel({ products, minCents = 0 }: { products: Product[]; minCents?: number }) {
+export function CategoryCarousel({
+  products,
+  minCents = 0,
+  limitEnabled = true,
+}: {
+  products: Product[];
+  minCents?: number;
+  limitEnabled?: boolean;
+}) {
   const ref = useRef<HTMLDivElement>(null);
 
   function scroll(dir: 1 | -1) {
@@ -19,7 +27,7 @@ export function CategoryCarousel({ products, minCents = 0 }: { products: Product
       >
         {products.map((p) => (
           <div key={p.id} className="w-40 shrink-0 snap-start sm:w-48">
-            <ProductCard product={p} minCents={minCents} />
+            <ProductCard product={p} minCents={minCents} limitEnabled={limitEnabled} />
           </div>
         ))}
       </div>

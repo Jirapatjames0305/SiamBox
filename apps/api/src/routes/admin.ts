@@ -299,6 +299,7 @@ const productSchema = z.object({
   priceCents: z.number().int().nonnegative(),
   currency: z.string().min(3).max(3).default("CNY"),
   stock: z.number().int().nonnegative().default(0),
+  maxQtyPerOrder: z.number().int().positive().optional().nullable(),
   weightGrams: z.number().int().positive().optional().nullable(),
   category: z.string().max(50).optional().nullable(),
   tags: z.array(z.string()).default([]),
@@ -810,6 +811,29 @@ adminRouter.put("/settings", async (req, res, next) => {
       where: { id: 1 },
       update: input,
       create: { id: 1, ...input },
+    });
+    res.json({ data: settings });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Toggle purchase-limit enforcement. Intentionally excluded from the generic
+// settings schema: turning it OFF requires re-entering ADMIN_TOKEN so a stale
+// or hijacked admin session cannot silently lift the China duty-risk caps.
+adminRouter.put("/settings/purchase-limit", async (req, res, next) => {
+  try {
+    const input = z
+      .object({ enabled: z.boolean(), confirmToken: z.string().optional() })
+      .parse(req.body);
+    if (!input.enabled && input.confirmToken !== process.env.ADMIN_TOKEN) {
+      res.status(403).json({ error: "InvalidConfirmToken" });
+      return;
+    }
+    const settings = await prisma.settings.upsert({
+      where: { id: 1 },
+      update: { purchaseLimitEnabled: input.enabled },
+      create: { id: 1, purchaseLimitEnabled: input.enabled },
     });
     res.json({ data: settings });
   } catch (err) {

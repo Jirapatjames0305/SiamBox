@@ -41,6 +41,8 @@ export type CustomCartLine = {
     nameEn: string | null;
     priceCents: number;
     image?: string;
+    // China duty-risk purchase cap carried onto the line so the cart UI can enforce it
+    maxQtyPerOrder?: number | null;
   }[];
   priceCents: number; // unit price (sum of items)
   quantity: number;
@@ -136,14 +138,18 @@ export function addCustomToCart(line: Omit<CustomCartLine, "kind" | "lineId" | "
 // Quick-add a single product into an in-progress custom package (the first custom line, or a
 // new one). Returns the custom package's new subtotal (cents) so the caller can show how much
 // more is needed to reach the minimum order.
-export function addToCustomDraft(product: {
-  productId: string;
-  nameTh: string;
-  nameZh: string | null;
-  nameEn: string | null;
-  priceCents: number;
-  image?: string;
-}): number {
+export function addToCustomDraft(
+  product: {
+    productId: string;
+    nameTh: string;
+    nameZh: string | null;
+    nameEn: string | null;
+    priceCents: number;
+    image?: string;
+    maxQtyPerOrder?: number | null;
+  },
+  opts?: { limitEnabled?: boolean },
+): { subtotalCents: number; capped: boolean } {
   const cart = read();
   let line = cart.lines.find((l): l is CustomCartLine => l.kind === "custom");
   if (!line) {
@@ -157,11 +163,19 @@ export function addToCustomDraft(product: {
     cart.lines.push(line);
   }
   const existing = line.products.find((x) => x.productId === product.productId);
-  if (existing) existing.quantity += 1;
-  else line.products.push({ ...product, quantity: 1 });
+  if (existing) {
+    const max = opts?.limitEnabled === false ? null : product.maxQtyPerOrder ?? existing.maxQtyPerOrder ?? null;
+    if (max != null && existing.quantity >= max) {
+      return { subtotalCents: line.priceCents, capped: true };
+    }
+    existing.quantity += 1;
+    existing.maxQtyPerOrder = product.maxQtyPerOrder ?? existing.maxQtyPerOrder;
+  } else {
+    line.products.push({ ...product, quantity: 1 });
+  }
   line.priceCents = line.products.reduce((sum, x) => sum + x.priceCents * x.quantity, 0);
   write(cart);
-  return line.priceCents;
+  return { subtotalCents: line.priceCents, capped: false };
 }
 
 // Set the quantity of a single product inside a custom package line. Removing the last product

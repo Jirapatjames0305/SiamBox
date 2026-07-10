@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ApiError, fetchSettings, updateSettings } from "@/lib/api";
+import { ApiError, fetchSettings, setPurchaseLimitEnabled, updateSettings } from "@/lib/api";
 import type { Settings } from "@/lib/types";
 
 type FormState = Omit<Settings, "id" | "updatedAt">;
@@ -14,6 +14,7 @@ const EMPTY: FormState = {
   shippingBaseCents: 0,
   shippingExpressCents: 0,
   customPackageMinCents: 0,
+  purchaseLimitEnabled: true,
   bankQrUrl: "",
   bankAccountName: "",
   bankAccountNumber: "",
@@ -48,6 +49,7 @@ export default function SettingsPage() {
           shippingBaseCents: s.shippingBaseCents,
           shippingExpressCents: s.shippingExpressCents,
           customPackageMinCents: s.customPackageMinCents,
+          purchaseLimitEnabled: s.purchaseLimitEnabled,
           bankQrUrl: s.bankQrUrl,
           bankAccountName: s.bankAccountName,
           bankAccountNumber: s.bankAccountNumber,
@@ -67,6 +69,47 @@ export default function SettingsPage() {
       .catch((err) => setError(err instanceof ApiError ? err.message : (err as Error).message))
       .finally(() => setLoading(false));
   }, []);
+
+  // ---- purchase-limit toggle (แยกจากฟอร์มหลัก มีผลทันที) ----
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmToken, setConfirmToken] = useState("");
+  const [confirmErr, setConfirmErr] = useState<string | null>(null);
+  const [toggling, setToggling] = useState(false);
+
+  async function toggleLimit() {
+    if (form.purchaseLimitEnabled) {
+      // ปิดต้องยืนยันรหัสแอดมินก่อน
+      setConfirmToken("");
+      setConfirmErr(null);
+      setConfirmOpen(true);
+      return;
+    }
+    setToggling(true);
+    try {
+      const s = await setPurchaseLimitEnabled(true);
+      setForm((f) => ({ ...f, purchaseLimitEnabled: s.purchaseLimitEnabled }));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : (err as Error).message);
+    } finally {
+      setToggling(false);
+    }
+  }
+
+  async function confirmDisable(e: React.FormEvent) {
+    e.preventDefault();
+    setToggling(true);
+    setConfirmErr(null);
+    try {
+      const s = await setPurchaseLimitEnabled(false, confirmToken);
+      setForm((f) => ({ ...f, purchaseLimitEnabled: s.purchaseLimitEnabled }));
+      setConfirmOpen(false);
+    } catch (err) {
+      const status = err instanceof ApiError ? err.status : 0;
+      setConfirmErr(status === 403 ? "รหัสแอดมินไม่ถูกต้อง" : (err as Error).message);
+    } finally {
+      setToggling(false);
+    }
+  }
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,6 +163,34 @@ export default function SettingsPage() {
           />
 
           <div className="mt-6 border-t border-neutral-200 pt-6">
+            <h2 className="text-sm font-semibold text-neutral-800">จำกัดจำนวนซื้อ (สินค้าเสี่ยงภาษีนำเข้าจีน)</h2>
+            <p className="mt-0.5 text-xs text-neutral-500">
+              บังคับเพดาน &quot;จำกัดซื้อ/ออร์เดอร์&quot; ที่ตั้งไว้รายสินค้า — มีผลทันที ไม่ต้องกดบันทึก
+              และการปิดต้องยืนยันรหัสแอดมิน
+            </p>
+            <div className="mt-3 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={toggleLimit}
+                disabled={toggling}
+                aria-pressed={form.purchaseLimitEnabled}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                  form.purchaseLimitEnabled ? "bg-emerald-500" : "bg-neutral-300"
+                } ${toggling ? "opacity-60" : ""}`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                    form.purchaseLimitEnabled ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+              <span className={`text-sm font-medium ${form.purchaseLimitEnabled ? "text-emerald-700" : "text-neutral-500"}`}>
+                {form.purchaseLimitEnabled ? "เปิดใช้งานอยู่" : "ปิดอยู่ — ลูกค้าซื้อได้ไม่จำกัด"}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-6 border-t border-neutral-200 pt-6">
             <h2 className="text-sm font-semibold text-neutral-800">แพ็กเกจกำหนดเอง</h2>
             <p className="mt-0.5 text-xs text-neutral-500">
               ขั้นต่ำที่ลูกค้าต้องจัดในแพ็กเกจของตัวเอง (CNY) — ตั้ง 0 หากไม่จำกัด
@@ -157,6 +228,47 @@ export default function SettingsPage() {
             )}
           </div>
         </form>
+      )}
+
+      {confirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40 p-4">
+          <form onSubmit={confirmDisable} className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+            <h2 className="text-lg font-semibold text-red-700">ยืนยันการปิดเงื่อนไขจำกัดซื้อ</h2>
+            <p className="mt-2 text-sm text-neutral-600">
+              เมื่อปิด ลูกค้าจะสั่งสินค้ากลุ่มเสี่ยงภาษีนำเข้าจีนได้ไม่จำกัดจำนวน
+              พัสดุมีโอกาสโดนเก็บภาษีหรือถูกตีกลับสูงขึ้น
+            </p>
+            <label className="mt-4 block">
+              <span className="text-sm font-medium text-neutral-700">กรอกรหัสแอดมินเพื่อยืนยัน</span>
+              <input
+                type="password"
+                value={confirmToken}
+                onChange={(e) => setConfirmToken(e.target.value)}
+                autoFocus
+                className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+              />
+            </label>
+            {confirmErr && (
+              <p className="mt-2 text-sm text-red-600">{confirmErr}</p>
+            )}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="submit"
+                disabled={toggling || !confirmToken}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+              >
+                {toggling ? "กำลังปิด…" : "ยืนยันปิดการจำกัดซื้อ"}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
     </div>
   );

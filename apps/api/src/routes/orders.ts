@@ -185,6 +185,33 @@ ordersRouter.post("/", async (req, res, next) => {
       ];
     });
 
+    // Per-product purchase cap for China duty-risk items. Quantities are summed across
+    // every path a product can enter the order (package addons + custom boxes × box qty)
+    // so splitting the same product across lines cannot bypass the cap.
+    if (settings.purchaseLimitEnabled) {
+      const qtyByProduct = new Map<string, number>();
+      for (const item of input.items) {
+        if (item.kind === "package") {
+          for (const a of item.addons ?? []) {
+            qtyByProduct.set(a.productId, (qtyByProduct.get(a.productId) ?? 0) + a.quantity * item.quantity);
+          }
+        } else {
+          for (const p of item.products) {
+            qtyByProduct.set(p.productId, (qtyByProduct.get(p.productId) ?? 0) + p.quantity * item.quantity);
+          }
+        }
+      }
+      for (const [productId, qty] of qtyByProduct) {
+        const product = productMap.get(productId);
+        if (product?.maxQtyPerOrder != null && qty > product.maxQtyPerOrder) {
+          throw Object.assign(
+            new Error(`PurchaseLimitExceeded:${product.sku}:${product.maxQtyPerOrder}`),
+            { status: 400 },
+          );
+        }
+      }
+    }
+
     const shippingCents =
       input.shippingMethod === "EXPRESS"
         ? settings.shippingExpressCents

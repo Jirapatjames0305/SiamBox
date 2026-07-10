@@ -12,11 +12,13 @@ const OTHER = "__other__";
 export function ProductSearch({
   products,
   minCents,
+  limitEnabled = true,
   initialQuery = "",
   children,
 }: {
   products: Product[];
   minCents: number;
+  limitEnabled?: boolean;
   initialQuery?: string;
   children: React.ReactNode;
 }) {
@@ -71,7 +73,7 @@ export function ProductSearch({
               {results.map((p, i) => (
                 <li key={p.id} className="h-full">
                   <FadeInUp delay={i * 40} className="h-full">
-                    <ProductCard product={p} minCents={minCents} />
+                    <ProductCard product={p} minCents={minCents} limitEnabled={limitEnabled} />
                   </FadeInUp>
                 </li>
               ))}

@@ -25,6 +25,7 @@ packagesRouter.get("/config", async (_req, res, next) => {
     res.json({
       data: {
         customPackageMinCents: settings.customPackageMinCents,
+        purchaseLimitEnabled: settings.purchaseLimitEnabled,
         shippingBaseCents: settings.shippingBaseCents,
         shippingExpressCents: settings.shippingExpressCents,
         paymentMethods,

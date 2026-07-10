@@ -74,6 +74,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   let brandsBg = "";
   let partnerBg = "";
   let minCents = 0;
+  let limitEnabled = true;
   try {
     const cfg = await getBuildConfig();
     heroBg = cfg.heroBgUrl;
@@ -81,6 +82,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     brandsBg = cfg.brandsBgUrl;
     partnerBg = cfg.partnerBgUrl;
     minCents = cfg.customPackageMinCents;
+    limitEnabled = cfg.purchaseLimitEnabled;
   } catch {
     // skip if API down
   }
@@ -227,10 +229,16 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                           </Link>
                           <div className="mt-1 text-xs text-gold-500"><Stars /></div>
                           <p className="mt-1 font-bold text-maroon-800">{formatPrice(p.priceCents, p.currency)}</p>
+                          {limitEnabled && p.maxQtyPerOrder != null && (
+                            <p className="mt-0.5 text-[11px] font-medium text-amber-600">
+                              * {tProducts("limitBadge", { max: p.maxQtyPerOrder })}
+                            </p>
+                          )}
                           {p.stock <= 0 ? (
                             <p className="mt-auto pt-1.5 text-center text-xs text-red-500">{tProducts("outOfStock")}</p>
                           ) : (
                             <AddToBoxButton
+                              limitEnabled={limitEnabled}
                               product={p}
                               minCents={minCents}
                               className="mt-auto block w-full rounded-md bg-maroon-800 py-1.5 text-center text-xs font-semibold text-cream-100 transition hover:bg-maroon-700"

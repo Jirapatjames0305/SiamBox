@@ -138,6 +138,7 @@ export type ProductInput = {
   priceCents: number;
   currency?: string;
   stock?: number;
+  maxQtyPerOrder?: number | null;
   weightGrams?: number;
   category?: string;
   tags?: string[];
@@ -260,6 +261,16 @@ export async function updateSettings(input: Omit<Settings, "id" | "updatedAt">):
   const json = await request<{ data: Settings }>(`/api/admin/settings`, {
     method: "PUT",
     body: JSON.stringify(input),
+  });
+  return json.data;
+}
+
+// Toggle purchase-limit enforcement. Turning OFF requires re-entering ADMIN_TOKEN
+// (sent as confirmToken); the API rejects a mismatch with 403.
+export async function setPurchaseLimitEnabled(enabled: boolean, confirmToken?: string): Promise<Settings> {
+  const json = await request<{ data: Settings }>(`/api/admin/settings/purchase-limit`, {
+    method: "PUT",
+    body: JSON.stringify({ enabled, confirmToken }),
   });
   return json.data;
 }

@@ -11,25 +11,35 @@ import type { Product } from "@/lib/api";
 export function AddToBoxButton({
   product: p,
   minCents = 0,
+  limitEnabled = true,
   className,
   label,
 }: {
   product: Product;
   minCents?: number;
+  limitEnabled?: boolean;
   className?: string;
   label?: string;
 }) {
   const t = useTranslations("Products");
 
   function handleAdd() {
-    const subtotal = addToCustomDraft({
-      productId: p.id,
-      nameTh: p.nameTh,
-      nameZh: p.nameZh,
-      nameEn: p.nameEn,
-      priceCents: p.priceCents,
-      image: p.images[0],
-    });
+    const { subtotalCents: subtotal, capped } = addToCustomDraft(
+      {
+        productId: p.id,
+        nameTh: p.nameTh,
+        nameZh: p.nameZh,
+        nameEn: p.nameEn,
+        priceCents: p.priceCents,
+        image: p.images[0],
+        maxQtyPerOrder: p.maxQtyPerOrder,
+      },
+      { limitEnabled },
+    );
+    if (capped) {
+      showToast(t("limitReached", { max: p.maxQtyPerOrder ?? 0 }));
+      return;
+    }
     const remaining = minCents - subtotal;
     if (minCents > 0 && remaining > 0) {
       showToast(t("toastRemaining", { amount: formatPrice(remaining) }));

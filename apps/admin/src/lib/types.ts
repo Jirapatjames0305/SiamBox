@@ -118,6 +118,7 @@ export type Product = {
   priceCents: number;
   currency: string;
   stock: number;
+  maxQtyPerOrder: number | null;
   weightGrams: number | null;
   category: string | null;
   tags: string[];
@@ -168,6 +169,7 @@ export type Settings = {
   shippingBaseCents: number;
   shippingExpressCents: number;
   customPackageMinCents: number;
+  purchaseLimitEnabled: boolean;
   bankQrUrl: string;
   bankAccountName: string;
   bankAccountNumber: string;

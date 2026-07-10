@@ -155,7 +155,9 @@
     "searchPlaceholder": "搜索商品...",
     "addedToBox": "已加入套餐",
     "toastRemaining": "已加入 — 距离起订金额还差 {amount}",
-    "toastReady": "已加入 — 已达起订金额，可以结算"
+    "toastReady": "已加入 — 已达起订金额，可以结算",
+    "limitReached": "每单限购 {max} 件（避免进口关税）。如需购买更多，请联系客服",
+    "limitBadge": "每单限购 {max} 件"
   },
   "Categories": {
     "seasoning": "调味料",
@@ -204,7 +206,8 @@
     "tbd": "待定",
     "belowMin": "起订金额 {min}",
     "minOk": "已达起订金额 {min}",
-    "addMore": "再加 {amount} 达到起订金额"
+    "addMore": "再加 {amount} 达到起订金额",
+    "limitReached": "每单限购 {max} 件（避免进口关税）。如需购买更多，请联系客服"
   },
   "Checkout": {
     "title": "结账",

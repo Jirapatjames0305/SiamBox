@@ -24,10 +24,14 @@ export default function CartPage() {
   const cart = useCart();
   const hydrated = useCartHydrated();
   const [minCents, setMinCents] = useState(0);
+  const [limitEnabled, setLimitEnabled] = useState(true);
 
   useEffect(() => {
     getBuildConfig()
-      .then((c) => setMinCents(c.customPackageMinCents))
+      .then((c) => {
+        setMinCents(c.customPackageMinCents);
+        setLimitEnabled(c.purchaseLimitEnabled);
+      })
       .catch(() => {});
   }, []);
 
@@ -44,18 +48,28 @@ export default function CartPage() {
   // Flatten each custom package into individual product rows; pre-made packages stay one row.
   const rows = cart.lines.flatMap((line) => {
     if (line.kind === "custom") {
-      return line.products.map((p) => ({
-        key: `${line.lineId}:${p.productId}`,
-        image: p.image,
-        name: localizedName(p, locale),
-        href: null as string | null,
-        addons: null as null,
-        unitPriceCents: p.priceCents,
-        quantity: p.quantity,
-        onDec: () => setCustomProductQty(line.lineId, p.productId, p.quantity - 1),
-        onInc: () => setCustomProductQty(line.lineId, p.productId, p.quantity + 1),
-        onRemove: () => removeCustomProduct(line.lineId, p.productId),
-      }));
+      return line.products.map((p) => {
+        // Cap the stepper at the product's China duty-risk limit (when enforcement is on)
+        const maxQty = limitEnabled ? p.maxQtyPerOrder ?? null : null;
+        const atCap = maxQty != null && p.quantity >= maxQty;
+        return {
+          key: `${line.lineId}:${p.productId}`,
+          image: p.image,
+          name: localizedName(p, locale),
+          href: null as string | null,
+          addons: null as null,
+          unitPriceCents: p.priceCents,
+          quantity: p.quantity,
+          maxQty,
+          atCap,
+          onDec: () => setCustomProductQty(line.lineId, p.productId, p.quantity - 1),
+          onInc: () => {
+            if (maxQty != null && p.quantity >= maxQty) return;
+            setCustomProductQty(line.lineId, p.productId, p.quantity + 1);
+          },
+          onRemove: () => removeCustomProduct(line.lineId, p.productId),
+        };
+      });
     }
     return [
       {
@@ -66,6 +80,8 @@ export default function CartPage() {
         addons: line.addons && line.addons.length > 0 ? line.addons : null,
         unitPriceCents: line.priceCents,
         quantity: line.quantity,
+        maxQty: null as number | null,
+        atCap: false,
         onDec: () => updateQuantity(line.lineId, line.quantity - 1),
         onInc: () => updateQuantity(line.lineId, line.quantity + 1),
         onRemove: () => removeFromCart(line.lineId),
@@ -145,7 +161,12 @@ export default function CartPage() {
                       <button
                         type="button"
                         onClick={row.onInc}
-                        className="flex h-8 w-8 items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors"
+                        disabled={row.atCap}
+                        className={`flex h-8 w-8 items-center justify-center transition-colors ${
+                          row.atCap
+                            ? "cursor-not-allowed text-slate-300"
+                            : "text-slate-500 hover:bg-slate-50"
+                        }`}
                       >
                         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -163,6 +184,11 @@ export default function CartPage() {
                       {t("remove")}
                     </button>
                   </div>
+                  {row.atCap && (
+                    <p className="mt-1.5 text-xs font-medium text-amber-600">
+                      {t("limitReached", { max: row.maxQty ?? 0 })}
+                    </p>
+                  )}
                 </div>
                 <div className="text-right text-sm font-bold text-slate-900 whitespace-nowrap">
                   {formatPrice(row.unitPriceCents * row.quantity)}

@@ -30,6 +30,7 @@ export default async function ProductsPage({
 
   let products = [] as Awaited<ReturnType<typeof listProducts>>;
   let minCents = 0;
+  let limitEnabled = true;
   let error: string | null = null;
   try {
     products = await listProducts();
@@ -37,7 +38,9 @@ export default async function ProductsPage({
     error = err instanceof Error ? err.message : "Failed";
   }
   try {
-    minCents = (await getBuildConfig()).customPackageMinCents;
+    const cfg = await getBuildConfig();
+    minCents = cfg.customPackageMinCents;
+    limitEnabled = cfg.purchaseLimitEnabled;
   } catch {
     // no minimum if config unavailable
   }
@@ -75,7 +78,7 @@ export default async function ProductsPage({
             {filtered.map((p, i) => (
               <li key={p.id} className="h-full">
                 <FadeInUp delay={i * 50} className="h-full">
-                  <ProductCard product={p} minCents={minCents} />
+                  <ProductCard product={p} minCents={minCents} limitEnabled={limitEnabled} />
                 </FadeInUp>
               </li>
             ))}
@@ -100,7 +103,7 @@ export default async function ProductsPage({
                   {t("viewAll")} →
                 </Link>
               </div>
-              <CategoryCarousel products={items} minCents={minCents} />
+              <CategoryCarousel products={items} minCents={minCents} limitEnabled={limitEnabled} />
             </section>
           );
         })}
@@ -130,7 +133,7 @@ export default async function ProductsPage({
           <p className="text-slate-400">{t("noProducts")}</p>
         </div>
       ) : (
-        <ProductSearch products={products} minCents={minCents} initialQuery={q?.trim() ?? ""}>
+        <ProductSearch products={products} minCents={minCents} limitEnabled={limitEnabled} initialQuery={q?.trim() ?? ""}>
           {view}
         </ProductSearch>
       )}

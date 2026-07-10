@@ -103,6 +103,8 @@ model Product {
   priceCents    Int      @map("price_cents")
   currency      String   @default("CNY")
   stock         Int      @default(0)
+  // Max units per order for China duty-risk items (null = unlimited)
+  maxQtyPerOrder Int?    @map("max_qty_per_order")
   weightGrams   Int?     @map("weight_grams")
   category      String?
   tags          String[]
@@ -418,6 +420,8 @@ model Settings {
   shippingBaseCents       Int      @default(0) @map("shipping_base_cents")
   shippingExpressCents    Int      @default(0) @map("shipping_express_cents")
   customPackageMinCents   Int      @default(0) @map("custom_package_min_cents")
+  // Enforce per-product maxQtyPerOrder caps (turning OFF requires ADMIN_TOKEN confirmation)
+  purchaseLimitEnabled    Boolean  @default(true) @map("purchase_limit_enabled")
   bankQrUrl               String   @default("") @map("bank_qr_url")
   bankAccountName         String   @default("") @map("bank_account_name")
   bankAccountNumber       String   @default("") @map("bank_account_number")

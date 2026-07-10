@@ -13,6 +13,7 @@ export type Product = {
   priceCents: number;
   currency: string;
   stock: number;
+  maxQtyPerOrder: number | null;
   weightGrams: number | null;
   category: string | null;
   tags: string[];
@@ -164,6 +165,7 @@ export type PaymentMethodVisibility = { hidden: boolean; disabled: boolean };
 
 export type BuildConfig = {
   customPackageMinCents: number;
+  purchaseLimitEnabled: boolean;
   shippingBaseCents: number;
   shippingExpressCents: number;
   paymentMethods: Record<PaymentMethodId, PaymentMethodVisibility>;

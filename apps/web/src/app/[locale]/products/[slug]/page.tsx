@@ -41,8 +41,11 @@ async function ProductView({
   const inStock = product.stock > 0;
 
   let minCents = 0;
+  let limitEnabled = true;
   try {
-    minCents = (await getBuildConfig()).customPackageMinCents;
+    const cfg = await getBuildConfig();
+    minCents = cfg.customPackageMinCents;
+    limitEnabled = cfg.purchaseLimitEnabled;
   } catch {
     // no minimum
   }
@@ -118,6 +121,7 @@ async function ProductView({
             <AddToBoxButton
               product={product}
               minCents={minCents}
+              limitEnabled={limitEnabled}
               className="block w-full rounded-xl bg-blue-600 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-blue-700"
             />
           ) : (
@@ -141,7 +145,7 @@ async function ProductView({
       {related.length > 0 && (
         <section className="mt-14">
           <h2 className="mb-4 text-lg font-bold text-slate-900">{tDetail("relatedTitle")}</h2>
-          <CategoryCarousel products={related} minCents={minCents} />
+          <CategoryCarousel products={related} minCents={minCents} limitEnabled={limitEnabled} />
         </section>
       )}
     </main>
