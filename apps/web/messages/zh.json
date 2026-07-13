@@ -111,7 +111,8 @@
     "wechatLabel": "微信",
     "wechatAria": "通过微信联系客服",
     "wechatCopyHint": "点击复制微信号",
-    "wechatCopied": "已复制!"
+    "wechatCopied": "已复制!",
+    "wechatScanHint": "扫码添加或点击复制微信号"
   },
   "Build": {
     "title": "自由搭配套餐",

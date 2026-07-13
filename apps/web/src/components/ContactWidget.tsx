@@ -3,18 +3,32 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
-const LINE_URL = "https://lin.ee/REJN6N4";
-const WECHAT_ID = "Siambox";
+const DEFAULT_LINE_URL = "https://lin.ee/REJN6N4";
+const DEFAULT_WECHAT_ID = "admin_Siambox";
+const DEFAULT_WECHAT_QR = "/contact-wechat-qr.jpg";
 
-export function ContactWidget() {
+export function ContactWidget({
+  lineUrl = "",
+  wechatId = "",
+  wechatQrUrl = "",
+}: {
+  lineUrl?: string;
+  wechatId?: string;
+  wechatQrUrl?: string;
+}) {
   const t = useTranslations("Contact");
   const [open, setOpen] = useState(false);
+  const [wechatOpen, setWechatOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const line = lineUrl || DEFAULT_LINE_URL;
+  const wechat = wechatId || DEFAULT_WECHAT_ID;
+  const wechatQr = wechatQrUrl || DEFAULT_WECHAT_QR;
+
   async function handleCopyWechat() {
     try {
-      await navigator.clipboard.writeText(WECHAT_ID);
+      await navigator.clipboard.writeText(wechat);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -23,7 +37,10 @@ export function ContactWidget() {
   }
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setWechatOpen(false);
+      return;
+    }
     const onClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false);
@@ -40,8 +57,26 @@ export function ContactWidget() {
           open ? "pointer-events-auto opacity-100 translate-y-0" : "pointer-events-none opacity-0 translate-y-2"
         }`}
       >
+        {wechatOpen && (
+          <div className="w-52 rounded-xl border border-neutral-200 bg-white p-3 shadow-lg">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={wechatQr} alt={t("wechatAria")} className="w-full rounded-md" />
+            <button
+              type="button"
+              onClick={handleCopyWechat}
+              title={t("wechatCopyHint")}
+              className="mt-2 w-full rounded-md bg-[#07C160]/10 px-2 py-1.5 text-center text-xs font-semibold text-[#0a8f4d] hover:bg-[#07C160]/20 transition-colors"
+            >
+              {copied ? t("wechatCopied") : `${t("wechatLabel")} ID: ${wechat}`}
+            </button>
+            <p className="mt-1.5 text-center text-[11px] leading-snug text-neutral-500">
+              {t("wechatScanHint")}
+            </p>
+          </div>
+        )}
+
         <a
-          href={LINE_URL}
+          href={line}
           target="_blank"
           rel="noopener noreferrer"
           aria-label={t("lineAria")}
@@ -55,13 +90,13 @@ export function ContactWidget() {
 
         <button
           type="button"
-          onClick={handleCopyWechat}
+          onClick={() => setWechatOpen((v) => !v)}
           aria-label={t("wechatAria")}
-          title={t("wechatCopyHint")}
+          aria-expanded={wechatOpen}
           className="inline-flex items-center gap-1.5 rounded-full bg-[#07C160] px-3 py-2 text-xs font-semibold text-white shadow-md hover:bg-[#06ad55] transition-colors"
         >
           <WeChatIcon />
-          <span>{copied ? t("wechatCopied") : `${t("wechatLabel")}: ${WECHAT_ID}`}</span>
+          <span>{`${t("wechatLabel")}: ${wechat}`}</span>
         </button>
       </div>
 

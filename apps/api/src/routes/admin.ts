@@ -796,6 +796,9 @@ const settingsSchema = z.object({
   partnerBgUrl: z.string().max(1000),
   faviconUrl: z.string().max(1000),
   logoUrl: z.string().max(1000),
+  contactLineUrl: z.string().max(1000),
+  contactWechatId: z.string().max(200),
+  contactWechatQrUrl: z.string().max(1000),
 });
 
 adminRouter.get("/settings", async (_req, res, next) => {

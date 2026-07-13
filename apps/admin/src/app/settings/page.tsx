@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ApiError, fetchSettings, setPurchaseLimitEnabled, updateSettings } from "@/lib/api";
 import type { Settings } from "@/lib/types";
+import { QrUpload } from "@/components/QrUpload";
 
 type FormState = Omit<Settings, "id" | "updatedAt">;
 
@@ -29,6 +30,9 @@ const EMPTY: FormState = {
   partnerBgUrl: "",
   faviconUrl: "",
   logoUrl: "",
+  contactLineUrl: "",
+  contactWechatId: "",
+  contactWechatQrUrl: "",
 };
 
 export default function SettingsPage() {
@@ -64,6 +68,9 @@ export default function SettingsPage() {
           partnerBgUrl: s.partnerBgUrl,
           faviconUrl: s.faviconUrl,
           logoUrl: s.logoUrl,
+          contactLineUrl: s.contactLineUrl,
+          contactWechatId: s.contactWechatId,
+          contactWechatQrUrl: s.contactWechatQrUrl,
         });
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : (err as Error).message))
@@ -187,6 +194,32 @@ export default function SettingsPage() {
               <span className={`text-sm font-medium ${form.purchaseLimitEnabled ? "text-emerald-700" : "text-neutral-500"}`}>
                 {form.purchaseLimitEnabled ? "เปิดใช้งานอยู่" : "ปิดอยู่ — ลูกค้าซื้อได้ไม่จำกัด"}
               </span>
+            </div>
+          </div>
+
+          <div className="mt-6 border-t border-neutral-200 pt-6">
+            <h2 className="text-sm font-semibold text-neutral-800">ติดต่อแอดมิน</h2>
+            <p className="mt-0.5 text-xs text-neutral-500">
+              ช่องทางติดต่อที่แสดงในปุ่ม &quot;ติดต่อแอดมิน&quot; และ footer บนหน้าเว็บลูกค้า
+            </p>
+            <div className="mt-3 space-y-3">
+              <Field
+                label="ลิงก์ LINE (URL)"
+                value={form.contactLineUrl}
+                onChange={(v) => setForm({ ...form, contactLineUrl: v })}
+                placeholder="https://lin.ee/xxxxxxx"
+              />
+              <Field
+                label="WeChat ID"
+                value={form.contactWechatId}
+                onChange={(v) => setForm({ ...form, contactWechatId: v })}
+                placeholder="admin_Siambox"
+              />
+              <QrUpload
+                label="QR Code WeChat"
+                value={form.contactWechatQrUrl}
+                onChange={(v) => setForm({ ...form, contactWechatQrUrl: v })}
+              />
             </div>
           </div>
 

@@ -50,18 +50,25 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   let logoUrl = "";
+  let contactLineUrl = "";
+  let contactWechatId = "";
+  let contactWechatQrUrl = "";
   try {
-    logoUrl = (await getBuildConfig()).logoUrl;
+    const cfg = await getBuildConfig();
+    logoUrl = cfg.logoUrl;
+    contactLineUrl = cfg.contactLineUrl;
+    contactWechatId = cfg.contactWechatId;
+    contactWechatQrUrl = cfg.contactWechatQrUrl;
   } catch {
-    // fall back to inline SVG logo
+    // fall back to inline SVG logo / default contact info
   }
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <Navbar logoUrl={logoUrl} />
       {children}
-      <Footer logoUrl={logoUrl} />
-      <ContactWidget />
+      <Footer logoUrl={logoUrl} wechatId={contactWechatId} />
+      <ContactWidget lineUrl={contactLineUrl} wechatId={contactWechatId} wechatQrUrl={contactWechatQrUrl} />
       <PresencePinger />
       <Toaster />
     </NextIntlClientProvider>

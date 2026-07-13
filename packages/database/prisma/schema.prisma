@@ -436,6 +436,9 @@ model Settings {
   partnerBgUrl            String   @default("") @map("partner_bg_url")
   faviconUrl              String   @default("") @map("favicon_url")
   logoUrl                 String   @default("") @map("logo_url")
+  contactLineUrl          String   @default("https://lin.ee/REJN6N4") @map("contact_line_url")
+  contactWechatId         String   @default("admin_Siambox") @map("contact_wechat_id")
+  contactWechatQrUrl      String   @default("") @map("contact_wechat_qr_url")
   updatedAt               DateTime @updatedAt @map("updated_at")
 
   @@map("settings")

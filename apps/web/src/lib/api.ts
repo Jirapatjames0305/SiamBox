@@ -183,6 +183,9 @@ export type BuildConfig = {
   partnerBgUrl: string;
   faviconUrl: string;
   logoUrl: string;
+  contactLineUrl: string;
+  contactWechatId: string;
+  contactWechatQrUrl: string;
 };
 
 export async function getBuildConfig(): Promise<BuildConfig> {

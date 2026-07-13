@@ -43,6 +43,9 @@ packagesRouter.get("/config", async (_req, res, next) => {
         partnerBgUrl: settings.partnerBgUrl,
         faviconUrl: settings.faviconUrl,
         logoUrl: settings.logoUrl,
+        contactLineUrl: settings.contactLineUrl,
+        contactWechatId: settings.contactWechatId,
+        contactWechatQrUrl: settings.contactWechatQrUrl,
       },
     });
   } catch (err) {

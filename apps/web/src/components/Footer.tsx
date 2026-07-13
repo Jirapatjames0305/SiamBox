@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 
-export async function Footer({ logoUrl = "" }: { logoUrl?: string }) {
+export async function Footer({ logoUrl = "", wechatId = "" }: { logoUrl?: string; wechatId?: string }) {
   const t = await getTranslations("Footer");
 
   const columns = [
@@ -87,7 +87,7 @@ export async function Footer({ logoUrl = "" }: { logoUrl?: string }) {
           <h3 className="text-sm font-semibold text-gold-300">{t("contact")}</h3>
           <ul className="mt-3 space-y-1.5 text-sm text-cream-300/70">
             <li>Line: @siambox</li>
-            <li>WeChat: Siambox</li>
+            <li>WeChat: {wechatId || "admin_Siambox"}</li>
             <li className="break-all">
               Email:{" "}
               <a href="mailto:Jongjongdisupport@gmail.com" className="hover:text-gold-300">

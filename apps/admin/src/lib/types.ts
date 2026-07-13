@@ -184,6 +184,9 @@ export type Settings = {
   partnerBgUrl: string;
   faviconUrl: string;
   logoUrl: string;
+  contactLineUrl: string;
+  contactWechatId: string;
+  contactWechatQrUrl: string;
   updatedAt: string;
 };
 

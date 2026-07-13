@@ -111,7 +111,8 @@
     "wechatLabel": "WeChat",
     "wechatAria": "Contact admin via WeChat",
     "wechatCopyHint": "Click to copy WeChat ID",
-    "wechatCopied": "Copied!"
+    "wechatCopied": "Copied!",
+    "wechatScanHint": "Scan the QR code or tap to copy the ID"
   },
   "Build": {
     "title": "Build Your Own Package",

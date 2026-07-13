@@ -111,7 +111,8 @@
     "wechatLabel": "WeChat",
     "wechatAria": "ติดต่อแอดมินผ่าน WeChat",
     "wechatCopyHint": "คลิกเพื่อคัดลอก WeChat ID",
-    "wechatCopied": "คัดลอกแล้ว!"
+    "wechatCopied": "คัดลอกแล้ว!",
+    "wechatScanHint": "สแกน QR หรือแตะเพื่อคัดลอก ID"
   },
   "Build": {
     "title": "จัดแพ็กเกจของคุณเอง",
