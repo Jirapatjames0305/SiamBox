@@ -1,4 +1,15 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+// This module is used from both server components and client components.
+//
+// NEXT_PUBLIC_API_URL is inlined into the browser bundle, so it has to be a URL the
+// user's machine can reach (http://localhost:4000). Server-side rendering runs inside
+// the container, where that address points at the web container itself and the fetch
+// fails — leaving pages rendered with no data. API_INTERNAL_URL lets Docker point SSR
+// at the compose service name instead (http://api:4000). Unset outside Docker, where
+// both sides can use the same URL.
+const API_URL =
+  (typeof window === "undefined" ? process.env.API_INTERNAL_URL : undefined) ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:4000";
 
 export type Product = {
   id: string;
@@ -159,9 +170,21 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   }
 }
 
-export type PaymentMethodId = "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST" | "BEAM";
+export type PaymentMethodId = "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST";
 
 export type PaymentMethodVisibility = { hidden: boolean; disabled: boolean };
+
+export type PaymentProviderId = "ksher" | "opn" | "2c2p";
+
+/** A payment gateway the customer can be routed through when paying online. */
+export type PaymentProviderOption = {
+  id: PaymentProviderId;
+  label: string;
+  hidden: boolean;
+  /** True when the admin turned it off, or its credentials are missing on the API. */
+  disabled: boolean;
+  configured: boolean;
+};
 
 export type BuildConfig = {
   customPackageMinCents: number;
@@ -169,6 +192,7 @@ export type BuildConfig = {
   shippingBaseCents: number;
   shippingExpressCents: number;
   paymentMethods: Record<PaymentMethodId, PaymentMethodVisibility>;
+  paymentProviders: PaymentProviderOption[];
   bankQrUrl: string;
   bankAccountName: string;
   bankAccountNumber: string;
@@ -240,7 +264,8 @@ export type CheckoutPayload = {
     postalCode: string;
   };
   customerNote?: string;
-  paymentMethod?: "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST" | "BEAM";
+  paymentMethod?: "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST";
+  paymentProvider?: PaymentProviderId;
   slipUrl?: string;
   shippingMethod?: "NORMAL" | "EXPRESS";
 };

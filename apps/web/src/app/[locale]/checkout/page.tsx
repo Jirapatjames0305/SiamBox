@@ -5,6 +5,7 @@ import { toPng } from "html-to-image";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { shippingAddressSchema } from "@siambox/shared";
+import type { PaymentProviderId, PaymentProviderOption } from "@/lib/api";
 import { createOrder, getBuildConfig, uploadSlip } from "@/lib/api";
 import {
   cartLineName,
@@ -30,7 +31,7 @@ type FormState = {
   customerNote: string;
 };
 
-type PaymentMethod = "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST" | "BEAM";
+type PaymentMethod = "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST";
 
 const empty: FormState = {
   recipient: "",
@@ -64,6 +65,8 @@ export default function CheckoutPage() {
   const [storeWechatId, setStoreWechatId] = useState("");
   const [alipayQrUrl, setAlipayQrUrl] = useState("");
   const [wechatQrUrl, setWechatQrUrl] = useState("");
+  const [providers, setProviders] = useState<PaymentProviderOption[]>([]);
+  const [paymentProvider, setPaymentProvider] = useState<PaymentProviderId | null>(null);
   const [alipayMode, setAlipayMode] = useState<"QR" | "GATEWAY">("QR");
   const [wechatMode, setWechatMode] = useState<"QR" | "GATEWAY">("QR");
   const [slipUrl, setSlipUrl] = useState("");
@@ -85,6 +88,7 @@ export default function CheckoutPage() {
         setStoreWechatId(cfg.storeWechatId);
         setAlipayQrUrl(cfg.alipayQrUrl);
         setWechatQrUrl(cfg.wechatQrUrl);
+        setProviders(cfg.paymentProviders ?? []);
         setAlipayMode(cfg.alipayMode);
         setWechatMode(cfg.wechatMode);
         setShipping({ normal: cfg.shippingBaseCents, express: cfg.shippingExpressCents });
@@ -145,13 +149,34 @@ export default function CheckoutPage() {
   // If the selected method becomes hidden/disabled, fall back to the first selectable one.
   useEffect(() => {
     if (!methodCfg) return;
-    const order: PaymentMethod[] = ["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST", "BEAM"];
+    const order: PaymentMethod[] = ["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST"];
     const selectable = (m: PaymentMethod) => !methodCfg[m]?.hidden && !methodCfg[m]?.disabled;
     if (!selectable(paymentMethod)) {
       const first = order.find(selectable);
       if (first) setPaymentMethod(first);
     }
   }, [methodCfg, paymentMethod]);
+
+  // Alipay / WeChat Pay only route through a gateway when the admin set that channel to
+  // GATEWAY mode; TEST always does. Otherwise the provider picker is irrelevant.
+  const usesGateway =
+    (paymentMethod === "ALIPAY" && alipayMode === "GATEWAY") ||
+    (paymentMethod === "WECHAT_PAY" && wechatMode === "GATEWAY") ||
+    paymentMethod === "TEST";
+  const providerChoices = providers.filter((p) => !p.hidden);
+
+  // Default to the first gateway the customer can actually use, and drop a selection
+  // that stops being valid (admin turned it off, or the method left gateway mode).
+  useEffect(() => {
+    if (!usesGateway) {
+      setPaymentProvider(null);
+      return;
+    }
+    const usable = providerChoices.filter((p) => !p.disabled);
+    setPaymentProvider((current) =>
+      current && usable.some((p) => p.id === current) ? current : (usable[0]?.id ?? null),
+    );
+  }, [usesGateway, providers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A slip belongs to the channel it was uploaded for — drop it when the customer switches method.
   useEffect(() => {
@@ -219,9 +244,7 @@ export default function CheckoutPage() {
         ? "Alipay"
         : paymentMethod === "WECHAT_PAY"
           ? "WeChat Pay"
-          : paymentMethod === "BEAM"
-            ? "Beam Gateway"
-            : t("payTest");
+          : t("payTest");
 
   // Alipay / WeChat Pay run as a scan-the-QR + attach-slip flow when the admin set that channel
   // to QR mode. `qrSrc` falls back to the seeded Alipay image so the page is never blank.
@@ -284,6 +307,7 @@ export default function CheckoutPage() {
         shippingAddress: parsed.data,
         customerNote: form.customerNote || undefined,
         paymentMethod,
+        paymentProvider: paymentProvider ?? undefined,
         slipUrl: slipUrl || undefined,
         shippingMethod,
       });
@@ -312,12 +336,6 @@ export default function CheckoutPage() {
     { value: "ALIPAY", label: "Alipay", hint: alipayMode === "QR" ? t("payQrHint") : t("payOnlineHint") },
     { value: "WECHAT_PAY", label: "WeChat Pay", hint: wechatMode === "QR" ? t("payQrHint") : t("payOnlineHint") },
     { value: "TEST", label: t("payTest"), hint: t("payTestHint"), badge: "TEST" },
-    {
-      value: "BEAM",
-      label: "Beam Gateway",
-      hint: "ทดสอบผ่าน Beam — เปิดหน้า hosted (Alipay / WeChat / PromptPay)",
-      badge: "TEST",
-    },
   ];
   // Drop hidden methods entirely; disabled ones stay visible but greyed-out / not selectable.
   const paymentChoices = allChoices
@@ -391,6 +409,39 @@ export default function CheckoutPage() {
                 />
               ))}
             </div>
+
+            {usesGateway && providerChoices.length > 0 && (
+              <div className="mt-5">
+                <p className="text-sm font-medium text-slate-700">{t("gatewayPick")}</p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                  {providerChoices.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      disabled={p.disabled}
+                      onClick={() => setPaymentProvider(p.id)}
+                      className={`rounded-xl border p-3 text-left transition-colors ${
+                        p.disabled
+                          ? "cursor-not-allowed border-slate-200 bg-slate-100 opacity-50"
+                          : paymentProvider === p.id
+                            ? "border-blue-500 bg-blue-500/10 ring-1 ring-blue-500/30"
+                            : "border-slate-300 bg-slate-100 hover:border-slate-600"
+                      }`}
+                    >
+                      <span className="block text-sm font-semibold text-slate-900">{p.label}</span>
+                      {!p.configured && (
+                        <span className="mt-0.5 block text-xs text-slate-500">
+                          {t("gatewayUnavailable")}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {providerChoices.every((p) => p.disabled) && (
+                  <p className="mt-2 text-xs text-amber-700">{t("gatewayNoneAvailable")}</p>
+                )}
+              </div>
+            )}
 
             {paymentMethod === "MANUAL" && (
               <div className="mt-5 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">

@@ -1,18 +1,22 @@
 import { Router } from "express";
 import { prisma } from "@siambox/database";
+import {
+  PROVIDER_IDS,
+  PROVIDER_LABELS,
+  configuredProviderIds,
+} from "../lib/payments/index.js";
 
 export const packagesRouter = Router();
 
-const PAYMENT_METHODS = ["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST", "BEAM"] as const;
-const PAYMENT_METHOD_DEFAULTS: Record<string, { hidden: boolean; disabled: boolean }> = {
-  BEAM: { hidden: true, disabled: false },
-};
+const PAYMENT_METHODS = ["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST"] as const;
+const PAYMENT_METHOD_DEFAULTS: Record<string, { hidden: boolean; disabled: boolean }> = {};
 
 packagesRouter.get("/config", async (_req, res, next) => {
   try {
-    const [settings, pmRows] = await Promise.all([
+    const [settings, pmRows, ppRows] = await Promise.all([
       prisma.settings.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } }),
       prisma.paymentMethodSetting.findMany(),
+      prisma.paymentProviderSetting.findMany(),
     ]);
     const byMethod = new Map(pmRows.map((r) => [r.method, r]));
     const paymentMethods = Object.fromEntries(
@@ -22,8 +26,25 @@ packagesRouter.get("/config", async (_req, res, next) => {
         return [m, { hidden: row?.hidden ?? def.hidden, disabled: row?.disabled ?? def.disabled }];
       }),
     );
+    // Each gateway is offered only when the admin allows it AND its credentials exist.
+    // Allowed-but-unconfigured providers are still listed, marked disabled, so the
+    // checkout can show why they cannot be picked instead of silently hiding them.
+    const configured = new Set(configuredProviderIds());
+    const byProvider = new Map(ppRows.map((r) => [r.provider, r]));
+    const paymentProviders = PROVIDER_IDS.map((id) => {
+      const row = byProvider.get(id);
+      return {
+        id,
+        label: PROVIDER_LABELS[id],
+        hidden: row?.hidden ?? false,
+        disabled: (row?.disabled ?? false) || !configured.has(id),
+        configured: configured.has(id),
+      };
+    });
+
     res.json({
       data: {
+        paymentProviders,
         customPackageMinCents: settings.customPackageMinCents,
         purchaseLimitEnabled: settings.purchaseLimitEnabled,
         shippingBaseCents: settings.shippingBaseCents,

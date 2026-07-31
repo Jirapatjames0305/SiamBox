@@ -10,7 +10,7 @@ on separate subdomains.
 
 > Why Alibaba HK: best network into mainland China that still needs **no ICP license**,
 > and ports 80/443 work without ICP (mainland regions block web ports until ICP clears).
-> Always-on (no Render free-tier cold start) — important for Beam webhooks.
+> Always-on (no Render free-tier cold start) — important for payment webhooks.
 
 ## 1. Create the ECS instance (Alibaba console → ECS, region **China (Hong Kong)**)
 
@@ -87,12 +87,14 @@ docker compose logs -f web              # watch the Next.js build/start
 
 When ready to move the API off Render onto this instance:
 
-1. Fill the API secrets in `.env` (DATABASE_URL, ADMIN_TOKEN, BEAM_*, SUPABASE_*, CORS_ORIGIN, etc.) — copy from the Render dashboard.
+1. Fill the API secrets in `.env` (DATABASE_URL, ADMIN_TOKEN, PAYMENT_PROVIDER + the provider's keys, SUPABASE_*, CORS_ORIGIN, etc.) — copy from the Render dashboard.
 2. Add the `api.<yourdomain>` A record → EIP.
 3. Uncomment the API block in `Caddyfile`.
 4. `docker compose up -d --build` (brings up `api` too; migrations run on start).
 5. Set `NEXT_PUBLIC_API_URL=https://api.<yourdomain>` in `.env`, rebuild web: `docker compose up -d --build web`.
-6. Update the **Beam dashboard** webhook URL → `https://api.<yourdomain>/api/webhooks/beam`, then delete the Render service.
+6. Update the **payment provider's dashboard** webhook URL → `https://api.<yourdomain>/api/webhooks/<provider>` (`ksher`, `opn` or `2c2p`), then delete the Render service.
+   For Ksher, set `KSHER_WEBHOOK_URL` to that same URL — Ksher signs the full callback URL, so a mismatch fails verification.
+   For Opn, append `?key=<OPN_WEBHOOK_SECRET>` — Opn does not sign its webhooks.
 
 ## Redeploying later
 

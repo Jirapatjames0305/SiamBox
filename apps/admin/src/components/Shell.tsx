@@ -16,6 +16,7 @@ const NAV = [
   { href: "/reviews", label: "รีวิว" },
   { href: "/customers", label: "ลูกค้า" },
   { href: "/payment-methods", label: "ช่องทางชำระเงิน" },
+  { href: "/payment-providers", label: "Payment Gateway" },
   { href: "/bank-account", label: "บัญชีรับโอน" },
   { href: "/shipping", label: "ค่าจัดส่ง" },
   { href: "/ui-editor", label: "แก้ไข UI" },

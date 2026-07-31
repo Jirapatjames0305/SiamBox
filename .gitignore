@@ -21,6 +21,11 @@ out/
 .env.production
 !.env.example
 
+# Database dumps pulled from production — real customer data, never commit
+.tmp/
+*.dump
+*.sql.gz
+
 # Logs
 logs/
 *.log

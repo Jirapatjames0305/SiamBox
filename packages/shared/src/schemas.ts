@@ -44,16 +44,23 @@ export const checkoutItemSchema = z.discriminatedUnion("kind", [
   checkoutCustomItemSchema,
 ]);
 
-// TEST routes through Beam's browser-testable sandbox (Alipay redirect) — for testing only.
-// BEAM is a testing option that opens the Beam hosted page with all methods enabled.
-export const paymentMethodSchema = z.enum(["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST", "BEAM"]);
+// TEST routes through the active gateway on the PromptPay channel — every Thai provider
+// supports it and it is the easiest channel to exercise in a sandbox. Testing only.
+export const paymentMethodSchema = z.enum(["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST"]);
 export type PaymentMethodInput = z.infer<typeof paymentMethodSchema>;
+
+// Which gateway the customer picked for an online payment. Only meaningful when the
+// chosen channel runs in GATEWAY mode; ignored for manual bank transfer / QR + slip.
+export const paymentProviderSchema = z.enum(["ksher", "opn", "2c2p"]);
+export type PaymentProviderInput = z.infer<typeof paymentProviderSchema>;
 
 export const checkoutSchema = z.object({
   items: z.array(checkoutItemSchema).min(1),
   shippingAddress: shippingAddressSchema,
   customerNote: z.string().max(1000).optional(),
   paymentMethod: paymentMethodSchema.default("MANUAL"),
+  // Omitted → the server falls back to the single provider named by PAYMENT_PROVIDER.
+  paymentProvider: paymentProviderSchema.optional(),
   // Payment slip URL — uploaded by the customer for the manual bank-transfer flow.
   slipUrl: z.string().url().max(1000).optional(),
   shippingMethod: z.enum(["NORMAL", "EXPRESS"]).default("NORMAL"),

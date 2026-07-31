@@ -6,19 +6,38 @@ import { randomBytes } from "node:crypto";
 import { prisma } from "@siambox/database";
 import { checkoutSchema } from "@siambox/shared";
 import {
+  activeProvider,
   cnyCentsToSatang,
-  createPaymentLink,
-  getPaymentLink,
-  isBeamEnabled,
-} from "../lib/beam.js";
+  getProvider,
+  requireActiveProvider,
+  type PaymentChannel,
+  type PaymentProvider,
+} from "../lib/payments/index.js";
 import { getSupabase, SUPABASE_BUCKET } from "../lib/supabase.js";
-import { syncBeamLink } from "./webhooks.js";
+import { syncPayment } from "./webhooks.js";
 import { notifyLineGroup } from "../lib/line.js";
 
 export const ordersRouter = Router();
 
-// Web app base — where Beam redirects the customer back to after payment.
+// Web app base — where the gateway redirects the customer back to after payment.
 const WEB_BASE = process.env.WEB_BASE_URL ?? "http://localhost:3000";
+
+// Validates a customer-chosen gateway against both gates: the admin's own
+// enable/disable switch, and whether its credentials are actually present.
+async function resolveRequestedProvider(id: string): Promise<PaymentProvider> {
+  const provider = getProvider(id);
+  if (!provider) {
+    throw Object.assign(new Error("UnknownPaymentProvider"), { status: 400 });
+  }
+  const setting = await prisma.paymentProviderSetting.findUnique({ where: { provider: id } });
+  if (setting?.hidden || setting?.disabled) {
+    throw Object.assign(new Error("PaymentProviderUnavailable"), { status: 400 });
+  }
+  if (!provider.isEnabled()) {
+    throw Object.assign(new Error("PaymentGatewayDisabled"), { status: 503 });
+  }
+  return provider;
+}
 
 const slipUpload = multer({
   storage: multer.memoryStorage(),
@@ -282,14 +301,13 @@ ordersRouter.post("/", async (req, res, next) => {
       include: { items: true, shippingAddress: true },
     });
 
-    // Online (gateway) methods → Beam payment-link method groups + the Payment.method we store.
-    // eWallets covers Alipay / WeChat Pay; TEST uses PromptPay QR (easy to test in the sandbox).
-    const GATEWAY_CHANNELS = {
-      ALIPAY: { methods: { eWallets: true, card: true }, method: "ALIPAY" as const },
-      WECHAT_PAY: { methods: { eWallets: true, card: true }, method: "WECHAT" as const },
-      TEST: { methods: { qrPromptPay: true }, method: "GATEWAY" as const },
-      // BEAM = testing option: open the hosted page with all methods enabled.
-      BEAM: { methods: { eWallets: true, qrPromptPay: true, card: true }, method: "GATEWAY" as const },
+    // Online (gateway) methods → the logical channel we ask the provider for, plus the
+    // Payment.method we store. TEST uses PromptPay because every Thai provider supports
+    // it and it is the easiest channel to exercise in a sandbox.
+    const GATEWAY_CHANNELS: Record<string, { channel: PaymentChannel; method: "ALIPAY" | "WECHAT" | "GATEWAY" }> = {
+      ALIPAY: { channel: "ALIPAY", method: "ALIPAY" },
+      WECHAT_PAY: { channel: "WECHAT", method: "WECHAT" },
+      TEST: { channel: "PROMPTPAY", method: "GATEWAY" },
     };
 
     // Alipay / WeChat Pay can run either as a manual QR (customer scans, then attaches a slip)
@@ -300,7 +318,7 @@ ordersRouter.post("/", async (req, res, next) => {
         ? settings.alipayMode
         : input.paymentMethod === "WECHAT_PAY"
           ? settings.wechatMode
-          : input.paymentMethod === "TEST" || input.paymentMethod === "BEAM"
+          : input.paymentMethod === "TEST"
             ? "GATEWAY"
             : "QR";
 
@@ -313,23 +331,25 @@ ordersRouter.post("/", async (req, res, next) => {
       throw Object.assign(new Error("PaymentSlipRequired"), { status: 400 });
     }
 
-    // Gateway flow — create a Beam payment link for online methods.
+    // Gateway flow — hand the order to the active provider (Ksher / Opn / 2C2P).
     let authorizeUri: string | null = null;
-    const gateway =
-      channelMode === "GATEWAY"
-        ? GATEWAY_CHANNELS[input.paymentMethod as keyof typeof GATEWAY_CHANNELS]
-        : undefined;
+    const gateway = channelMode === "GATEWAY" ? GATEWAY_CHANNELS[input.paymentMethod] : undefined;
     if (gateway) {
-      if (!isBeamEnabled()) {
-        throw Object.assign(new Error("PaymentGatewayDisabled"), { status: 503 });
-      }
+      // The customer picks the gateway at checkout. Re-check it here rather than
+      // trusting the request: the page could be stale, or the pick could name a
+      // provider the admin has since turned off or that has no credentials.
+      const provider = input.paymentProvider
+        ? await resolveRequestedProvider(input.paymentProvider)
+        : requireActiveProvider();
+      // All three providers settle in THB, so the charge is the CNY total converted.
       const amountSatang = cnyCentsToSatang(total);
 
-      const link = await createPaymentLink({
-        netAmount: amountSatang,
-        referenceId: order.orderNumber,
-        methods: gateway.methods,
-        redirectUrl: `${WEB_BASE}/zh/orders/${order.orderNumber}?charge=1`,
+      const created = await provider.createPayment({
+        orderNumber: order.orderNumber,
+        amountSatang,
+        channel: gateway.channel,
+        returnUrl: `${WEB_BASE}/zh/orders/${order.orderNumber}?charge=1`,
+        description: `SiamBox ${order.orderNumber}`,
       });
       await prisma.payment.create({
         data: {
@@ -338,10 +358,11 @@ ordersRouter.post("/", async (req, res, next) => {
           status: "PENDING",
           amountCents: amountSatang,
           currency: "THB",
-          beamPaymentLinkId: link.paymentLinkId,
+          gatewayProvider: provider.id,
+          gatewayRef: created.gatewayRef,
         },
       });
-      authorizeUri = link.url;
+      authorizeUri = created.redirectUrl;
     } else {
       // Manual / QR flow (MANUAL bank transfer, or Alipay / WeChat Pay in QR mode) — store the
       // customer's slip. SUBMITTED if a slip was attached, otherwise PENDING. Admin reviews +
@@ -427,9 +448,10 @@ ordersRouter.post("/lookup", async (req, res, next) => {
   }
 });
 
-// Public endpoint — refresh order's Beam payments from the Get Payment Link API and return current status.
-// Used by /[locale]/orders/[orderNumber] poller in dev (when the webhook isn't public).
-// Safe because it only syncs from Beam (source of truth), no client-side state mutation.
+// Public endpoint — re-queries the gateway for this order's pending payments and returns
+// the current status. Used by /[locale]/orders/[orderNumber] poller in dev (when the
+// webhook isn't public). Safe because it only syncs from the gateway (source of truth),
+// no client-supplied state is trusted.
 ordersRouter.post("/:orderNumber/refresh-payment", async (req, res, next) => {
   try {
     const order = await prisma.order.findUnique({
@@ -440,11 +462,12 @@ ordersRouter.post("/:orderNumber/refresh-payment", async (req, res, next) => {
       res.status(404).json({ error: "OrderNotFound" });
       return;
     }
-    if (isBeamEnabled()) {
-      for (const payment of order.payments) {
-        if (!payment.beamPaymentLinkId || payment.status !== "PENDING") continue;
-        await syncBeamLink(await getPaymentLink(payment.beamPaymentLinkId));
-      }
+    for (const payment of order.payments) {
+      if (!payment.gatewayRef || payment.status !== "PENDING") continue;
+      // Sync through the provider that created the payment, not the currently active one.
+      const provider = getProvider(payment.gatewayProvider) ?? activeProvider();
+      if (!provider?.isEnabled()) continue;
+      await syncPayment(provider, { gatewayRef: payment.gatewayRef });
     }
     const fresh = await prisma.order.findUnique({
       where: { id: order.id },

@@ -1,0 +1,161 @@
+# ------------------------------------------------------------
+# SiamBox — local development stack. Postgres + api + web + admin.
+#
+#   docker compose up
+#
+# No .env file needed: every value below has a working local default.
+# Drop a `.env` next to this file to override any of them (real Supabase
+# keys, a payment provider's sandbox credentials, ...) — Compose reads it
+# automatically and it is gitignored.
+#
+# Production deployment is a different stack: deploy/docker-compose.yml.
+# ------------------------------------------------------------
+
+x-dev-image: &dev-image
+  build:
+    context: .
+    dockerfile: Dockerfile.dev
+  # The repo is mounted for hot reload; the node_modules volumes mask it so the
+  # dependency tree installed in the image is not hidden by the bind mount.
+  volumes:
+    - .:/app
+    - root_node_modules:/app/node_modules
+    - api_node_modules:/app/apps/api/node_modules
+    - web_node_modules:/app/apps/web/node_modules
+    - admin_node_modules:/app/apps/admin/node_modules
+    - database_node_modules:/app/packages/database/node_modules
+    - shared_node_modules:/app/packages/shared/node_modules
+    - ui_node_modules:/app/packages/ui/node_modules
+
+services:
+  db:
+    # Matches production (Supabase runs Postgres 17) so dumps restore cleanly
+    # and pg_dump/pg_restore versions never mismatch.
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: siambox
+      POSTGRES_PASSWORD: siambox
+      POSTGRES_DB: siambox
+    ports:
+      # Host-side port only — services talk to db:5432 over the compose network.
+      # Defaults to 5434 to stay clear of other projects' Postgres containers.
+      - "${DB_PORT:-5434}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # api waits on this — without it migrations race the first boot.
+      test: ["CMD-SHELL", "pg_isready -U siambox -d siambox"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    <<: *dev-image
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://siambox:siambox@db:5432/siambox?schema=public}
+      API_PORT: "4000"
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost:3001}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-dev-admin-token}
+      WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:3000}
+      CNY_TO_THB_RATE: ${CNY_TO_THB_RATE:-4.9}
+
+      # Payment gateway — empty means "no gateway": checkout still works through
+      # the manual bank-transfer / QR + slip flow. Set to ksher | opn | 2c2p and
+      # fill the matching keys in .env once you have sandbox credentials.
+      # See docs/payment-gateway-china.md.
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-}
+      KSHER_APPID: ${KSHER_APPID:-}
+      KSHER_API_TOKEN: ${KSHER_API_TOKEN:-}
+      KSHER_MID: ${KSHER_MID:-}
+      KSHER_API_BASE: ${KSHER_API_BASE:-https://api.ksher.net}
+      KSHER_WEBHOOK_URL: ${KSHER_WEBHOOK_URL:-}
+      OPN_SECRET_KEY: ${OPN_SECRET_KEY:-}
+      OPN_API_BASE: ${OPN_API_BASE:-https://api.omise.co}
+      OPN_WEBHOOK_SECRET: ${OPN_WEBHOOK_SECRET:-}
+      TWOCTWOP_MERCHANT_ID: ${TWOCTWOP_MERCHANT_ID:-}
+      TWOCTWOP_SECRET_KEY: ${TWOCTWOP_SECRET_KEY:-}
+      TWOCTWOP_API_BASE: ${TWOCTWOP_API_BASE:-https://sandbox-pgw.2c2p.com}
+      TWOCTWOP_WEBHOOK_URL: ${TWOCTWOP_WEBHOOK_URL:-}
+
+      # Image uploads need Supabase Storage — unset, uploads return an error but
+      # nothing else breaks. Put real values in .env to enable them.
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_BUCKET: ${SUPABASE_BUCKET:-siambox-products}
+
+      LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN:-}
+      LINE_GROUP_ID: ${LINE_GROUP_ID:-}
+    # The schema is bind-mounted, so regenerate the Prisma client on boot — otherwise a
+    # model added on the host stays missing from the client inside the container.
+    # Migrate before starting so the schema always matches the code. The seed only
+    # runs when the database is empty — otherwise a restart would inject demo rows
+    # into a database cloned from production. A seed failure is not worth blocking
+    # the API for.
+    command: >
+      sh -c "pnpm --filter @siambox/database exec prisma generate &&
+             pnpm --filter @siambox/database exec prisma migrate deploy &&
+             (pnpm --filter @siambox/database run seed:if-empty || echo '[dev] seed skipped') &&
+             pnpm --filter @siambox/api exec tsx watch src/index.ts"
+
+  web:
+    <<: *dev-image
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+    environment:
+      # Inlined into the browser bundle, so it must be reachable from the host.
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+      # Used only by server-side rendering, which runs inside this container where
+      # localhost:4000 is the web container itself. Without it, SSR fetches fail and
+      # pages render empty.
+      API_INTERNAL_URL: http://api:4000
+      # Bind mounts do not deliver inotify events reliably; poll instead.
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    # Bypasses the package script's `ulimit -n`, which cannot be raised in a container.
+    command: pnpm --filter @siambox/web exec next dev --port 3000 --hostname 0.0.0.0
+
+  admin:
+    <<: *dev-image
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3001:3001"
+    environment:
+      NEXT_PUBLIC_ADMIN_API_URL: ${NEXT_PUBLIC_ADMIN_API_URL:-http://localhost:4000}
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    command: pnpm --filter @siambox/admin exec next dev --port 3001 --hostname 0.0.0.0
+
+  # Opt-in DB browser: docker compose --profile tools up studio → localhost:5555
+  studio:
+    <<: *dev-image
+    profiles: ["tools"]
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5555:5555"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://siambox:siambox@db:5432/siambox?schema=public}
+    command: pnpm --filter @siambox/database exec prisma studio --port 5555 --browser none
+
+volumes:
+  postgres_data:
+  root_node_modules:
+  api_node_modules:
+  web_node_modules:
+  admin_node_modules:
+  database_node_modules:
+  shared_node_modules:
+  ui_node_modules:

@@ -274,7 +274,10 @@
     "copy": "คัดลอก",
     "copied": "คัดลอกแล้ว",
     "openWechat": "เปิด WeChat",
-    "viewMyOrder": "ดูออเดอร์ของฉัน"
+    "viewMyOrder": "ดูออเดอร์ของฉัน",
+    "gatewayPick": "เลือกผู้ให้บริการชำระเงิน",
+    "gatewayUnavailable": "ยังไม่พร้อมใช้งาน",
+    "gatewayNoneAvailable": "ยังไม่มีผู้ให้บริการที่ใช้ได้ กรุณาเลือกช่องทางอื่น"
   },
   "Order": {
     "orderNumber": "ออเดอร์",

@@ -1133,63 +1133,68 @@ Smoke verified: phone +8613900000999 → คืน 2 ออเดอร์, phon
 
 ---
 
-# Phase 2A — Payment Gateway (Beam Checkout sandbox) ✅
+# Phase 2A — Payment Gateway (Ksher / Opn Payments / 2C2P) ✅
 
-Code พร้อมเทส — รอใส่ sandbox credentials (Merchant ID / API Key) ใน `.env` ก็ลองรันได้
+เดิมใช้ Beam Checkout เพราะสมัครในนามบุคคลธรรมดาได้ — ตอนนี้มีนิติบุคคลแล้วจึงเปลี่ยนเป็น
+เจ้าไทย 3 เจ้าที่ทำ Alipay/WeChat cross-border (เหตุผลการเลือก: `docs/payment-gateway-china.md`)
+
+Code + เทสพร้อม (24 tests) — รอใส่ credentials ของเจ้าที่เลือกใน `.env`
 
 Setup:
 
 ```text
-.env  BEAM_MERCHANT_ID + BEAM_API_KEY
-      + BEAM_API_BASE (default playground) + CNY_TO_THB_RATE (default 4.9)
-apps/api/src/lib/beam.ts                   config + createPaymentLink() + getPaymentLink() + cnyCentsToSatang()
-ไม่มี SDK — ใช้ global fetch (JSON) + HTTP Basic base64(merchantId:apiKey)
+.env  PAYMENT_PROVIDER=ksher|opn|2c2p      เลือกเจ้าที่ checkout ใหม่จะวิ่งผ่าน
+      + credentials ของเจ้านั้น (ดู apps/api/.env.example)
+      + CNY_TO_THB_RATE (default 4.9) — ทั้งสามเจ้า settle เป็น THB
+apps/api/src/lib/payments/types.ts         interface PaymentProvider + cnyCentsToSatang()
+apps/api/src/lib/payments/ksher.ts         HMAC-SHA256 signature, /api/v1/redirect/orders
+apps/api/src/lib/payments/opn.ts           HTTP Basic (secret key), /sources → /charges
+apps/api/src/lib/payments/twoctwop.ts      JWT HS256 envelope, /payment/4.3/paymentToken
+apps/api/src/lib/payments/jwt.ts           HS256 sign/verify (ไม่พึ่ง dependency)
+apps/api/src/lib/payments/index.ts         registry — activeProvider() / getProvider()
+ไม่มี SDK ของเจ้าไหนเลย — ใช้ global fetch ทั้งหมด
 ```
 
 Schema:
 
 ```text
-Payment + beamPaymentLinkId (unique), failureMessage
-migration 20260627000001_chillpay_to_beam = RENAME COLUMN → beam_payment_link_id, DROP chillpay_token
+Payment + gatewayProvider (ksher|opn|2c2p|beam) + gatewayRef (unique), failureMessage
+migration 20260731000000_beam_to_multi_gateway
+  = RENAME beam_payment_link_id → gateway_ref, ADD gateway_provider,
+    backfill rows เก่าเป็น 'beam', ลบ payment method 'BEAM'
 ```
 
 Backend:
 
 ```text
 POST /api/orders                          รับ paymentMethod (MANUAL|ALIPAY|WECHAT_PAY|TEST)
-                                          ถ้า online → POST /api/v1/payment-links → เก็บ paymentLinkId
-                                          คืน { ...order, authorizeUri = url (hosted checkout page) }
-POST /api/webhooks/beam                   background notify (JSON) → re-query GET payment-link by id → sync
-POST /api/admin/payments/:id/refresh-payment  สำหรับ dev (ไม่มี public webhook URL)
+                                          ถ้า online → provider.createPayment() → เก็บ gatewayRef + gatewayProvider
+                                          คืน { ...order, authorizeUri = redirectUrl }
+ALL  /api/webhooks/:provider              ksher | opn | 2c2p — verify signature → re-query สถานะจริง → sync
+POST /api/orders/:orderNumber/refresh-payment     poller ฝั่งลูกค้า
+POST /api/admin/payments/:id/refresh-payment      สำหรับ dev (ไม่มี public webhook URL)
 ```
 
-Frontend:
-
-```text
-/checkout                                  radio (โอนเอง / Alipay / WeChat Pay / TEST)
-                                           หลังกดสั่งซื้อ ถ้ามี authorizeUri → window.location.href = authorizeUri
-/orders/[orderNumber]?charge=1             OrderStatusPoller (client component)
-                                           poll POST /api/orders/{orderNumber}/refresh-payment ทุก 4 วินาที (max 30 รอบ)
-                                           สถานะเปลี่ยน → router.refresh()
-```
+Frontend: เหมือนเดิม — `/checkout` radio (โอนเอง / Alipay / WeChat Pay / TEST),
+มี `authorizeUri` → redirect, แล้ว `/orders/[orderNumber]?charge=1` poll ทุก 4 วินาที (max 30 รอบ)
 
 Decisions:
 
-* **linkSettings**: Alipay/WeChat → `eWallets.isEnabled=true` (group toggle); TEST → `qrPromptPay.isEnabled=true` (PromptPay QR, เทสง่ายใน sandbox) — ลูกค้าเลือก method บนหน้า hosted ของ Beam
-* **Charges API คืน QR (ENCODED_IMAGE) ไม่ redirect** → จึงใช้ Payment Links API ที่คืน hosted URL แทน (redirect ตรงกับ flow เดิม)
-* **Currency**: Beam รับ THB เท่านั้น → convert CNY cents → THB satang ด้วย `CNY_TO_THB_RATE` (default 4.9). `order.netAmount` เป็น satang (smallest unit), Currency = `THB`
-* **Auth**: ทุก request ใช้ HTTP Basic `Authorization: Basic base64(merchantId:apiKey)`
-* **Verification**: ไม่ trust webhook body ตรง ๆ — เอา `paymentLinkId` ไป re-query `GET /api/v1/payment-links/{id}` (authenticated) แล้วใช้ค่าจาก API
-* **Sync logic**: link status `COMPLETED`/`PAID` → Payment=APPROVED + Order=PAID, `EXPIRED`/`CANCELED`/`FAILED` → Payment=REJECTED + `failureMessage`, `ACTIVE` → ไม่เปลี่ยน
-* **referenceId**: ส่ง `order.orderNumber` ตรง ๆ (ใช้ match กับ order)
-* **redirectUrl**: `${WEB_BASE_URL}/zh/orders/{orderNumber}?charge=1` — Beam เด้งลูกค้ากลับหน้า order หลังจ่ายสำเร็จ
-* **Stored amount**: Payment.amountCents เก็บเป็น THB satang ที่ Beam ใช้จริง (ไม่ใช่ CNY cents) — สำหรับ reconcile กับ Beam dashboard
+* **Provider abstraction**: `PaymentChannel` (ALIPAY/WECHAT/PROMPTPAY/ANY) เป็นภาษากลาง แต่ละเจ้า map เป็น code ของตัวเอง — เปลี่ยนเจ้าคือเปลี่ยน env ไม่ต้องแก้ route
+* **Payment เก่าไม่พัง**: sync/refund ใช้ provider ที่ผูกกับ `Payment.gatewayProvider` ไม่ใช่เจ้าที่ active อยู่ตอนนี้ → สลับเจ้ากลางคันได้ ออเดอร์ที่ค้างอยู่ยังจบได้
+* **Webhook ทั้งสามเส้น mount ไว้พร้อมกัน** → เปลี่ยนเจ้าไม่ต้อง redeploy แค่แก้ dashboard
+* **ไม่ trust webhook body**: body ใช้แค่หาว่า payment ไหน แล้ว re-query provider เสมอ → forged notification mark PAID ไม่ได้
+* **สถานะที่อ่านไม่ออก = PENDING** ทุกเจ้า — ไม่มีทางที่สถานะแปลก ๆ จะกลายเป็น PAID
+* **Currency**: ทุกเจ้า settle THB → convert CNY cents → THB satang. 2C2P รับ decimal (`1234.56`) อีกสองเจ้ารับ minor unit
+* **Signature ต่างกันสามแบบ**: Ksher = HMAC-SHA256 ต่อ request (webhook เซ็นทับ full URL → ต้องตั้ง `KSHER_WEBHOOK_URL` ให้ตรงเป๊ะ) · Opn = Basic auth, **ไม่เซ็น webhook** → กันด้วย `?key=` secret ใน URL · 2C2P = JWT HS256 ทั้ง request/response/webhook
+* **gatewayRef**: Opn = charge id · Ksher/2C2P = orderNumber ของเรา (inquiry/refund ใช้ค่านี้)
+* **Stored amount**: Payment.amountCents เก็บเป็น THB satang ที่ charge จริง (ไม่ใช่ CNY cents) — reconcile กับ dashboard ของ provider
 
 Refund (admin → ปุ่ม "คืนเงิน"):
 
-* ถ้า payment เป็น Beam (มี `beamPaymentLinkId`) → `GET /charges?referenceId={orderNumber}` หา charge `SUCCEEDED` → `POST /api/v1/refunds {chargeId, reason}` (refund เต็ม, omit amount; partial เฉพาะ CARD) → แล้ว mark Payment=REFUNDED
-* ถ้าไม่มี `beamPaymentLinkId` (โอนเอง) → mark record เฉย ๆ (คืนเงิน offline)
-* Beam refund fail → ไม่ mark REFUNDED (ทำ Beam ก่อน DB)
+* มี `gatewayRef` + provider resolve ได้ → `getStatus()` ยืนยัน PAID ก่อน → `provider.refund()` เต็มจำนวน `amountCents` → แล้วค่อย mark REFUNDED (gateway ก่อน DB — refund fail แล้ว DB ไม่โกหก)
+* ไม่มี `gatewayRef` (โอนเอง) หรือเป็น row เก่าของ Beam → mark record เฉย ๆ (คืนเงิน offline)
+* Ksher และ 2C2P บังคับส่ง amount — ไม่มี full-refund shorthand เหมือน Opn
 
 Out of scope (เลื่อน):
 
@@ -1197,16 +1202,26 @@ Out of scope (เลื่อน):
 * Partial refund (ตอนนี้ refund เต็มจำนวนเท่านั้น)
 * Multi-attempt — ถ้าลูกค้าจ่ายไม่สำเร็จ ตอนนี้ต้องสั่งใหม่
 
+⚠️ ต้อง verify กับ provider ก่อน go-live (เขียนตาม public docs แต่ยังไม่ได้ยิงของจริง):
+
+```text
+Ksher   base URL, response field ของ create order (โค้ดอ่านหลายชื่อเผื่อไว้), channel codes,
+        และ WeChat ที่ docs บอกว่าต้องเปิดลิงก์ในแอป WeChat → ต้องมี QR fallback
+Opn     Alipay ของ merchant ไทยเป็น cross-border online หรือ in-store barcode
+        (Alipay+ เป็นของ SG เท่านั้น)
+2C2P    channel code ของ WeChat, และ Payment Action API (/payment/4.3/action) สำหรับ refund
+ทุกเจ้า  ยืนยันว่ารับผู้จ่ายที่อยู่ในจีนแผ่นดินใหญ่ (ไม่ใช่แค่นักท่องเที่ยวจีนในไทย)
+```
+
 Test plan (รอ credentials):
 
 ```text
-1. ใส่ sandbox credentials ใน .env (BEAM_MERCHANT_ID + BEAM_API_KEY จาก Beam dashboard / Lighthouse → Developers)
+1. เลือกเจ้า → ใส่ PAYMENT_PROVIDER + credentials ใน .env
 2. รัน migration: pnpm --filter @siambox/database migrate:deploy
 3. pnpm dev → กดสั่งซื้อ → เลือก Alipay/WeChat Pay
-4. ระบบ redirect ไป Beam hosted page (payment-link url)
-5. จ่ายในหน้า hosted ของ Beam (เลือก Alipay/WeChat/PromptPay)
-6. กลับมาที่ /orders/[orderNumber]?charge=1 → poller จะ re-query GET payment-link
-7. ถ้า webhook ไม่ทำงาน (dev ไม่มี public URL) → ใน admin กด "Refresh"
+4. ระบบ redirect ไปหน้าจ่ายเงินของ provider
+5. กลับมาที่ /orders/[orderNumber]?charge=1 → poller จะ re-query สถานะ
+6. ถ้า webhook ไม่ทำงาน (dev ไม่มี public URL) → ใน admin กด "Refresh"
    /api/admin/payments/:id/refresh-payment → sync สถานะ
 ```
 
@@ -1367,4 +1382,4 @@ i18n: ตอนนี้ ~328 keys/locale (zh/th/en) — โตจาก ~50 key
 # Phase 2+ — ตามแผนเดิม
 
 CMS (Payload — หรือคง CMS-lite ปัจจุบันต่อ) · CRM เต็ม (support ticket UI, segmentation, broadcast) ·
-Auto translation · Notification · Tracking sync · Beam refund/void · OTP/WeChat login
+Auto translation · Notification · Tracking sync · Gateway refund/void · OTP/WeChat login

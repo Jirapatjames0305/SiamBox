@@ -119,7 +119,7 @@ export default function BankAccountPage() {
   );
 }
 
-// Per-channel config for Alipay / WeChat Pay: choose QR (manual slip) or Gateway (Beam).
+// Per-channel config for Alipay / WeChat Pay: choose QR (manual slip) or Gateway.
 // The QR uploader only matters in QR mode, so it's hidden when Gateway is selected.
 function ChannelConfig({
   title,
@@ -162,7 +162,8 @@ function ChannelConfig({
         </div>
       ) : (
         <p className="mt-3 text-xs text-neutral-500">
-          ลูกค้าจะถูก redirect ไปจ่ายผ่าน payment gateway (Beam) — ไม่ต้องใช้ QR/สลิป
+          ลูกค้าจะถูก redirect ไปจ่ายผ่าน payment gateway ที่ตั้งไว้ใน PAYMENT_PROVIDER —
+          ไม่ต้องใช้ QR/สลิป
         </p>
       )}
     </div>

@@ -231,12 +231,23 @@ export type BestSeller = {
   product: Product;
 };
 
-export type PaymentMethodId = "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST" | "BEAM";
+export type PaymentMethodId = "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST";
 
 export type PaymentMethodSetting = {
   method: PaymentMethodId;
   hidden: boolean;
   disabled: boolean;
+};
+
+export type PaymentProviderId = "ksher" | "opn" | "2c2p";
+
+export type PaymentProviderSetting = {
+  provider: PaymentProviderId;
+  label: string;
+  hidden: boolean;
+  disabled: boolean;
+  /** Credentials present in the API environment — false means it cannot take a payment. */
+  configured: boolean;
 };
 
 export type OnlineSession = {

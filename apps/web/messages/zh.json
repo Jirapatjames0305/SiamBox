@@ -274,7 +274,10 @@
     "copy": "复制",
     "copied": "已复制",
     "openWechat": "打开微信",
-    "viewMyOrder": "查看我的订单"
+    "viewMyOrder": "查看我的订单",
+    "gatewayPick": "选择支付服务商",
+    "gatewayUnavailable": "暂不可用",
+    "gatewayNoneAvailable": "暂无可用的支付服务商，请选择其他方式"
   },
   "Order": {
     "orderNumber": "订单",

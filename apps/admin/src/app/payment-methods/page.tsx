@@ -8,8 +8,7 @@ const LABELS: Record<PaymentMethodId, string> = {
   MANUAL: "โอนเงินด้วยตนเอง",
   ALIPAY: "Alipay",
   WECHAT_PAY: "WeChat Pay",
-  TEST: "ทดสอบ (บัตรเครดิต)",
-  BEAM: "Beam Gateway (ทดสอบ)",
+  TEST: "ทดสอบ (ผ่าน Payment Gateway)",
 };
 
 export default function PaymentMethodsPage() {

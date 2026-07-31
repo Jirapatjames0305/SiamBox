@@ -30,11 +30,28 @@ services:
         sync: false
       - key: CORS_ORIGIN
         sync: false                       # e.g. https://siambox.pages.dev,https://admin.siambox.pages.dev
-      - key: OMISE_PUBLIC_KEY
+      # ---- Payment gateway ---- (see apps/api/.env.example for the full key list)
+      - key: PAYMENT_PROVIDER
+        sync: false                       # ksher | opn | 2c2p
+      - key: KSHER_APPID
         sync: false
-      - key: OMISE_SECRET_KEY
+      - key: KSHER_API_TOKEN
         sync: false
-      - key: OMISE_RETURN_BASE
+      - key: KSHER_WEBHOOK_URL
+        sync: false                       # must match the Ksher dashboard exactly — it signs this URL
+      - key: OPN_SECRET_KEY
+        sync: false
+      - key: OPN_WEBHOOK_SECRET
+        sync: false
+      - key: TWOCTWOP_MERCHANT_ID
+        sync: false
+      - key: TWOCTWOP_SECRET_KEY
+        sync: false
+      - key: TWOCTWOP_API_BASE
+        sync: false                       # https://pgw.2c2p.com in production
+      - key: TWOCTWOP_WEBHOOK_URL
+        sync: false
+      - key: WEB_BASE_URL
         sync: false                       # public web URL, e.g. https://siambox.pages.dev
       - key: CNY_TO_THB_RATE
         sync: false

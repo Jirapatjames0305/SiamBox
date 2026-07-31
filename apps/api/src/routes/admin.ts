@@ -5,9 +5,15 @@ import sharp from "sharp";
 import { randomBytes } from "node:crypto";
 import { prisma, OrderStatus, PaymentStatus, ShippingCarrier, CustomerStatus } from "@siambox/database";
 import { adminAuth } from "../middleware/admin-auth.js";
-import { getPaymentLink, listChargesByReference, refundCharge } from "../lib/beam.js";
+import {
+  PROVIDER_IDS,
+  PROVIDER_LABELS,
+  activeProvider,
+  configuredProviderIds,
+  getProvider,
+} from "../lib/payments/index.js";
 import { getSupabase, SUPABASE_BUCKET } from "../lib/supabase.js";
-import { syncBeamLink } from "./webhooks.js";
+import { syncPayment } from "./webhooks.js";
 import { listOnlineSessions } from "./presence.js";
 
 const upload = multer({
@@ -202,18 +208,29 @@ adminRouter.post("/payments/:id/refund", async (req, res, next) => {
       return;
     }
 
-    // Beam payment → issue a real refund via Beam before marking our records.
-    // (Manual / bank-transfer payments have no beamPaymentLinkId — handled by admin offline.)
+    // Gateway payment → issue a real refund before marking our records, so a failed
+    // refund never leaves the DB claiming money went back. Manual / bank-transfer
+    // payments (and legacy Beam rows, whose provider no longer resolves) have nothing to
+    // call — the admin refunds those offline and this just records it.
     let refundId: string | undefined;
-    if (payment.beamPaymentLinkId) {
-      const charges = await listChargesByReference(payment.order.orderNumber);
-      const charge = charges.find((c) => String(c.status).toUpperCase() === "SUCCEEDED");
-      if (!charge) {
+    const provider = payment.gatewayRef ? getProvider(payment.gatewayProvider) : null;
+    if (payment.gatewayRef && provider) {
+      const { status } = await provider.getStatus({
+        gatewayRef: payment.gatewayRef,
+        orderNumber: payment.order.orderNumber,
+      });
+      if (status !== "PAID") {
         res.status(409).json({ error: "NoRefundableCharge" });
         return;
       }
-      // Full refund (omit amount) — partial is only supported for CARD charges.
-      ({ refundId } = await refundCharge({ chargeId: charge.chargeId, reason: input.reason }));
+      // Ksher and 2C2P both require an explicit amount; Payment.amountCents is the THB
+      // satang we actually charged, so a full refund is exactly that.
+      ({ refundRef: refundId } = await provider.refund({
+        gatewayRef: payment.gatewayRef,
+        orderNumber: payment.order.orderNumber,
+        amountSatang: payment.amountCents,
+        reason: input.reason,
+      }));
     }
 
     const updated = await prisma.payment.update({
@@ -550,19 +567,30 @@ adminRouter.delete("/customers/:userId/notes/:noteId", async (req, res, next) =>
   }
 });
 
-// Manual refresh of Beam payment-link status (use during dev without a public webhook URL).
+// Manual refresh of gateway payment status (use during dev without a public webhook URL).
 adminRouter.post("/payments/:id/refresh-payment", async (req, res, next) => {
   try {
-    const payment = await prisma.payment.findUnique({ where: { id: req.params.id } });
-    if (!payment || !payment.beamPaymentLinkId) {
+    const payment = await prisma.payment.findUnique({
+      where: { id: req.params.id },
+      include: { order: { select: { orderNumber: true } } },
+    });
+    if (!payment?.gatewayRef) {
       res.status(404).json({ error: "PaymentOrLinkNotFound" });
       return;
     }
-    const link = await getPaymentLink(payment.beamPaymentLinkId);
-    const result = await syncBeamLink(link);
+    const provider = getProvider(payment.gatewayProvider) ?? activeProvider();
+    if (!provider?.isEnabled()) {
+      res.status(503).json({ error: "PaymentGatewayDisabled" });
+      return;
+    }
+    const { raw } = await provider.getStatus({
+      gatewayRef: payment.gatewayRef,
+      orderNumber: payment.order.orderNumber,
+    });
+    const result = await syncPayment(provider, { gatewayRef: payment.gatewayRef });
     const fresh = await prisma.payment.findUnique({ where: { id: payment.id } });
     res.json({
-      data: { payment: fresh, beamStatus: link.status, updated: result.updated },
+      data: { payment: fresh, provider: provider.id, gatewayStatus: raw, updated: result.updated },
     });
   } catch (err) {
     next(err);
@@ -853,10 +881,8 @@ adminRouter.put("/settings/purchase-limit", async (req, res, next) => {
 
 // ---------- Payment channel visibility ----------
 
-const PAYMENT_METHOD_IDS = ["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST", "BEAM"] as const;
-const PAYMENT_METHOD_DEFAULTS: Record<string, { hidden: boolean; disabled: boolean }> = {
-  BEAM: { hidden: true, disabled: false },
-};
+const PAYMENT_METHOD_IDS = ["MANUAL", "ALIPAY", "WECHAT_PAY", "TEST"] as const;
+const PAYMENT_METHOD_DEFAULTS: Record<string, { hidden: boolean; disabled: boolean }> = {};
 
 const paymentMethodsSchema = z.object({
   methods: z.array(
@@ -866,6 +892,61 @@ const paymentMethodsSchema = z.object({
       disabled: z.boolean(),
     }),
   ),
+});
+
+// ---------- Payment gateway visibility ----------
+
+const paymentProvidersSchema = z.object({
+  providers: z.array(
+    z.object({
+      provider: z.enum(PROVIDER_IDS as [string, ...string[]]),
+      hidden: z.boolean(),
+      disabled: z.boolean(),
+    }),
+  ),
+});
+
+adminRouter.get("/payment-providers", async (_req, res, next) => {
+  try {
+    const rows = await prisma.paymentProviderSetting.findMany();
+    const byProvider = new Map(rows.map((r) => [r.provider, r]));
+    // `configured` is derived from the environment, not the database — it tells the
+    // admin whether credentials exist, which is the other half of "can a customer
+    // actually pick this".
+    const configured = new Set(configuredProviderIds());
+    res.json({
+      data: PROVIDER_IDS.map((provider) => {
+        const row = byProvider.get(provider);
+        return {
+          provider,
+          label: PROVIDER_LABELS[provider],
+          hidden: row?.hidden ?? false,
+          disabled: row?.disabled ?? false,
+          configured: configured.has(provider),
+        };
+      }),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.put("/payment-providers", async (req, res, next) => {
+  try {
+    const input = paymentProvidersSchema.parse(req.body);
+    await prisma.$transaction(
+      input.providers.map((p) =>
+        prisma.paymentProviderSetting.upsert({
+          where: { provider: p.provider },
+          update: { hidden: p.hidden, disabled: p.disabled },
+          create: { provider: p.provider, hidden: p.hidden, disabled: p.disabled },
+        }),
+      ),
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
 });
 
 adminRouter.get("/payment-methods", async (_req, res, next) => {

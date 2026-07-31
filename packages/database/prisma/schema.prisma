@@ -260,7 +260,10 @@ model Payment {
   approvedById   String?       @map("approved_by_id")
   rejectedAt     DateTime?     @map("rejected_at")
   notes          String?       @db.Text
-  beamPaymentLinkId String?    @unique @map("beam_payment_link_id")
+  // Gateway that created this payment (ksher | opn | 2c2p) and its reference — the
+  // charge id for Opn, our order number for Ksher and 2C2P. Legacy rows carry "beam".
+  gatewayProvider String?      @map("gateway_provider")
+  gatewayRef      String?      @unique @map("gateway_ref")
   failureMessage String?       @map("failure_message")
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
@@ -482,4 +485,15 @@ model PaymentMethodSetting {
   disabled Boolean @default(false)
 
   @@map("payment_method_settings")
+}
+
+// Which payment gateways the customer may pick from at checkout. A provider also
+// needs its credentials in the environment before it can actually be selected —
+// this table only controls whether the admin offers it at all.
+model PaymentProviderSetting {
+  provider String  @id // ksher | opn | 2c2p
+  hidden   Boolean @default(false)
+  disabled Boolean @default(false)
+
+  @@map("payment_provider_settings")
 }

@@ -9,6 +9,7 @@ import type {
   Package,
   PartnerInquiry,
   PaymentMethodSetting,
+  PaymentProviderSetting,
   BestSeller,
   Product,
   ProductRequest,
@@ -294,6 +295,26 @@ export async function updatePaymentMethods(
     body: JSON.stringify({ methods }),
   });
   return json.data;
+}
+
+export async function fetchPaymentProviders(): Promise<PaymentProviderSetting[]> {
+  const json = await request<{ data: PaymentProviderSetting[] }>(`/api/admin/payment-providers`);
+  return json.data;
+}
+
+export async function updatePaymentProviders(
+  providers: PaymentProviderSetting[],
+): Promise<void> {
+  await request(`/api/admin/payment-providers`, {
+    method: "PUT",
+    body: JSON.stringify({
+      providers: providers.map((p) => ({
+        provider: p.provider,
+        hidden: p.hidden,
+        disabled: p.disabled,
+      })),
+    }),
+  });
 }
 
 export async function fetchProductRequests(): Promise<ProductRequest[]> {

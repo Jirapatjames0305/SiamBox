@@ -1,0 +1,37 @@
+# ------------------------------------------------------------
+# SiamBox — local development image (api + web + admin share it)
+# Used by docker-compose.yml at the repo root. NOT for production:
+# production images are Dockerfile (api) and apps/web/Dockerfile (web).
+#
+# Dependencies are installed at build time; docker-compose then bind-mounts
+# the repo over /app for hot reload, with named volumes masking every
+# node_modules directory so the installed tree survives the mount.
+# ------------------------------------------------------------
+FROM node:20-slim
+
+# openssl → Prisma engines; the rest are for sharp's prebuilt binary.
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
+  openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Manifests first so a source edit doesn't invalidate the install layer.
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY apps/admin/package.json apps/admin/
+COPY packages/database/package.json packages/database/
+COPY packages/shared/package.json packages/shared/
+COPY packages/ui/package.json packages/ui/
+
+# Whole workspace — dev needs devDependencies (tsx, next, vitest, prisma).
+RUN pnpm install --frozen-lockfile
+
+COPY . .
+
+# Generates into the root node_modules, which the named volume then preserves.
+RUN pnpm --filter @siambox/database exec prisma generate
