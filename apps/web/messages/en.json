@@ -342,8 +342,8 @@
     "shopTrack": "Track Order",
     "service": "Customer Service",
     "serviceHelp": "Help Center",
-    "serviceShipping": "Shipping",
-    "serviceReturns": "Returns",
+    "serviceShipping": "Shipping Policy",
+    "serviceReturns": "Refunds & Returns",
     "serviceTrack": "Track Order",
     "contact": "Contact Us",
     "emailPlaceholder": "Your email",
@@ -352,7 +352,11 @@
     "trustShipping": "Free Shipping ¥500+",
     "trustSecure": "Secure Payment",
     "trustReturns": "Easy Returns",
-    "trustSupport": "24/7 Support"
+    "trustSupport": "24/7 Support",
+    "legal": "Legal",
+    "legalTerms": "Terms of Service",
+    "legalPrivacy": "Privacy Policy",
+    "serviceContact": "Contact Us"
   },
   "Partner": {
     "eyebrow": "Partnership",

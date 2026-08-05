@@ -342,8 +342,8 @@
     "shopTrack": "查询订单",
     "service": "客户服务",
     "serviceHelp": "帮助中心",
-    "serviceShipping": "配送方式",
-    "serviceReturns": "退换政策",
+    "serviceShipping": "配送政策",
+    "serviceReturns": "退款与退货",
     "serviceTrack": "查询订单",
     "contact": "联系我们",
     "emailPlaceholder": "请输入邮箱",
@@ -352,7 +352,11 @@
     "trustShipping": "满¥500免运费",
     "trustSecure": "安全支付",
     "trustReturns": "7天无理由退换",
-    "trustSupport": "全天候客服"
+    "trustSupport": "全天候客服",
+    "legal": "法律信息",
+    "legalTerms": "服务条款",
+    "legalPrivacy": "隐私政策",
+    "serviceContact": "联系我们"
   },
   "Partner": {
     "eyebrow": "合作共赢",

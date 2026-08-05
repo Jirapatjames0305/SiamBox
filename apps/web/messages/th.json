@@ -342,8 +342,8 @@
     "shopTrack": "ติดตามออเดอร์",
     "service": "บริการลูกค้า",
     "serviceHelp": "ศูนย์ช่วยเหลือ",
-    "serviceShipping": "การจัดส่ง",
-    "serviceReturns": "การคืนสินค้า",
+    "serviceShipping": "นโยบายการจัดส่ง",
+    "serviceReturns": "การคืนเงิน/คืนสินค้า",
     "serviceTrack": "ติดตามออเดอร์",
     "contact": "ติดต่อเรา",
     "emailPlaceholder": "อีเมลของคุณ",
@@ -352,7 +352,11 @@
     "trustShipping": "ส่งฟรีเมื่อครบ ¥500",
     "trustSecure": "ชำระเงินปลอดภัย",
     "trustReturns": "คืนง่ายใน 7 วัน",
-    "trustSupport": "บริการ 24/7"
+    "trustSupport": "บริการ 24/7",
+    "legal": "ข้อมูลทางกฎหมาย",
+    "legalTerms": "เงื่อนไขการใช้บริการ",
+    "legalPrivacy": "นโยบายความเป็นส่วนตัว",
+    "serviceContact": "ติดต่อเรา"
   },
   "Partner": {
     "eyebrow": "ร่วมเป็นพันธมิตร",

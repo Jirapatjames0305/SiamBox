@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
+import { Price } from "@/components/CurrencyProvider";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { getBuildConfig, getPackageBySlug, getProductBySlug, listProducts } from "@/lib/api";
-import { formatPrice } from "@/lib/format";
 import { localizedDescription, localizedName } from "@/lib/i18n-helpers";
 import type { Locale } from "@/i18n/routing";
 import { alternatesFor, localeUrl } from "@/lib/seo";
@@ -133,7 +133,7 @@ async function ProductView({
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{name}</h1>
 
           <div className="mt-4 text-4xl font-black text-blue-600">
-            {formatPrice(product.priceCents, product.currency)}
+            {<Price cents={product.priceCents} />}
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
@@ -241,7 +241,7 @@ async function PackageView({ slug, locale }: { slug: string; locale: Locale }) {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{name}</h1>
 
           <div className="mt-4 text-4xl font-black text-blue-600">
-            {formatPrice(pkg.priceCents, pkg.currency)}
+            {<Price cents={pkg.priceCents} />}
           </div>
 
           <div className="mt-4 flex flex-wrap gap-3">

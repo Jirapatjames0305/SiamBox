@@ -1,8 +1,8 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
+import { Price } from "@/components/CurrencyProvider";
 import { Link } from "@/i18n/routing";
-import { formatPrice } from "@/lib/format";
 import { localizedName } from "@/lib/i18n-helpers";
 import { AddToBoxButton } from "@/components/AddToBoxButton";
 import type { Product } from "@/lib/api";
@@ -47,7 +47,7 @@ export function ProductCard({
         >
           {name}
         </Link>
-        <p className="mt-1 text-base font-bold text-blue-600">{formatPrice(p.priceCents, p.currency)}</p>
+        <p className="mt-1 text-base font-bold text-blue-600">{<Price cents={p.priceCents} />}</p>
         {limitEnabled && p.maxQtyPerOrder != null && (
           <p className="mt-0.5 text-[11px] font-medium text-amber-600">
             * {t("limitBadge", { max: p.maxQtyPerOrder })}

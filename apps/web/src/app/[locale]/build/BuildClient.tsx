@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Price } from "@/components/CurrencyProvider";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { addCustomToCart } from "@/lib/cart";
@@ -141,7 +142,7 @@ export function BuildClient({
                 <div className="p-3">
                   <p className="text-sm font-medium text-slate-800 line-clamp-2 leading-snug">{name}</p>
                   <p className="mt-1 text-sm font-bold text-blue-600">
-                    {formatPrice(p.priceCents, p.currency)}
+                    {<Price cents={p.priceCents} />}
                   </p>
                   <div className="mt-2 flex items-center justify-between">
                     {qty === 0 ? (
@@ -195,7 +196,7 @@ export function BuildClient({
                   </span>
                   <span className="whitespace-nowrap text-xs text-slate-500">× {quantity}</span>
                   <span className="whitespace-nowrap text-sm font-medium text-slate-900">
-                    {formatPrice(product.priceCents * quantity)}
+                    {<Price cents={product.priceCents * quantity} />}
                   </span>
                 </li>
               ))}
@@ -210,7 +211,7 @@ export function BuildClient({
           </div>
           <div className="mt-2 flex justify-between font-bold">
             <span>{t("total")}</span>
-            <span className="text-blue-600">{formatPrice(subtotalCents)}</span>
+            <span className="text-blue-600">{<Price cents={subtotalCents} />}</span>
           </div>
 
           {minCents > 0 && (

@@ -42,9 +42,18 @@ packagesRouter.get("/config", async (_req, res, next) => {
       };
     });
 
+    // Display-only rates for the storefront's currency switcher. The charge itself is
+    // always CNY converted to THB at settlement — these never touch a real amount.
+    const currencyRates = {
+      CNY: 1,
+      THB: Number(process.env.CNY_TO_THB_RATE ?? "4.9"),
+      USD: Number(process.env.CNY_TO_USD_RATE ?? "0.14"),
+    };
+
     res.json({
       data: {
         paymentProviders,
+        currencyRates,
         customPackageMinCents: settings.customPackageMinCents,
         purchaseLimitEnabled: settings.purchaseLimitEnabled,
         shippingBaseCents: settings.shippingBaseCents,
