@@ -6,6 +6,7 @@ import { ContactWidget } from "@/components/ContactWidget";
 import { PresencePinger } from "@/components/PresencePinger";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { CurrencyProvider } from "@/components/CurrencyProvider";
 import { Toaster } from "@/components/Toaster";
 import { getBuildConfig } from "@/lib/api";
 import { routing } from "@/i18n/routing";
@@ -53,8 +54,10 @@ export default async function LocaleLayout({
   let contactLineUrl = "";
   let contactWechatId = "";
   let contactWechatQrUrl = "";
+  let currencyRates: Record<string, number> | undefined;
   try {
     const cfg = await getBuildConfig();
+    currencyRates = cfg.currencyRates;
     logoUrl = cfg.logoUrl;
     contactLineUrl = cfg.contactLineUrl;
     contactWechatId = cfg.contactWechatId;
@@ -65,12 +68,14 @@ export default async function LocaleLayout({
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
+      <CurrencyProvider rates={currencyRates}>
       <Navbar logoUrl={logoUrl} />
       {children}
       <Footer logoUrl={logoUrl} wechatId={contactWechatId} />
       <ContactWidget lineUrl={contactLineUrl} wechatId={contactWechatId} wechatQrUrl={contactWechatQrUrl} />
       <PresencePinger />
       <Toaster />
+      </CurrencyProvider>
     </NextIntlClientProvider>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Price } from "@/components/CurrencyProvider";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import {
@@ -139,13 +140,13 @@ export default function CartPage() {
                             + {localizedName(a, locale)} × {a.quantity}
                           </span>
                           <span className="whitespace-nowrap text-slate-400">
-                            {formatPrice(a.priceCents * a.quantity)}
+                            {<Price cents={a.priceCents * a.quantity} />}
                           </span>
                         </li>
                       ))}
                     </ul>
                   )}
-                  <p className="mt-1 text-sm font-medium text-blue-500">{formatPrice(row.unitPriceCents)}</p>
+                  <p className="mt-1 text-sm font-medium text-blue-500">{<Price cents={row.unitPriceCents} />}</p>
                   <div className="mt-2 flex items-center justify-between">
                     <div className="inline-flex items-center overflow-hidden rounded-lg border border-slate-300">
                       <button
@@ -191,7 +192,7 @@ export default function CartPage() {
                   )}
                 </div>
                 <div className="text-right text-sm font-bold text-slate-900 whitespace-nowrap">
-                  {formatPrice(row.unitPriceCents * row.quantity)}
+                  {<Price cents={row.unitPriceCents * row.quantity} />}
                 </div>
               </div>
             ))}
@@ -203,7 +204,7 @@ export default function CartPage() {
             <div className="mt-3 space-y-2 text-sm">
               <div className="flex justify-between text-slate-500">
                 <span>{t("subtotal")}</span>
-                <span>{formatPrice(total)}</span>
+                <span>{<Price cents={total} />}</span>
               </div>
               <div className="flex justify-between text-slate-500">
                 <span>{t("shippingLater")}</span>
@@ -213,7 +214,7 @@ export default function CartPage() {
             <div className="my-4 border-t border-slate-200" />
             <div className="flex justify-between font-bold text-slate-900">
               <span>{t("total")}</span>
-              <span className="text-blue-500">{formatPrice(total)}</span>
+              <span className="text-blue-500">{<Price cents={total} />}</span>
             </div>
 
             {hasCustom && minCents > 0 && (

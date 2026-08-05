@@ -193,6 +193,8 @@ export type BuildConfig = {
   shippingExpressCents: number;
   paymentMethods: Record<PaymentMethodId, PaymentMethodVisibility>;
   paymentProviders: PaymentProviderOption[];
+  /** Display-only conversion rates out of CNY, keyed by currency code. */
+  currencyRates: Record<string, number>;
   bankQrUrl: string;
   bankAccountName: string;
   bankAccountNumber: string;

@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
+import { COMPANY } from "@/lib/company";
 
 export async function Footer({ logoUrl = "", wechatId = "" }: { logoUrl?: string; wechatId?: string }) {
   const t = await getTranslations("Footer");
@@ -17,10 +18,17 @@ export async function Footer({ logoUrl = "", wechatId = "" }: { logoUrl?: string
     {
       title: t("service"),
       links: [
-        // { label: t("serviceHelp"), href: "/track" },
-        // { label: t("serviceShipping"), href: "/track" },
-        // { label: t("serviceReturns"), href: "/track" },
         { label: t("serviceTrack"), href: "/track" },
+        { label: t("serviceShipping"), href: "/shipping-policy" },
+        { label: t("serviceReturns"), href: "/refund-policy" },
+        { label: t("serviceContact"), href: "/contact" },
+      ],
+    },
+    {
+      title: t("legal"),
+      links: [
+        { label: t("legalTerms"), href: "/terms" },
+        { label: t("legalPrivacy"), href: "/privacy" },
       ],
     },
   ];
@@ -86,14 +94,15 @@ export async function Footer({ logoUrl = "", wechatId = "" }: { logoUrl?: string
         <div className="lg:col-span-2">
           <h3 className="text-sm font-semibold text-gold-300">{t("contact")}</h3>
           <ul className="mt-3 space-y-1.5 text-sm text-cream-300/70">
-            <li>Line: @siambox</li>
-            <li>WeChat: {wechatId || "admin_Siambox"}</li>
+            <li>Line: {COMPANY.line}</li>
+            <li>WeChat: {wechatId || COMPANY.wechat}</li>
             <li className="break-all">
               Email:{" "}
-              <a href="mailto:Jongjongdisupport@gmail.com" className="hover:text-gold-300">
-                Jongjongdisupport@gmail.com
+              <a href={`mailto:${COMPANY.email}`} className="hover:text-gold-300">
+                {COMPANY.email}
               </a>
             </li>
+            <li>Tel: {COMPANY.phone}</li>
           </ul>
           {/* <form className="mt-4 flex">
             <input
@@ -111,8 +120,15 @@ export async function Footer({ logoUrl = "", wechatId = "" }: { logoUrl?: string
         </div>
       </div>
 
+      {/* The operating entity, not the brand. "SIAMBOX Co., Ltd." is not a registered
+          company — a payment gateway comparing the site against the application would
+          read that mismatch as a red flag. */}
       <div className="border-t border-gold-700/20 py-5 text-center text-xs text-cream-300/50">
-        © 2026 SIAMBOX Co., Ltd. {t("rights")}
+        © 2026 {COMPANY.legalNameEn} {t("rights")}
+        <span className="mt-1 block">
+          {COMPANY.brand} is an online retail brand operated by {COMPANY.legalNameEn} ·
+          Reg. {COMPANY.registrationNo}
+        </span>
       </div>
     </footer>
   );

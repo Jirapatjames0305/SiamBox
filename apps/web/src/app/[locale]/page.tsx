@@ -1,7 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { Price } from "@/components/CurrencyProvider";
 import { Link } from "@/i18n/routing";
 import { getBuildConfig, listBestSellers, listProducts, listReviews, type Review } from "@/lib/api";
-import { formatPrice } from "@/lib/format";
 import { localizedName } from "@/lib/i18n-helpers";
 import type { Locale } from "@/i18n/routing";
 import { alternatesFor } from "@/lib/seo";
@@ -234,7 +234,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                             {name}
                           </Link>
                           <div className="mt-1 text-xs text-gold-500"><Stars /></div>
-                          <p className="mt-1 font-bold text-maroon-800">{formatPrice(p.priceCents, p.currency)}</p>
+                          <p className="mt-1 font-bold text-maroon-800">{<Price cents={p.priceCents} />}</p>
                           {limitEnabled && p.maxQtyPerOrder != null && (
                             <p className="mt-0.5 text-[11px] font-medium text-amber-600">
                               * {tProducts("limitBadge", { max: p.maxQtyPerOrder })}

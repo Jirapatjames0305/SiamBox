@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Price } from "@/components/CurrencyProvider";
 import { toPng } from "html-to-image";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
@@ -15,7 +16,6 @@ import {
   useCartHydrated,
   type PackageAddon,
 } from "@/lib/cart";
-import { formatPrice } from "@/lib/format";
 import { localizedName } from "@/lib/i18n-helpers";
 import type { Locale } from "@/i18n/routing";
 
@@ -568,7 +568,7 @@ export default function CheckoutPage() {
                       )}
                     </div>
                     <span className="font-semibold text-slate-900 whitespace-nowrap">
-                      {formatPrice(row.unitPriceCents * row.quantity)}
+                      {<Price cents={row.unitPriceCents * row.quantity} />}
                     </span>
                   </div>
                 </li>
@@ -593,11 +593,11 @@ export default function CheckoutPage() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between text-slate-500">
                 <span>{tCart("subtotal")}</span>
-                <span>{formatPrice(total)}</span>
+                <span>{<Price cents={total} />}</span>
               </div>
               <div className="flex justify-between text-slate-500">
                 <span>{t("shipping")}</span>
-                <span>{formatPrice(shippingCents)}</span>
+                <span>{<Price cents={shippingCents} />}</span>
               </div>
             </div>
 
@@ -605,7 +605,7 @@ export default function CheckoutPage() {
 
             <div className="flex justify-between font-bold text-slate-900">
               <span>{t("total")}</span>
-              <span className="text-blue-500">{formatPrice(grandTotal)}</span>
+              <span className="text-blue-500">{<Price cents={grandTotal} />}</span>
             </div>
           </div>
 
@@ -767,7 +767,7 @@ function ShippingChoice({
           <span className="block text-xs text-slate-500">{hint}</span>
         </span>
       </div>
-      <span className="text-sm font-semibold text-slate-700">{formatPrice(price)}</span>
+      <span className="text-sm font-semibold text-slate-700">{<Price cents={price} />}</span>
     </button>
   );
 }

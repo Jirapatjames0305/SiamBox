@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CurrencySwitcher } from "@/components/CurrencyProvider";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
 import { routing, type Locale } from "@/i18n/routing";
@@ -55,7 +56,7 @@ export function Navbar({ logoUrl = "" }: { logoUrl?: string }) {
             </button>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-cream-300">CNY ¥</span>
+            <CurrencySwitcher className="rounded border border-gold-700/40 px-0.5" />
             <div className="inline-flex overflow-hidden rounded border border-gold-700/40">
               {routing.locales.map((l) => (
                 <Link

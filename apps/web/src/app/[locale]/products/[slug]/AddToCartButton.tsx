@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Price } from "@/components/CurrencyProvider";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { addPackageToCart, type PackageAddon, type PackageCartLine } from "@/lib/cart";
-import { formatPrice } from "@/lib/format";
 import { localizedName } from "@/lib/i18n-helpers";
 import type { Locale } from "@/i18n/routing";
 
@@ -99,7 +99,7 @@ export function AddToCartButton({ pkg, availableAddons, locale, disabled }: Prop
                     <p className="truncate text-sm text-slate-800">
                       {localizedName(a, locale)}
                     </p>
-                    <p className="text-xs text-slate-500">+{formatPrice(a.priceCents)}</p>
+                    <p className="text-xs text-slate-500">+{<Price cents={a.priceCents} />}</p>
                   </div>
                   <div className="inline-flex items-center overflow-hidden rounded-lg border border-slate-200">
                     <button
@@ -133,16 +133,16 @@ export function AddToCartButton({ pkg, availableAddons, locale, disabled }: Prop
       <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
         <div>
           <p className="text-xs text-slate-500">{t("unitPrice")}</p>
-          <p className="text-base font-semibold text-slate-900">{formatPrice(unitPrice)}</p>
+          <p className="text-base font-semibold text-slate-900">{<Price cents={unitPrice} />}</p>
           {addonsTotalPerUnit > 0 && (
             <p className="text-[11px] text-slate-400">
-              {formatPrice(pkg.basePriceCents)} + {formatPrice(addonsTotalPerUnit)}
+              {<Price cents={pkg.basePriceCents} />} + {<Price cents={addonsTotalPerUnit} />}
             </p>
           )}
         </div>
         <div className="text-right">
           <p className="text-xs text-slate-500">{t("lineTotal")}</p>
-          <p className="text-lg font-bold text-blue-600">{formatPrice(lineTotal)}</p>
+          <p className="text-lg font-bold text-blue-600">{<Price cents={lineTotal} />}</p>
         </div>
       </div>
 
