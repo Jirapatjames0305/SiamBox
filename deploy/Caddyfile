@@ -22,6 +22,14 @@
 	reverse_proxy web:3000
 }
 
+# www → apex. Without this block Caddy has no certificate for the www hostname, so
+# anyone typing it gets a TLS error rather than the site. Keeping one canonical
+# hostname also avoids splitting SEO signals between the two.
+www.{$WEB_DOMAIN} {
+	import access_log
+	redir https://{$WEB_DOMAIN}{uri} permanent
+}
+
 # API
 {$API_DOMAIN} {
 	import access_log

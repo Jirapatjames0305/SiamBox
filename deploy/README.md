@@ -1,5 +1,10 @@
 # Deploy SiamBox → Alibaba Cloud ECS (Hong Kong)
 
+> **หมายเหตุ:** ไฟล์นี้เป็นคู่มือ **ตั้งเครื่องใหม่ตั้งแต่ศูนย์**
+> ระบบ deploy อยู่แล้วที่ `47.76.193.127` — คำสั่งใช้งานประจำวันดูที่ [DEPLOY.md](DEPLOY.md)
+> บันทึกการย้าย server ครั้งล่าสุดและกับดักที่เจอ ดูที่ [MIGRATE.md](MIGRATE.md)
+
+
 Moves the app off Vercel/Render to an always-on Alibaba Cloud ECS instance in
 **China (Hong Kong) / `cn-hongkong`**, behind Caddy for automatic HTTPS. Database
 (Supabase) and storage (R2/Supabase) stay where they are.
