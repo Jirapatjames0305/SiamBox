@@ -13,7 +13,11 @@ services:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL} # also read server-side at runtime for SSR
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL} # inlined into the browser bundle
+      # Server-side rendering runs inside this container, where the public domain
+      # resolves to the host's own public IP and the request hairpins back through
+      # NAT — which times out. Point SSR at the compose service instead.
+      API_INTERNAL_URL: http://api:4000
     expose:
       - "3000"
 

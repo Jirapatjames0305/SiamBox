@@ -36,3 +36,34 @@ docker compose up -d --force-recreate api
 curl localhost:4000/api/products | head -c 200                                   # สินค้าออกไหม
 curl -H "Authorization: Bearer 1234" localhost:4000/api/admin/payment-providers  # gateway
 ```
+
+---
+
+## Production
+
+Server `47.76.193.127` (Alibaba HK) — https://siambox.shop
+
+```bash
+# ส่งโค้ดขึ้น แล้ว build ใหม่ (ต้องทำ rsync ก่อนเสมอ)
+rsync -az --delete --exclude '.git' --exclude 'node_modules' --exclude '.next' \
+  --exclude '.turbo' --exclude 'dist' --exclude '*.pem' --exclude '.env' \
+  --exclude '*.env' --exclude '.tmp' --exclude '._*' --exclude '.DS_Store' \
+  -e "ssh -i ~/.ssh/siambox-alibaba" ./ root@47.76.193.127:/root/SiamBox/
+
+ssh -i ~/.ssh/siambox-alibaba root@47.76.193.127 \
+  'cd /root/SiamBox/deploy && docker compose up -d --build web api caddy'
+```
+
+```bash
+# ดู log
+ssh -i ~/.ssh/siambox-alibaba root@47.76.193.127 \
+  'cd /root/SiamBox/deploy && docker compose logs --tail=40 web api'
+```
+
+เช็คว่ายังดีอยู่:
+```bash
+curl -I https://siambox.shop
+curl https://api.siambox.shop/health
+```
+
+รายละเอียดครบ + กับดัก → [deploy/DEPLOY.md](../deploy/DEPLOY.md)

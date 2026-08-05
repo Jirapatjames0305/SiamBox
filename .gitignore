@@ -26,6 +26,10 @@ out/
 *.dump
 *.sql.gz
 
+# Server secrets copied off a box during a migration (see deploy/MIGRATE.md)
+deploy-env-backup
+caddy-logs-backup/
+
 # Logs
 logs/
 *.log
