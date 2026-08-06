@@ -30,24 +30,24 @@
     ],
     "stats": [
       {
-        "value": "12,000+",
-        "label": "满意客户"
-      },
-      {
-        "value": "100+",
-        "label": "合作品牌"
-      },
-      {
-        "value": "1,000+",
+        "value": "150+",
         "label": "精选商品"
       },
       {
-        "value": "50+",
-        "label": "服务国家"
+        "value": "60+",
+        "label": "泰国品牌"
       },
       {
-        "value": "全球",
-        "label": "配送"
+        "value": "17",
+        "label": "商品分类"
+      },
+      {
+        "value": "100%",
+        "label": "泰国正品"
+      },
+      {
+        "value": "7–15 天",
+        "label": "泰国直邮"
       }
     ],
     "whyTitle": "为什么选择 SIAMBOX",
@@ -85,10 +85,33 @@
     "partnerPoint2": "贴牌定制 OEM",
     "partnerPoint3": "跨境贸易",
     "partnerCta": "联系我们",
-    "brandsTitle": "合作品牌",
+    "brandsTitle": "泰国品牌",
     "reviewsTitle": "客户评价",
     "noReviews": "暂无评价",
-    "brandsSubtitle": "合作品牌"
+    "brandsSubtitle": "精选自泰国可信门店",
+    "howTitle": "下单流程",
+    "howSteps": [
+      {
+        "title": "选购下单",
+        "sub": "从 150+ 款精选泰国商品中挑选，人民币明码标价，无隐藏费用。"
+      },
+      {
+        "title": "泰国门店实采",
+        "sub": "接单后我们前往 Makro、Lotus's、Big C、7-Eleven 现场采购，批批新货。"
+      },
+      {
+        "title": "集运空运直发",
+        "sub": "付款确认后 1–3 个工作日内打包交付承运商，清关手续由我们负责。"
+      },
+      {
+        "title": "全程可查收货",
+        "sub": "普通配送 7–15 个工作日 · 加急 3–5 个工作日，凭手机号随时查询物流。"
+      }
+    ],
+    "howTrackTitle": "已经下单了？马上查物流",
+    "howTrackHint": "输入下单时填写的手机号",
+    "newArrivals": "新品上架",
+    "newBadge": "新品"
   },
   "Nav": {
     "brand": "泰国好物",

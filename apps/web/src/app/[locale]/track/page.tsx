@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { lookupOrders, type OrderSummary } from "@/lib/api";
@@ -18,29 +19,52 @@ const STATUS_COLOR: Record<string, string> = {
   REFUNDED: "bg-slate-100 text-slate-600",
 };
 
+// useSearchParams needs a Suspense boundary to keep the route statically renderable.
 export default function TrackPage() {
+  return (
+    <Suspense>
+      <TrackPageInner />
+    </Suspense>
+  );
+}
+
+function TrackPageInner() {
   const t = useTranslations("Track");
   const tStatus = useTranslations("Status");
   const locale = useLocale() as Locale;
-  const [phone, setPhone] = useState("");
+  const initialPhone = useSearchParams().get("phone") ?? "";
+  const [phone, setPhone] = useState(initialPhone);
   const [orders, setOrders] = useState<OrderSummary[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!phone.trim()) return;
+  async function lookup(value: string) {
+    const v = value.trim();
+    if (!v) return;
     setLoading(true);
     setError(null);
     try {
-      const results = await lookupOrders(phone.trim());
-      setOrders(results);
+      setOrders(await lookupOrders(v));
     } catch {
       setError(t("errorMessage"));
       setOrders(null);
     } finally {
       setLoading(false);
     }
+  }
+
+  // Arriving from the homepage shortcut (/track?phone=…) — run the lookup once.
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (autoRan.current || !initialPhone) return;
+    autoRan.current = true;
+    void lookup(initialPhone);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPhone]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await lookup(phone);
   }
 
   function itemLabel(item: OrderSummary["items"][number]) {

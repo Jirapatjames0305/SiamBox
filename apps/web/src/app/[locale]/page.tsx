@@ -1,7 +1,8 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Price } from "@/components/CurrencyProvider";
 import { Link } from "@/i18n/routing";
-import { getBuildConfig, listBestSellers, listProducts, listReviews, type Review } from "@/lib/api";
+import { getBuildConfig, listBestSellers, listProducts, listReviews, type Product, type Review } from "@/lib/api";
+import { TrackLookupInline } from "@/components/TrackLookupInline";
 import { localizedName } from "@/lib/i18n-helpers";
 import type { Locale } from "@/i18n/routing";
 import { alternatesFor } from "@/lib/seo";
@@ -21,12 +22,22 @@ const BADGE_ICONS = [
   <svg key="chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6"><path d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/></svg>,
 ];
 
+// Order matches the `stats` array in messages/*.json: products, brands, categories,
+// authenticity, delivery window.
 const STAT_ICONS = [
-  <svg key="users" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6"><path d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>,
-  <svg key="tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6"><path d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/><path d="M6 6h.008v.008H6V6z"/></svg>,
   <svg key="box" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6"><path d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>,
-  <svg key="globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6"><path d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/></svg>,
+  <svg key="tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6"><path d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/><path d="M6 6h.008v.008H6V6z"/></svg>,
+  <svg key="grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6"><path d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>,
+  <svg key="shield3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6"><path d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>,
   <svg key="truck2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6"><path d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/></svg>,
+];
+
+// "How it works" — pick, we buy, we ship, you track.
+const HOW_ICONS = [
+  <svg key="cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7"><path d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/></svg>,
+  <svg key="store" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7"><path d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72l1.189-1.19A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72M6.75 18h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .414.336.75.75.75z"/></svg>,
+  <svg key="plane" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7"><path d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>,
+  <svg key="pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7"><path d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>,
 ];
 
 const WHY_ICONS = [
@@ -55,18 +66,52 @@ const BRANDS = ["DOI KHAM", "NaRaya", "ABHAIBHUBEJHR", "THIPNIYOM", "MISTINE", "
 type Card = { title: string; sub: string };
 type Stat = { value: string; label: string };
 
+/**
+ * Product / brand / category counts for the stats bar, as display strings.
+ * Counts are rounded *down* to the nearest ten so the bar never overstates the
+ * catalogue. Returns `[null, null, null]` when the API gave us nothing.
+ *
+ * Brand is approximated from the first tag. The convention is brand-first, but it isn't
+ * enforced: plenty of rows lead with the Chinese product name instead. Those are dropped
+ * (CJK, or too long to be a brand) and the survivors rounded down, so the figure lands
+ * under the true brand count rather than over it.
+ */
+const CJK = /[　-鿿＀-￯]/;
+
+function countCatalog(products: Product[]): (string | null)[] {
+  if (products.length === 0) return [null, null, null];
+  const floor10 = (n: number) => `${Math.max(10, Math.floor(n / 10) * 10)}+`;
+  const brands = new Set(
+    products
+      .map((p) => p.tags[0]?.trim())
+      .filter((b): b is string => !!b && b.length <= 20 && !CJK.test(b))
+      .map((b) => b.toLowerCase()),
+  );
+  const categories = new Set(products.map((p) => p.category).filter(Boolean));
+  return [floor10(products.length), floor10(brands.size), String(categories.size)];
+}
+
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("Home");
   const tProducts = await getTranslations("Products");
 
-  let bestSellers: Awaited<ReturnType<typeof listProducts>> = [];
+  // /api/products already comes back newest-first, so it doubles as the new-arrivals feed
+  // and as the source for the catalogue counts in the stats bar.
+  let products: Product[] = [];
+  try {
+    products = await listProducts();
+  } catch {
+    // skip if API down
+  }
+
+  let bestSellers: Product[] = [];
   try {
     bestSellers = await listBestSellers();
     if (bestSellers.length === 0) {
       // Fallback: if admin hasn't curated any, show the latest products.
-      bestSellers = (await listProducts()).slice(0, 6);
+      bestSellers = products.slice(0, 6);
     } else if (bestSellers.length > 6) {
       // More than 6 curated → show a random 6 (rotates each revalidation).
       bestSellers = [...bestSellers].sort(() => Math.random() - 0.5).slice(0, 6);
@@ -74,6 +119,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   } catch {
     // skip if API down
   }
+
+  // Don't show the same product twice on one page.
+  const shown = new Set(bestSellers.map((p) => p.id));
+  const newArrivals = products.filter((p) => !shown.has(p.id)).slice(0, 6);
 
   let heroBg = "";
   let storiesBg = "";
@@ -103,6 +152,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const badges = t.raw("badges") as Card[];
   const stats = t.raw("stats") as Stat[];
   const why = t.raw("why") as Card[];
+  const how = t.raw("howSteps") as Card[];
+
+  // The first three stats are counted off the live catalogue rather than hardcoded, so
+  // the bar can't drift into claiming more than the shop actually carries. Falls back to
+  // the translated value when the API is down and `products` is empty.
+  const counted = countCatalog(products);
+  const statValue = (s: Stat, i: number) => counted[i] ?? s.value;
 
   return (
     <>
@@ -165,7 +221,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               <div className="flex h-9 w-9 items-center justify-center rounded-full border border-gold-500/40 bg-maroon-950/40 text-sm sm:h-12 sm:w-12 sm:text-xl">
                 {STAT_ICONS[i]}
               </div>
-              <div className="mt-1.5 text-[9px] leading-tight text-cream-200/75 sm:mt-2.5 sm:text-xs">{s.label}</div>
+              <div className="mt-1.5 font-serif text-sm font-bold leading-none text-gold-400 sm:mt-2.5 sm:text-xl">
+                {statValue(s, i)}
+              </div>
+              <div className="mt-1 text-[9px] leading-tight text-cream-200/75 sm:mt-1.5 sm:text-xs">{s.label}</div>
             </div>
           ))}
         </div>
@@ -205,61 +264,98 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               </Link>
             </div>
             <ul className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-              {bestSellers.map((p, i) => {
-                const name = localizedName(p, locale as Locale);
-                return (
-                  <li key={p.id} className="flex">
-                    <FadeInUp delay={i * 50} className="h-full w-full">
-                      <div className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-cream-300 bg-white shadow-sm transition hover:shadow-lg">
-                        <span className="absolute left-0 top-0 z-10 rounded-br-lg bg-maroon-700 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-cream-100">
-                          Best Seller
-                        </span>
-                        <Link href="/products" className="block aspect-square overflow-hidden bg-cream-100">
-                          {p.images[0] ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={p.images[0]}
-                              alt={name}
-                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                            />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-3xl text-cream-300">{DIAMOND_SVG}</div>
-                          )}
-                        </Link>
-                        <div className="flex flex-1 flex-col p-3">
-                          <Link
-                            href="/products"
-                            className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-snug text-stone-800 hover:text-maroon-800"
-                          >
-                            {name}
-                          </Link>
-                          <div className="mt-1 text-xs text-gold-500"><Stars /></div>
-                          <p className="mt-1 font-bold text-maroon-800">{<Price cents={p.priceCents} />}</p>
-                          {limitEnabled && p.maxQtyPerOrder != null && (
-                            <p className="mt-0.5 text-[11px] font-medium text-amber-600">
-                              * {tProducts("limitBadge", { max: p.maxQtyPerOrder })}
-                            </p>
-                          )}
-                          {p.stock <= 0 ? (
-                            <p className="mt-auto pt-1.5 text-center text-xs text-red-500">{tProducts("outOfStock")}</p>
-                          ) : (
-                            <AddToBoxButton
-                              limitEnabled={limitEnabled}
-                              product={p}
-                              minCents={minCents}
-                              className="mt-auto block w-full rounded-md bg-maroon-800 py-1.5 text-center text-xs font-semibold text-cream-100 transition hover:bg-maroon-700"
-                            />
-                          )}
-                        </div>
-                      </div>
-                    </FadeInUp>
-                  </li>
-                );
-              })}
+              {bestSellers.map((p, i) => (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  index={i}
+                  locale={locale as Locale}
+                  badge="Best Seller"
+                  badgeClass="bg-maroon-700 text-cream-100"
+                  limitEnabled={limitEnabled}
+                  minCents={minCents}
+                  limitLabel={(max) => tProducts("limitBadge", { max })}
+                  outOfStockLabel={tProducts("outOfStock")}
+                />
+              ))}
             </ul>
           </div>
         </section>
       )}
+
+      {/* ── New arrivals ── */}
+      {newArrivals.length > 0 && (
+        <section className="py-16">
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="flex items-end justify-between">
+              <SectionHeading title={t("newArrivals")} align="left" />
+              <Link
+                href="/products"
+                className="shrink-0 rounded-md border border-gold-500 px-4 py-2 text-xs font-semibold text-maroon-800 transition hover:bg-gold-500 hover:text-maroon-950"
+              >
+                {t("viewAll")}
+              </Link>
+            </div>
+            <ul className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+              {newArrivals.map((p, i) => (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  index={i}
+                  locale={locale as Locale}
+                  badge={t("newBadge")}
+                  badgeClass="bg-gold-500 text-maroon-950"
+                  limitEnabled={limitEnabled}
+                  minCents={minCents}
+                  limitLabel={(max) => tProducts("limitBadge", { max })}
+                  outOfStockLabel={tProducts("outOfStock")}
+                />
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      {/* ── How it works + track ── */}
+      <section className="bg-maroon-950 py-16 text-cream-100">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="flex items-center justify-center gap-4">
+            <span className="h-px w-10 bg-gold-400" />
+            <h2 className="font-serif text-2xl font-bold tracking-tight text-cream-100 sm:text-3xl">{t("howTitle")}</h2>
+            <span className="h-px w-10 bg-gold-400" />
+          </div>
+
+          <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {how.map((step, i) => (
+              <li key={step.title} className="flex">
+                <FadeInUp delay={i * 70} className="h-full w-full">
+                  <div className="relative h-full rounded-xl border border-gold-500/20 bg-maroon-900/50 p-6">
+                    <span
+                      aria-hidden="true"
+                      className="absolute right-4 top-3 font-serif text-4xl font-bold leading-none text-gold-500/20"
+                    >
+                      {i + 1}
+                    </span>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full border border-gold-500/40 bg-maroon-950/60 text-gold-400">
+                      {HOW_ICONS[i]}
+                    </div>
+                    <h3 className="mt-4 font-semibold text-cream-100">{step.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-cream-200/70">{step.sub}</p>
+                  </div>
+                </FadeInUp>
+              </li>
+            ))}
+          </ol>
+
+          <div className="mx-auto mt-10 max-w-xl rounded-xl border border-gold-500/20 bg-maroon-900/50 p-6 text-center">
+            <h3 className="font-serif text-lg font-bold text-gold-400">{t("howTrackTitle")}</h3>
+            <p className="mt-1 text-xs text-cream-200/60">{t("howTrackHint")}</p>
+            <div className="mt-4 text-left">
+              <TrackLookupInline />
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ── Stories | Brands | Partner — full-bleed banner ── */}
       <section className="grid min-h-[220px] grid-cols-1 lg:grid-cols-3">
@@ -290,7 +386,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             </>
           )}
           <div className="relative">
-            <div className="font-serif text-5xl font-extrabold leading-none text-gold-400">500+</div>
+            <div className="font-serif text-5xl font-extrabold leading-none text-gold-400">{counted[1] ?? "60+"}</div>
             <div className="mt-1 text-sm font-bold uppercase tracking-[0.3em] text-cream-200">{t("brandsTitle")}</div>
             <div className="mt-1 text-xs text-cream-300/60">{t("brandsSubtitle")}</div>
             <div className="mt-5 flex flex-wrap justify-center gap-3">
@@ -355,6 +451,82 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         </div>
       </section>
     </>
+  );
+}
+
+/** Shared by the best-sellers and new-arrivals grids — same card, different badge. */
+function ProductCard({
+  product: p,
+  index,
+  locale,
+  badge,
+  badgeClass,
+  limitEnabled,
+  minCents,
+  limitLabel,
+  outOfStockLabel,
+}: {
+  product: Product;
+  index: number;
+  locale: Locale;
+  badge: string;
+  badgeClass: string;
+  limitEnabled: boolean;
+  minCents: number;
+  limitLabel: (max: number) => string;
+  outOfStockLabel: string;
+}) {
+  const name = localizedName(p, locale);
+  const href = `/products/${p.slug}` as const;
+  return (
+    <li className="flex">
+      <FadeInUp delay={index * 50} className="h-full w-full">
+        <div className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-cream-300 bg-white shadow-sm transition hover:shadow-lg">
+          <span
+            className={`absolute left-0 top-0 z-10 rounded-br-lg px-2 py-1 text-[9px] font-bold uppercase tracking-wide ${badgeClass}`}
+          >
+            {badge}
+          </span>
+          <Link href={href} className="block aspect-square overflow-hidden bg-cream-100">
+            {p.images[0] ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={p.images[0]}
+                alt={name}
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-3xl text-cream-300">{DIAMOND_SVG}</div>
+            )}
+          </Link>
+          <div className="flex flex-1 flex-col p-3">
+            <Link
+              href={href}
+              className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-snug text-stone-800 hover:text-maroon-800"
+            >
+              {name}
+            </Link>
+            <div className="mt-1 text-xs text-gold-500"><Stars /></div>
+            <p className="mt-1 font-bold text-maroon-800">{<Price cents={p.priceCents} />}</p>
+            {limitEnabled && p.maxQtyPerOrder != null && (
+              <p className="mt-0.5 text-[11px] font-medium text-amber-600">
+                * {limitLabel(p.maxQtyPerOrder)}
+              </p>
+            )}
+            {p.stock <= 0 ? (
+              <p className="mt-auto pt-1.5 text-center text-xs text-red-500">{outOfStockLabel}</p>
+            ) : (
+              <AddToBoxButton
+                limitEnabled={limitEnabled}
+                product={p}
+                minCents={minCents}
+                className="mt-auto block w-full rounded-md bg-maroon-800 py-1.5 text-center text-xs font-semibold text-cream-100 transition hover:bg-maroon-700"
+              />
+            )}
+          </div>
+        </div>
+      </FadeInUp>
+    </li>
   );
 }
 
