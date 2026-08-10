@@ -65,6 +65,11 @@ export default function CheckoutPage() {
   const [storeWechatId, setStoreWechatId] = useState("");
   const [alipayQrUrl, setAlipayQrUrl] = useState("");
   const [wechatQrUrl, setWechatQrUrl] = useState("");
+  // Address shape follows the market being shopped, not the UI language — a Thai-reading
+  // customer buying for a Hong Kong address still needs the HK form.
+  const isHK =
+    typeof document !== "undefined" &&
+    document.cookie.split("; ").some((c) => c === "sb_market=HK");
   const [providers, setProviders] = useState<PaymentProviderOption[]>([]);
   const [paymentProvider, setPaymentProvider] = useState<PaymentProviderId | null>(null);
   const [alipayMode, setAlipayMode] = useState<"QR" | "GATEWAY">("QR");
@@ -273,7 +278,7 @@ export default function CheckoutPage() {
       city: form.city,
       district: form.district || undefined,
       street: form.street,
-      postalCode: form.postalCode,
+      postalCode: isHK ? undefined : form.postalCode,
     });
 
     if (!parsed.success) {
@@ -356,12 +361,21 @@ export default function CheckoutPage() {
               <Field label={t("recipient")} value={form.recipient} onChange={(v) => set("recipient", v)} error={errors.recipient} required />
               <Field label={t("phone")} value={form.phone} onChange={(v) => set("phone", v)} error={errors.phone} required />
               <Field label={t("wechat")} value={form.wechatId} onChange={(v) => set("wechatId", v)} error={errors.wechatId} />
-              <Field label={t("postalCode")} value={form.postalCode} onChange={(v) => set("postalCode", v)} error={errors.postalCode} required />
-              <Field label={t("province")} value={form.province} onChange={(v) => set("province", v)} error={errors.province} required />
-              <Field label={t("city")} value={form.city} onChange={(v) => set("city", v)} error={errors.city} required />
-              <Field label={t("district")} value={form.district} onChange={(v) => set("district", v)} error={errors.district} />
+              {/* Hong Kong has no postal codes, and its address hierarchy is
+                  region → district → street rather than 省 → 市 → 区. Same fields,
+                  different labels, and the postcode is dropped entirely. */}
+              {isHK ? (
+                <div className="text-sm text-slate-500 sm:self-end sm:pb-2">{t("postalHKNote")}</div>
+              ) : (
+                <Field label={t("postalCode")} value={form.postalCode} onChange={(v) => set("postalCode", v)} error={errors.postalCode} required />
+              )}
+              <Field label={isHK ? t("regionHK") : t("province")} value={form.province} onChange={(v) => set("province", v)} error={errors.province} required />
+              <Field label={isHK ? t("districtHK") : t("city")} value={form.city} onChange={(v) => set("city", v)} error={errors.city} required />
+              {!isHK && (
+                <Field label={t("district")} value={form.district} onChange={(v) => set("district", v)} error={errors.district} />
+              )}
               <Field
-                label={t("street")}
+                label={isHK ? t("streetHK") : t("street")}
                 value={form.street}
                 onChange={(v) => set("street", v)}
                 error={errors.street}

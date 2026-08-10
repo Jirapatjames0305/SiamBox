@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "@siambox/database";
+import { MARKETS } from "../lib/markets.js";
 import {
   PROVIDER_IDS,
   PROVIDER_LABELS,
@@ -42,10 +43,19 @@ packagesRouter.get("/config", async (_req, res, next) => {
       };
     });
 
+    // Markets that actually have something to sell. A market with no products would
+    // hand its visitors an empty shop, so the storefront only offers what is stocked —
+    // ticking HK on a product in the admin is what makes Hong Kong appear.
+    const marketCounts = await Promise.all(
+      MARKETS.map(async (m) => [m, await prisma.product.count({ where: { active: true, markets: { has: m } } })] as const),
+    );
+    const availableMarkets = marketCounts.filter(([, n]) => n > 0).map(([m]) => m);
+
     // Display-only rates for the storefront's currency switcher. The charge itself is
     // always CNY converted to THB at settlement — these never touch a real amount.
     const currencyRates = {
       CNY: 1,
+      HKD: Number(process.env.CNY_TO_HKD_RATE ?? "1.09"),
       THB: Number(process.env.CNY_TO_THB_RATE ?? "4.9"),
       USD: Number(process.env.CNY_TO_USD_RATE ?? "0.14"),
     };
@@ -53,6 +63,7 @@ packagesRouter.get("/config", async (_req, res, next) => {
     res.json({
       data: {
         paymentProviders,
+        availableMarkets,
         currencyRates,
         customPackageMinCents: settings.customPackageMinCents,
         purchaseLimitEnabled: settings.purchaseLimitEnabled,

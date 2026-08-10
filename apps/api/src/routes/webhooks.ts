@@ -1,4 +1,4 @@
-import { Router, type Request } from "express";
+import { Router, type Request, type Response } from "express";
 import { prisma } from "@siambox/database";
 import {
   getProvider,
@@ -9,9 +9,10 @@ import {
 
 export const webhooksRouter = Router();
 
-// One route per provider: /api/webhooks/ksher, /api/webhooks/opn, /api/webhooks/2c2p.
-// Point the provider dashboard at the one matching PAYMENT_PROVIDER. Keeping all three
-// mounted means a provider switch needs no redeploy — only a dashboard change.
+// One route per provider: /api/webhooks/ksher, /api/webhooks/opn, /api/webhooks/2c2p,
+// /api/webhooks/antom, /api/webhooks/siampay. Point the provider dashboard at the one
+// matching PAYMENT_PROVIDER. Keeping them all mounted means a provider switch needs no
+// redeploy — only a dashboard change.
 webhooksRouter.all("/:provider", async (req, res, next) => {
   try {
     const id = req.params.provider.toLowerCase();
@@ -28,15 +29,27 @@ webhooksRouter.all("/:provider", async (req, res, next) => {
     }
     const target = provider.parseWebhook(hook);
     if (!target) {
-      res.json({ ok: true, ignored: true });
+      ack(res, provider, { ok: true, ignored: true });
       return;
     }
     await syncPayment(provider, target);
-    res.json({ ok: true });
+    ack(res, provider, { ok: true });
   } catch (err) {
     next(err);
   }
 });
+
+/**
+ * Most providers accept any 200. AsiaPay/SiamPay keeps retrying its datafeed until the
+ * body reads exactly "OK", so a provider may pin the acknowledgement it needs.
+ */
+function ack(res: Response, provider: PaymentProvider, json: Record<string, unknown>): void {
+  if (provider.webhookAckBody != null) {
+    res.type("text/plain").send(provider.webhookAckBody);
+    return;
+  }
+  res.json(json);
+}
 
 function toWebhookRequest(req: Request): WebhookRequest {
   const proto = req.header("x-forwarded-proto") ?? req.protocol;

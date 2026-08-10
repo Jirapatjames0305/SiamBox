@@ -1,4 +1,5 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getMarketOrDefault } from "@/lib/market-server";
 import { Price } from "@/components/CurrencyProvider";
 import { Link } from "@/i18n/routing";
 import { getBuildConfig, listBestSellers, listProducts, listReviews, type Product, type Review } from "@/lib/api";
@@ -93,6 +94,7 @@ function countCatalog(products: Product[]): (string | null)[] {
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
+  const market = await getMarketOrDefault();
   setRequestLocale(locale);
   const t = await getTranslations("Home");
   const tProducts = await getTranslations("Products");
@@ -101,14 +103,14 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   // and as the source for the catalogue counts in the stats bar.
   let products: Product[] = [];
   try {
-    products = await listProducts();
+    products = await listProducts(market);
   } catch {
     // skip if API down
   }
 
   let bestSellers: Product[] = [];
   try {
-    bestSellers = await listBestSellers();
+    bestSellers = await listBestSellers(market);
     if (bestSellers.length === 0) {
       // Fallback: if admin hasn't curated any, show the latest products.
       bestSellers = products.slice(0, 6);

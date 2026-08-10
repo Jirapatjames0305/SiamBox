@@ -1,12 +1,15 @@
 import { Router } from "express";
 import { prisma } from "@siambox/database";
+import { isMarket, marketFilter } from "../lib/markets.js";
 
 export const productsRouter = Router();
 
-productsRouter.get("/", async (_req, res, next) => {
+// ?market=CN|HK narrows the catalogue to what may legally be listed there. Omitting it
+// returns everything, which is what the admin app and any older client expects.
+productsRouter.get("/", async (req, res, next) => {
   try {
     const products = await prisma.product.findMany({
-      where: { active: true },
+      where: { active: true, ...marketFilter(req.query.market) },
       orderBy: { createdAt: "desc" },
     });
     res.json({ data: products });
@@ -16,13 +19,16 @@ productsRouter.get("/", async (_req, res, next) => {
 });
 
 // Public — curated homepage best sellers (active products only), ordered by position.
-productsRouter.get("/best-sellers", async (_req, res, next) => {
+productsRouter.get("/best-sellers", async (req, res, next) => {
   try {
     const rows = await prisma.bestSeller.findMany({
       orderBy: { position: "asc" },
       include: { product: true },
     });
-    const data = rows.map((r) => r.product).filter((p) => p.active);
+    const market = req.query.market;
+    const data = rows
+      .map((r) => r.product)
+      .filter((p) => p.active && (!isMarket(market) || p.markets.includes(market)));
     res.json({ data });
   } catch (err) {
     next(err);

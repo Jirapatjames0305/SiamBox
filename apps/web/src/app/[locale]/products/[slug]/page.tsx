@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getMarketOrDefault } from "@/lib/market-server";
 import { Price } from "@/components/CurrencyProvider";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -77,7 +78,7 @@ async function ProductView({
 
   const related =
     product.category && product.active
-      ? (await listProducts())
+      ? (await listProducts(await getMarketOrDefault()))
           .filter((p) => p.category === product.category && p.id !== product.id)
           .slice(0, 8)
       : [];
@@ -211,7 +212,7 @@ async function PackageView({ slug, locale }: { slug: string; locale: Locale }) {
   const pkgProductIds = new Set(pkg.items.map((it) => it.productId));
   const availableAddons =
     pkgCategories.size > 0
-      ? (await listProducts())
+      ? (await listProducts(await getMarketOrDefault()))
           .filter((p) => p.category && pkgCategories.has(p.category))
           .filter((p) => !pkgProductIds.has(p.id) && p.stock > 0)
           .map((p) => ({

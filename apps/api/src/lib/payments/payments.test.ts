@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createHmac } from "node:crypto";
+import { constants, createHash, createHmac, createVerify, generateKeyPairSync } from "node:crypto";
+import { antom, antomRequestTime, antomSign, antomSignatureContent, parseSignatureHeader } from "./antom.js";
 import { ksher, ksherSign } from "./ksher.js";
 import { opn } from "./opn.js";
+import { siampay, siamPaySecureHash, parseOrderApiResponse } from "./siampay.js";
 import { twoctwop } from "./twoctwop.js";
 import { signJwtHS256, verifyJwtHS256 } from "./jwt.js";
 import { activeProvider, getProvider, isProviderId } from "./index.js";
@@ -20,6 +22,18 @@ const ENV_KEYS = [
   "TWOCTWOP_MERCHANT_ID",
   "TWOCTWOP_SECRET_KEY",
   "TWOCTWOP_API_BASE",
+  "ANTOM_CLIENT_ID",
+  "ANTOM_PRIVATE_KEY",
+  "ANTOM_PUBLIC_KEY",
+  "ANTOM_API_BASE",
+  "ANTOM_NOTIFY_URL",
+  "ANTOM_PAYMENT_METHOD",
+  "SIAMPAY_MERCHANT_ID",
+  "SIAMPAY_SECURE_HASH_SECRET",
+  "SIAMPAY_API_BASE",
+  "SIAMPAY_LOGIN_ID",
+  "SIAMPAY_PASSWORD",
+  "SIAMPAY_LANG",
 ];
 
 let savedEnv: Record<string, string | undefined>;
@@ -37,9 +51,22 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+function tryJson(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+}
+
 /** Stubs fetch with canned JSON responses and records what was sent. */
 function stubFetch(...responses: unknown[]) {
-  const calls: { url: string; method: string; body: unknown }[] = [];
+  const calls: {
+    url: string;
+    method: string;
+    body: unknown;
+    headers: Record<string, string>;
+  }[] = [];
   let i = 0;
   vi.stubGlobal(
     "fetch",
@@ -47,10 +74,19 @@ function stubFetch(...responses: unknown[]) {
       calls.push({
         url: String(input),
         method: init?.method ?? "GET",
-        body: init?.body ? JSON.parse(String(init.body)) : undefined,
+        // Most providers send JSON; SiamPay sends form-urlencoded. Keep the raw string
+        // when it is not JSON so form bodies stay assertable.
+        body: init?.body ? tryJson(String(init.body)) : undefined,
+        headers: (init?.headers ?? {}) as Record<string, string>,
       });
       const payload = responses[Math.min(i++, responses.length - 1)];
-      return { ok: true, json: async () => payload, text: async () => JSON.stringify(payload) };
+      // SiamPay's order API answers with a flat key=value string, so a canned response
+      // that is already a string is passed through to text() verbatim.
+      return {
+        ok: true,
+        json: async () => payload,
+        text: async () => (typeof payload === "string" ? payload : JSON.stringify(payload)),
+      };
     }),
   );
   return calls;
@@ -389,5 +425,434 @@ describe("2c2p", () => {
     });
     expect(twoctwop.verifyWebhook(forged)).toBe(false);
     expect(twoctwop.verifyWebhook(webhook({ body: {} }))).toBe(false);
+  });
+});
+
+describe("antom", () => {
+  // Throwaway 2048-bit pair generated for this suite only.
+  const { privateKey, publicKey } = generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: "spki", format: "pem" },
+    privateKeyEncoding: { type: "pkcs8", format: "pem" },
+  });
+
+  beforeEach(() => {
+    process.env.ANTOM_CLIENT_ID = "CLIENT123";
+    process.env.ANTOM_PRIVATE_KEY = privateKey;
+    process.env.ANTOM_API_BASE = "https://antom.test";
+  });
+
+  it("needs both the client id and the private key to be enabled", () => {
+    delete process.env.ANTOM_PRIVATE_KEY;
+    expect(antom.isEnabled()).toBe(false);
+    process.env.ANTOM_PRIVATE_KEY = privateKey;
+    expect(antom.isEnabled()).toBe(true);
+  });
+
+  it("stamps request-time with an offset, never a bare Z", () => {
+    // Antom rejects "Z" — the offset must be spelled out.
+    expect(antomRequestTime()).toMatch(/[+-]\d{2}:\d{2}$/);
+    expect(antomRequestTime()).not.toMatch(/Z$/);
+  });
+
+  it("builds the signature content exactly as Antom specifies", () => {
+    expect(antomSignatureContent("POST", "/ams/api/v1/payments/pay", "C1", "T1", "{}")).toBe(
+      "POST /ams/api/v1/payments/pay\nC1.T1.{}",
+    );
+  });
+
+  it("parses the signature out of the structured header", () => {
+    expect(
+      parseSignatureHeader("algorithm=RSA256,keyVersion=1,signature=abc%2Bdef%3D"),
+    ).toBe("abc+def=");
+    expect(parseSignatureHeader("algorithm=RSA256")).toBeNull();
+  });
+
+  it("signs the request and sends THB satang as a string", async () => {
+    const calls = stubFetch({
+      result: { resultStatus: "S", resultCode: "SUCCESS" },
+      paymentId: "20260807ABC",
+      normalUrl: "https://antom.test/checkout/abc",
+    });
+    const created = await antom.createPayment({
+      orderNumber: "SB-7001",
+      amountSatang: 50_000,
+      channel: "ALIPAY",
+      returnUrl: "https://siambox.shop/orders/SB-7001",
+    });
+
+    // gatewayRef is Antom's paymentId — refunds address that, not our order number.
+    expect(created).toEqual({
+      gatewayRef: "20260807ABC",
+      redirectUrl: "https://antom.test/checkout/abc",
+    });
+
+    const [call] = calls;
+    expect(call.url).toBe("https://antom.test/ams/api/v1/payments/pay");
+    expect(call.headers["client-id"]).toBe("CLIENT123");
+    expect(call.headers.Signature).toMatch(/^algorithm=RSA256,keyVersion=1,signature=/);
+
+    const body = call.body as Record<string, any>;
+    expect(body.paymentRequestId).toBe("SB-7001");
+    expect(body.paymentAmount).toEqual({ currency: "THB", value: "50000" });
+    expect(body.paymentMethod.paymentMethodType).toBe("ALIPAY_CN");
+
+    // The signature must verify against the exact bytes that were sent.
+    const sentSignature = decodeURIComponent(
+      call.headers.Signature.split("signature=")[1],
+    );
+    const content = antomSignatureContent(
+      "POST",
+      "/ams/api/v1/payments/pay",
+      "CLIENT123",
+      call.headers["request-time"],
+      JSON.stringify(call.body),
+    );
+    expect(
+      createVerify("RSA-SHA256")
+        .update(content, "utf8")
+        .verify({ key: publicKey, padding: constants.RSA_PKCS1_PADDING }, sentSignature, "base64"),
+    ).toBe(true);
+  });
+
+  it("maps channels and honours ANTOM_PAYMENT_METHOD for ANY", async () => {
+    let calls = stubFetch({ result: { resultStatus: "S" }, normalUrl: "https://x.test/1" });
+    await antom.createPayment({
+      orderNumber: "SB-7002",
+      amountSatang: 100,
+      channel: "WECHAT",
+      returnUrl: "https://siambox.shop/x",
+    });
+    expect((calls[0].body as any).paymentMethod.paymentMethodType).toBe("WECHATPAY_CN");
+
+    process.env.ANTOM_PAYMENT_METHOD = "TRUEMONEY";
+    calls = stubFetch({ result: { resultStatus: "S" }, normalUrl: "https://x.test/2" });
+    await antom.createPayment({
+      orderNumber: "SB-7003",
+      amountSatang: 100,
+      channel: "ANY",
+      returnUrl: "https://siambox.shop/x",
+    });
+    expect((calls[0].body as any).paymentMethod.paymentMethodType).toBe("TRUEMONEY");
+  });
+
+  it("throws when the response carries no redirect target", async () => {
+    stubFetch({ result: { resultStatus: "S" }, paymentId: "P1" });
+    await expect(
+      antom.createPayment({
+        orderNumber: "SB-7004",
+        amountSatang: 100,
+        channel: "ALIPAY",
+        returnUrl: "https://siambox.shop/x",
+      }),
+    ).rejects.toThrow(/AntomNoRedirectUrl/);
+  });
+
+  it("surfaces a failed result rather than pretending it worked", async () => {
+    stubFetch({ result: { resultStatus: "F", resultCode: "PARAM_ILLEGAL" } });
+    await expect(
+      antom.createPayment({
+        orderNumber: "SB-7005",
+        amountSatang: 100,
+        channel: "ALIPAY",
+        returnUrl: "https://siambox.shop/x",
+      }),
+    ).rejects.toThrow(/AntomRequestFailed/);
+  });
+
+  it("normalises payment status, keeping anything unknown at PENDING", async () => {
+    const ref = { gatewayRef: "P1", orderNumber: "SB-7001" };
+
+    stubFetch({ result: { resultStatus: "S" }, paymentStatus: "SUCCESS" });
+    expect((await antom.getStatus(ref)).status).toBe("PAID");
+
+    stubFetch({ result: { resultStatus: "S" }, paymentStatus: "FAIL" });
+    expect((await antom.getStatus(ref)).status).toBe("FAILED");
+
+    stubFetch({ result: { resultStatus: "S" }, paymentStatus: "PROCESSING" });
+    expect((await antom.getStatus(ref)).status).toBe("PENDING");
+
+    stubFetch({ result: { resultStatus: "S" }, paymentStatus: "SOMETHING_NEW" });
+    expect((await antom.getStatus(ref)).status).toBe("PENDING");
+  });
+
+  it("inquires by our order number, not Antom's payment id", async () => {
+    const calls = stubFetch({ result: { resultStatus: "S" }, paymentStatus: "SUCCESS" });
+    await antom.getStatus({ gatewayRef: "20260807ABC", orderNumber: "SB-7001" });
+    expect(calls[0].url).toBe("https://antom.test/ams/api/v1/payments/inquiryPayment");
+    expect((calls[0].body as any).paymentRequestId).toBe("SB-7001");
+  });
+
+  it("verifies a notification against Antom's public key", () => {
+    process.env.ANTOM_PUBLIC_KEY = publicKey;
+    const raw = JSON.stringify({
+      notifyType: "PAYMENT_RESULT",
+      paymentRequestId: "SB-7001",
+      paymentId: "20260807ABC",
+    });
+    const time = antomRequestTime();
+    const url = "https://api.siambox.shop/api/webhooks/antom";
+    const content = antomSignatureContent(
+      "POST",
+      "/api/webhooks/antom",
+      "CLIENT123",
+      time,
+      raw,
+    );
+    const signature = antomSign(content, privateKey);
+
+    const good = webhook({
+      url,
+      rawBody: Buffer.from(raw),
+      headers: {
+        signature: `algorithm=RSA256,keyVersion=1,signature=${encodeURIComponent(signature)}`,
+        "request-time": time,
+      },
+    });
+    expect(antom.verifyWebhook(good)).toBe(true);
+
+    // Body altered after signing.
+    expect(
+      antom.verifyWebhook(
+        webhook({
+          url,
+          rawBody: Buffer.from(raw.replace("SB-7001", "SB-9999")),
+          headers: good.headers,
+        }),
+      ),
+    ).toBe(false);
+
+    // Signature valid, but bound to a different timestamp.
+    expect(
+      antom.verifyWebhook(
+        webhook({
+          url,
+          rawBody: Buffer.from(raw),
+          headers: { ...good.headers, "request-time": antomRequestTime(new Date(0)) },
+        }),
+      ),
+    ).toBe(false);
+
+    expect(antom.verifyWebhook(webhook({ url, rawBody: Buffer.from(raw) }))).toBe(false);
+  });
+
+  it("skips verification only when no public key is configured", () => {
+    delete process.env.ANTOM_PUBLIC_KEY;
+    expect(antom.verifyWebhook(webhook({ body: {} }))).toBe(true);
+  });
+
+  it("reads both ids out of the notification", () => {
+    expect(
+      antom.parseWebhook(
+        webhook({ body: { paymentRequestId: "SB-7001", paymentId: "20260807ABC" } }),
+      ),
+    ).toEqual({ gatewayRef: "20260807ABC", orderNumber: "SB-7001" });
+    expect(antom.parseWebhook(webhook({ body: { notifyType: "PAYMENT_RESULT" } }))).toBeNull();
+  });
+
+  it("refunds against the payment id with a unique refund request id", async () => {
+    const calls = stubFetch({ result: { resultStatus: "S" }, refundId: "RF-1" });
+    const result = await antom.refund({
+      gatewayRef: "20260807ABC",
+      orderNumber: "SB-7001",
+      amountSatang: 25_000,
+      reason: "damaged",
+    });
+    expect(result).toEqual({ refundRef: "RF-1" });
+
+    const body = calls[0].body as Record<string, any>;
+    expect(calls[0].url).toBe("https://antom.test/ams/api/v1/payments/refund");
+    expect(body.paymentId).toBe("20260807ABC");
+    expect(body.refundAmount).toEqual({ currency: "THB", value: "25000" });
+    expect(body.refundRequestId).toMatch(/^SB-7001-R-/);
+  });
+
+  it("refuses a refund with no amount instead of guessing one", async () => {
+    // Antom has no refund-everything flag, so a missing amount must not silently
+    // become a zero or full refund.
+    await expect(
+      antom.refund({ gatewayRef: "20260807ABC", orderNumber: "SB-7001" }),
+    ).rejects.toThrow(/AntomRefundNeedsAmount/);
+  });
+});
+
+describe("siampay", () => {
+  const SECRET = "hash-secret";
+
+  beforeEach(() => {
+    process.env.SIAMPAY_MERCHANT_ID = "88888888";
+    process.env.SIAMPAY_SECURE_HASH_SECRET = SECRET;
+    process.env.SIAMPAY_API_BASE = "https://siampay.test";
+  });
+
+  it("hashes the ordered fields with the secret last", () => {
+    const expected = createHash("sha1")
+      .update("88888888|SB-8001|764|500.00|N|hash-secret")
+      .digest("hex");
+    expect(siamPaySecureHash(["88888888", "SB-8001", "764", "500.00", "N"], SECRET)).toBe(expected);
+  });
+
+  it("parses the flat key=value order-api response", () => {
+    expect(parseOrderApiResponse("resultCode=0&orderStatus=Accepted&PayRef=12345")).toEqual({
+      resultCode: "0",
+      orderStatus: "Accepted",
+      PayRef: "12345",
+    });
+  });
+
+  it("builds a signed redirect URL without calling the network at all", async () => {
+    const calls = stubFetch({});
+    const created = await siampay.createPayment({
+      orderNumber: "SB-8001",
+      amountSatang: 50_000,
+      channel: "ALIPAY",
+      returnUrl: "https://siambox.shop/orders/SB-8001",
+    });
+
+    // The hosted form *is* the payment — there is no create call to make.
+    expect(calls).toHaveLength(0);
+    expect(created.gatewayRef).toBe("SB-8001");
+
+    const url = new URL(created.redirectUrl);
+    expect(url.origin + url.pathname).toBe("https://siampay.test/b2c2/eng/payment/payForm.jsp");
+    expect(url.searchParams.get("merchantId")).toBe("88888888");
+    expect(url.searchParams.get("orderRef")).toBe("SB-8001");
+    // THB as the ISO numeric code, and a decimal amount — not satang.
+    expect(url.searchParams.get("currCode")).toBe("764");
+    expect(url.searchParams.get("amount")).toBe("500.00");
+    expect(url.searchParams.get("payType")).toBe("N");
+    expect(url.searchParams.get("payMethod")).toBe("ALIPAYHKONL");
+    expect(url.searchParams.get("secureHash")).toBe(
+      siamPaySecureHash(["88888888", "SB-8001", "764", "500.00", "N"], SECRET),
+    );
+  });
+
+  it("omits payMethod for ANY so their cashier offers everything", async () => {
+    const created = await siampay.createPayment({
+      orderNumber: "SB-8002",
+      amountSatang: 100,
+      channel: "ANY",
+      returnUrl: "https://siambox.shop/x",
+    });
+    expect(new URL(created.redirectUrl).searchParams.has("payMethod")).toBe(false);
+  });
+
+  it("acknowledges the datafeed with a literal OK so AsiaPay stops retrying", () => {
+    expect(siampay.webhookAckBody).toBe("OK");
+  });
+
+  it("verifies the datafeed hash and rejects a tampered amount", () => {
+    const fields = {
+      src: "",
+      prc: "0",
+      successcode: "0",
+      Ref: "SB-8001",
+      PayRef: "9900001",
+      Cur: "764",
+      Amt: "500.00",
+      payerAuth: "",
+    };
+    const secureHash = siamPaySecureHash(Object.values(fields), SECRET);
+
+    const good = webhook({ body: { ...fields, secureHash } });
+    expect(siampay.verifyWebhook(good)).toBe(true);
+    expect(siampay.parseWebhook(good)).toEqual({
+      orderNumber: "SB-8001",
+      gatewayRef: "SB-8001",
+    });
+
+    // Same hash, amount swapped underneath it.
+    expect(
+      siampay.verifyWebhook(webhook({ body: { ...fields, Amt: "1.00", secureHash } })),
+    ).toBe(false);
+    expect(siampay.verifyWebhook(webhook({ body: fields }))).toBe(false); // no hash at all
+  });
+
+  it("skips verification only when no hash secret is configured", () => {
+    delete process.env.SIAMPAY_SECURE_HASH_SECRET;
+    expect(siampay.verifyWebhook(webhook({ body: {} }))).toBe(true);
+  });
+
+  it("ignores a datafeed with no order reference", () => {
+    expect(siampay.parseWebhook(webhook({ body: { PayRef: "9900001" } }))).toBeNull();
+  });
+
+  it("queries order status through the portal login", async () => {
+    process.env.SIAMPAY_LOGIN_ID = "api-user";
+    process.env.SIAMPAY_PASSWORD = "api-pass";
+
+    const calls = stubFetch("resultCode=0&orderStatus=Accepted&PayRef=9900001");
+    const status = await siampay.getStatus({ gatewayRef: "SB-8001", orderNumber: "SB-8001" });
+    expect(status.status).toBe("PAID");
+    expect(calls[0].url).toBe("https://siampay.test/b2c2/eng/merchant/api/orderApi.jsp");
+
+    const sent = new URLSearchParams(String(calls[0].body));
+    expect(sent.get("actionType")).toBe("Query");
+    expect(sent.get("orderRef")).toBe("SB-8001");
+    expect(sent.get("loginId")).toBe("api-user");
+
+    stubFetch("resultCode=0&orderStatus=Rejected");
+    expect(
+      (await siampay.getStatus({ gatewayRef: "SB-8001", orderNumber: "SB-8001" })).status,
+    ).toBe("FAILED");
+
+    // Anything we cannot read stays PENDING — never mark an order paid on a guess.
+    stubFetch("resultCode=0&orderStatus=Pending");
+    expect(
+      (await siampay.getStatus({ gatewayRef: "SB-8001", orderNumber: "SB-8001" })).status,
+    ).toBe("PENDING");
+  });
+
+  it("reports the order-api error instead of reading a failure as pending", async () => {
+    process.env.SIAMPAY_LOGIN_ID = "api-user";
+    process.env.SIAMPAY_PASSWORD = "api-pass";
+    stubFetch("resultCode=-1&errMsg=Invalid+login");
+    await expect(
+      siampay.getStatus({ gatewayRef: "SB-8001", orderNumber: "SB-8001" }),
+    ).rejects.toThrow(/SiamPayOrderApiError/);
+  });
+
+  it("refuses status and refund calls until the portal login is configured", async () => {
+    // Redirect checkout needs only the merchant id + hash secret, so isEnabled() is
+    // true — but Query/Refund go through a separate portal account.
+    expect(siampay.isEnabled()).toBe(true);
+    await expect(
+      siampay.getStatus({ gatewayRef: "SB-8001", orderNumber: "SB-8001" }),
+    ).rejects.toThrow(/SiamPayPortalLoginNotConfigured/);
+    await expect(
+      siampay.refund({ gatewayRef: "SB-8001", orderNumber: "SB-8001", amountSatang: 100 }),
+    ).rejects.toThrow(/SiamPayPortalLoginNotConfigured/);
+  });
+
+  it("resolves the PayRef before refunding against it", async () => {
+    process.env.SIAMPAY_LOGIN_ID = "api-user";
+    process.env.SIAMPAY_PASSWORD = "api-pass";
+
+    const calls = stubFetch(
+      "resultCode=0&orderStatus=Accepted&PayRef=9900001",
+      "resultCode=0&PayRef=9900002",
+    );
+    const result = await siampay.refund({
+      gatewayRef: "SB-8001",
+      orderNumber: "SB-8001",
+      amountSatang: 25_000,
+      reason: "damaged",
+    });
+    expect(result).toEqual({ refundRef: "9900002" });
+
+    const refundCall = new URLSearchParams(String(calls[1].body));
+    expect(refundCall.get("actionType")).toBe("Refund");
+    // Refunds address AsiaPay's PayRef, not our order number.
+    expect(refundCall.get("payRef")).toBe("9900001");
+    expect(refundCall.get("amount")).toBe("250.00");
+  });
+
+  it("refuses a refund with no amount", async () => {
+    process.env.SIAMPAY_LOGIN_ID = "api-user";
+    process.env.SIAMPAY_PASSWORD = "api-pass";
+    stubFetch("resultCode=0&PayRef=9900001");
+    await expect(
+      siampay.refund({ gatewayRef: "SB-8001", orderNumber: "SB-8001" }),
+    ).rejects.toThrow(/SiamPayRefundNeedsAmount/);
   });
 });

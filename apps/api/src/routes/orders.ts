@@ -293,7 +293,10 @@ ordersRouter.post("/", async (req, res, next) => {
             city: input.shippingAddress.city,
             district: input.shippingAddress.district,
             street: input.shippingAddress.street,
-            postalCode: input.shippingAddress.postalCode,
+            // Hong Kong has no postal codes. The column is NOT NULL, so an absent
+            // code is stored as empty rather than widening the schema — address
+            // labels and the admin views already render a blank the same either way.
+            postalCode: input.shippingAddress.postalCode ?? "",
           },
         },
         items: { create: lineItems },

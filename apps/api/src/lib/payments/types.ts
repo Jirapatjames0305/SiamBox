@@ -1,15 +1,20 @@
 // Provider-agnostic payment-gateway contract.
 //
 // SiamBox sells from Thailand to customers in mainland China, so the gateway must do
-// *cross-border online* Alipay / WeChat Pay. Three Thai providers are implemented:
-// Ksher, Opn Payments (ex-Omise) and 2C2P — see docs/payment-gateway-china.md.
+// *cross-border online* Alipay / WeChat Pay. Five providers are implemented: the three
+// Thai PSPs — Ksher, Opn Payments (ex-Omise) and 2C2P — plus Antom (Ant International,
+// first-party Alipay/WeChat) and SiamPay (AsiaPay Thailand), the documented fallback.
+// See docs/payment-gateway-china.md.
 //
-// All three settle in THB, so every amount crossing this boundary is THB **satang**
+// All of them settle in THB, so every amount crossing this boundary is THB **satang**
 // (integer, smallest unit). Providers that want decimal THB convert internally.
 
 export const THB = "THB";
 
-export type ProviderId = "ksher" | "opn" | "2c2p";
+/** ISO 4217 numeric code for THB — AsiaPay keys off the number, not the letters. */
+export const THB_NUMERIC = "764";
+
+export type ProviderId = "ksher" | "opn" | "2c2p" | "antom" | "siampay";
 
 /** Logical channel the customer picked at checkout — each provider maps it to its own code. */
 export type PaymentChannel = "ALIPAY" | "WECHAT" | "PROMPTPAY" | "ANY";
@@ -76,6 +81,12 @@ export type WebhookTarget = {
 export interface PaymentProvider {
   readonly id: ProviderId;
   readonly label: string;
+  /**
+   * Exact body to acknowledge a webhook with, when the provider demands a specific one.
+   * AsiaPay retries its datafeed until it reads back a literal "OK"; everyone else is
+   * happy with the route's default JSON, so they leave this unset.
+   */
+  readonly webhookAckBody?: string;
   /** True when the provider's credentials are configured. */
   isEnabled(): boolean;
   createPayment(input: CreatePaymentInput): Promise<CreatedPayment>;

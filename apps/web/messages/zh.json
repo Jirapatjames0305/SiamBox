@@ -300,7 +300,11 @@
     "viewMyOrder": "查看我的订单",
     "gatewayPick": "选择支付服务商",
     "gatewayUnavailable": "暂不可用",
-    "gatewayNoneAvailable": "暂无可用的支付服务商，请选择其他方式"
+    "gatewayNoneAvailable": "暂无可用的支付服务商，请选择其他方式",
+    "regionHK": "地區（香港島／九龍／新界）",
+    "districtHK": "分區",
+    "streetHK": "街道、大廈、樓層、單位",
+    "postalHKNote": "香港不設郵政編碼"
   },
   "Order": {
     "orderNumber": "订单",

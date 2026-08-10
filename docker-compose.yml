@@ -67,7 +67,8 @@ services:
       CNY_TO_THB_RATE: ${CNY_TO_THB_RATE:-4.9}
 
       # Payment gateway — empty means "no gateway": checkout still works through
-      # the manual bank-transfer / QR + slip flow. Set to ksher | opn | 2c2p and
+      # the manual bank-transfer / QR + slip flow. Set to ksher | opn | 2c2p |
+      # antom | siampay and
       # fill the matching keys in .env once you have sandbox credentials.
       # See docs/payment-gateway-china.md.
       PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-}
@@ -83,6 +84,18 @@ services:
       TWOCTWOP_SECRET_KEY: ${TWOCTWOP_SECRET_KEY:-}
       TWOCTWOP_API_BASE: ${TWOCTWOP_API_BASE:-https://sandbox-pgw.2c2p.com}
       TWOCTWOP_WEBHOOK_URL: ${TWOCTWOP_WEBHOOK_URL:-}
+      ANTOM_CLIENT_ID: ${ANTOM_CLIENT_ID:-}
+      ANTOM_PRIVATE_KEY: ${ANTOM_PRIVATE_KEY:-}
+      ANTOM_PUBLIC_KEY: ${ANTOM_PUBLIC_KEY:-}
+      ANTOM_API_BASE: ${ANTOM_API_BASE:-https://open-sea-global.alipay.com}
+      ANTOM_NOTIFY_URL: ${ANTOM_NOTIFY_URL:-}
+      ANTOM_PAYMENT_METHOD: ${ANTOM_PAYMENT_METHOD:-}
+      SIAMPAY_MERCHANT_ID: ${SIAMPAY_MERCHANT_ID:-}
+      SIAMPAY_SECURE_HASH_SECRET: ${SIAMPAY_SECURE_HASH_SECRET:-}
+      SIAMPAY_API_BASE: ${SIAMPAY_API_BASE:-https://www.siampay.com}
+      SIAMPAY_LOGIN_ID: ${SIAMPAY_LOGIN_ID:-}
+      SIAMPAY_PASSWORD: ${SIAMPAY_PASSWORD:-}
+      SIAMPAY_LANG: ${SIAMPAY_LANG:-E}
 
       # Image uploads need Supabase Storage — unset, uploads return an error but
       # nothing else breaks. Put real values in .env to enable them.

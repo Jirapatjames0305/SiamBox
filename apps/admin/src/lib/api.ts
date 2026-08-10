@@ -151,6 +151,8 @@ export type ProductInput = {
   tags?: string[];
   images?: string[];
   active?: boolean;
+  /** Markets this product may be listed in: "CN" (mainland) / "HK". */
+  markets: string[];
 };
 
 export async function createProduct(input: ProductInput): Promise<Product> {

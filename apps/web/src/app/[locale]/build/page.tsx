@@ -1,4 +1,5 @@
 import { setRequestLocale } from "next-intl/server";
+import { getMarketOrDefault } from "@/lib/market-server";
 import { getBuildConfig, listProducts } from "@/lib/api";
 import { BuildClient } from "./BuildClient";
 
@@ -13,7 +14,8 @@ export default async function BuildPage({
   const { add } = await searchParams;
   setRequestLocale(locale);
 
-  const [products, config] = await Promise.all([listProducts(), getBuildConfig()]);
+  const market = await getMarketOrDefault();
+  const [products, config] = await Promise.all([listProducts(market), getBuildConfig()]);
 
   const initialProductIds = add ? add.split(",").filter(Boolean) : [];
 

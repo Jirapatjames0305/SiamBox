@@ -7,6 +7,8 @@ import { PresencePinger } from "@/components/PresencePinger";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CurrencyProvider } from "@/components/CurrencyProvider";
+import { MarketGate } from "@/components/MarketGate";
+import { getMarket } from "@/lib/market-server";
 import { Toaster } from "@/components/Toaster";
 import { getBuildConfig } from "@/lib/api";
 import { routing } from "@/i18n/routing";
@@ -49,15 +51,19 @@ export default async function LocaleLayout({
   }
   setRequestLocale(locale);
   const messages = await getMessages();
+  // null when GeoIP could not place the visitor — MarketGate then asks them.
+  const market = await getMarket();
 
   let logoUrl = "";
   let contactLineUrl = "";
   let contactWechatId = "";
   let contactWechatQrUrl = "";
   let currencyRates: Record<string, number> | undefined;
+  let availableMarkets: string[] = [];
   try {
     const cfg = await getBuildConfig();
     currencyRates = cfg.currencyRates;
+    availableMarkets = cfg.availableMarkets ?? [];
     logoUrl = cfg.logoUrl;
     contactLineUrl = cfg.contactLineUrl;
     contactWechatId = cfg.contactWechatId;
@@ -69,7 +75,14 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <CurrencyProvider rates={currencyRates}>
-      <Navbar logoUrl={logoUrl} />
+      {/* Only offer a choice when there is more than one stocked market — otherwise the
+          picker would send someone to an empty shop. */}
+      <Navbar
+        logoUrl={logoUrl}
+        market={market ?? "CN"}
+        showMarketSwitcher={availableMarkets.length > 1}
+      />
+      {availableMarkets.length > 1 && <MarketGate resolved={market} />}
       {children}
       <Footer logoUrl={logoUrl} wechatId={contactWechatId} />
       <ContactWidget lineUrl={contactLineUrl} wechatId={contactWechatId} wechatQrUrl={contactWechatQrUrl} />

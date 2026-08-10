@@ -5,6 +5,7 @@ import sharp from "sharp";
 import { randomBytes } from "node:crypto";
 import { prisma, OrderStatus, PaymentStatus, ShippingCarrier, CustomerStatus } from "@siambox/database";
 import { adminAuth } from "../middleware/admin-auth.js";
+import { MARKETS } from "../lib/markets.js";
 import {
   PROVIDER_IDS,
   PROVIDER_LABELS,
@@ -328,6 +329,9 @@ const productSchema = z.object({
   category: z.string().max(50).optional().nullable(),
   tags: z.array(z.string()).default([]),
   images: z.array(z.string().url()).default([]),
+  // Markets the product may be listed in. Defaults to mainland China, which is what
+  // every product predating the HK market was sold into.
+  markets: z.array(z.enum(MARKETS)).default(["CN"]),
   active: z.boolean().default(true),
 });
 

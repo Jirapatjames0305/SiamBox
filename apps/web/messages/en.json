@@ -300,7 +300,11 @@
     "viewMyOrder": "View my order",
     "gatewayPick": "Choose a payment provider",
     "gatewayUnavailable": "Not available yet",
-    "gatewayNoneAvailable": "No provider is available — please pick another method"
+    "gatewayNoneAvailable": "No provider is available — please pick another method",
+    "regionHK": "Region (Hong Kong Island / Kowloon / New Territories)",
+    "districtHK": "District",
+    "streetHK": "Street, building, floor, flat",
+    "postalHKNote": "Hong Kong has no postal codes"
   },
   "Order": {
     "orderNumber": "Order",

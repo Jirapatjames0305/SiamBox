@@ -44,15 +44,14 @@ const globalLimiter = rateLimit({
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
 app.use(globalLimiter);
-// Capture the raw body so the Beam webhook can verify its HMAC signature.
-app.use(
-  express.json({
-    limit: "1mb",
-    verify: (req, _res, buf) => {
-      (req as unknown as { rawBody?: Buffer }).rawBody = buf;
-    },
-  }),
-);
+// Capture the raw body so payment webhooks can verify their signatures over the exact
+// bytes received — Antom signs the raw JSON, and re-serialising it would break the hash.
+const captureRawBody = (req: unknown, _res: unknown, buf: Buffer) => {
+  (req as { rawBody?: Buffer }).rawBody = buf;
+};
+app.use(express.json({ limit: "1mb", verify: captureRawBody }));
+// AsiaPay/SiamPay posts its datafeed as a form, not JSON.
+app.use(express.urlencoded({ extended: false, limit: "1mb", verify: captureRawBody }));
 app.use(morgan("dev"));
 
 app.get("/health", (_req, res) => {

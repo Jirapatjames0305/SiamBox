@@ -109,6 +109,10 @@ model Product {
   category      String?
   tags          String[]
   images        String[]
+  // Markets this product may be shown in: "CN" (mainland) / "HK".
+  // A product can belong to several. Empty behaves as "not sellable anywhere" —
+  // the migration backfills every existing row to CN so nothing disappears.
+  markets       String[] @default(["CN"])
   active        Boolean  @default(true)
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")

@@ -1,23 +1,30 @@
 // Payment-gateway registry.
 //
-// One provider is active at a time, chosen with PAYMENT_PROVIDER (ksher | opn | 2c2p).
-// Existing Payment rows keep the provider they were created with in Payment.gatewayProvider,
-// so switching providers never breaks status sync or refunds for orders already in flight.
+// One provider is active at a time, chosen with PAYMENT_PROVIDER
+// (ksher | opn | 2c2p | antom | siampay). Existing Payment rows keep the provider they
+// were created with in Payment.gatewayProvider, so switching providers never breaks
+// status sync or refunds for orders already in flight.
 
+import { antom } from "./antom.js";
 import { ksher } from "./ksher.js";
 import { opn } from "./opn.js";
+import { siampay } from "./siampay.js";
 import { twoctwop } from "./twoctwop.js";
 import { gatewayError, type PaymentProvider, type ProviderId } from "./types.js";
 
 export * from "./types.js";
+export { antom } from "./antom.js";
 export { ksher } from "./ksher.js";
 export { opn } from "./opn.js";
+export { siampay } from "./siampay.js";
 export { twoctwop } from "./twoctwop.js";
 
 const PROVIDERS: Record<ProviderId, PaymentProvider> = {
   ksher,
   opn,
   "2c2p": twoctwop,
+  antom,
+  siampay,
 };
 
 export const PROVIDER_IDS = Object.keys(PROVIDERS) as ProviderId[];
@@ -27,6 +34,8 @@ export const PROVIDER_LABELS: Record<ProviderId, string> = {
   ksher: ksher.label,
   opn: opn.label,
   "2c2p": twoctwop.label,
+  antom: antom.label,
+  siampay: siampay.label,
 };
 
 /** Providers whose credentials are present — i.e. that could actually take a payment. */

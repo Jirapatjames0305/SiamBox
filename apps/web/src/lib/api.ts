@@ -29,6 +29,7 @@ export type Product = {
   category: string | null;
   tags: string[];
   images: string[];
+  markets: string[];
   active: boolean;
 };
 
@@ -144,15 +145,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-export async function listProducts(): Promise<Product[]> {
-  const json = await request<{ data: Product[] }>("/api/products", {
+/** `market` narrows the catalogue to what may be listed there (CN | HK). */
+export async function listProducts(market?: string): Promise<Product[]> {
+  const qs = market ? `?market=${encodeURIComponent(market)}` : "";
+  const json = await request<{ data: Product[] }>(`/api/products${qs}`, {
     next: { revalidate: 30 },
   });
   return json.data;
 }
 
-export async function listBestSellers(): Promise<Product[]> {
-  const json = await request<{ data: Product[] }>("/api/products/best-sellers", {
+export async function listBestSellers(market?: string): Promise<Product[]> {
+  const qs = market ? `?market=${encodeURIComponent(market)}` : "";
+  const json = await request<{ data: Product[] }>(`/api/products/best-sellers${qs}`, {
     next: { revalidate: 30 },
   });
   return json.data;
@@ -193,6 +197,8 @@ export type BuildConfig = {
   shippingExpressCents: number;
   paymentMethods: Record<PaymentMethodId, PaymentMethodVisibility>;
   paymentProviders: PaymentProviderOption[];
+  /** Markets with at least one active product. Fewer than two hides the picker. */
+  availableMarkets: string[];
   /** Display-only conversion rates out of CNY, keyed by currency code. */
   currencyRates: Record<string, number>;
   bankQrUrl: string;
@@ -263,7 +269,8 @@ export type CheckoutPayload = {
     city: string;
     district?: string;
     street: string;
-    postalCode: string;
+    /** Optional — Hong Kong has no postal code system. */
+    postalCode?: string;
   };
   customerNote?: string;
   paymentMethod?: "MANUAL" | "ALIPAY" | "WECHAT_PAY" | "TEST";

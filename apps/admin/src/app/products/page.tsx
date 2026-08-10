@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+
+const MARKET_OPTIONS = [
+  { value: "CN", label: "จีนแผ่นดินใหญ่" },
+  { value: "HK", label: "ฮ่องกง" },
+] as const;
 import { ApiError, createProduct, fetchProducts, updateProduct, uploadImage, type ProductInput } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import type { Product } from "@/lib/types";
@@ -208,6 +213,7 @@ function ProductForm({
     category: product?.category ?? "",
     tags: (product?.tags ?? []).join(", "),
     images: (product?.images ?? []) as string[],
+    markets: product?.markets ?? ["CN"],
     active: product?.active ?? true,
   });
   const [priceText, setPriceText] = useState((product ? product.priceCents / 100 : 0).toFixed(2));
@@ -243,6 +249,7 @@ function ProductForm({
       category: form.category || undefined,
       tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
       images: form.images,
+      markets: form.markets,
       active: form.active,
     };
     try {
@@ -353,6 +360,36 @@ function ProductForm({
             onChange={(next) => set("images", next as never)}
           />
         </div>
+        {/* Mainland China and Hong Kong accept different goods (docs/market-hongkong.md),
+            so each product carries the set of markets it may be listed in. */}
+        <div className="mt-4">
+          <span className="text-sm text-neutral-700">ตลาดที่ขายได้</span>
+          <div className="mt-1.5 flex gap-4">
+            {MARKET_OPTIONS.map((m) => (
+              <label key={m.value} className="inline-flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.markets.includes(m.value)}
+                  onChange={(e) =>
+                    set(
+                      "markets",
+                      (e.target.checked
+                        ? [...form.markets, m.value]
+                        : form.markets.filter((x) => x !== m.value)) as never,
+                    )
+                  }
+                />
+                <span>{m.label}</span>
+              </label>
+            ))}
+          </div>
+          {form.markets.length === 0 && (
+            <p className="mt-1 text-xs text-amber-700">
+              ไม่ได้เลือกตลาดใดเลย — สินค้าจะไม่แสดงให้ลูกค้าเห็นที่ไหน
+            </p>
+          )}
+        </div>
+
         <label className="mt-3 inline-flex items-center gap-2 text-sm">
           <input
             type="checkbox"

@@ -1,14 +1,21 @@
 import { z } from "zod";
 
+// Hong Kong has no postal codes and no provinces — an address there is
+// region (Hong Kong Island / Kowloon / New Territories) → district → street/building.
+// Requiring province and postalCode made checkout impossible for HK customers, so both
+// are optional at the schema level and the storefront enforces what each market needs.
 export const shippingAddressSchema = z.object({
   recipient: z.string().min(1).max(100),
   phone: z.string().min(5).max(30),
   wechatId: z.string().max(100).optional(),
+  /** Mainland: 省. Hong Kong: region — required there too, just labelled differently. */
   province: z.string().min(1).max(50),
+  /** Mainland: 市. Hong Kong: district. */
   city: z.string().min(1).max(50),
   district: z.string().max(50).optional(),
   street: z.string().min(1).max(200),
-  postalCode: z.string().min(3).max(20),
+  /** Mainland requires it; Hong Kong has no postcode system at all. */
+  postalCode: z.string().max(20).optional(),
 });
 export type ShippingAddressInput = z.infer<typeof shippingAddressSchema>;
 

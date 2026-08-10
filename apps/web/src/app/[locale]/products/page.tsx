@@ -1,4 +1,5 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getMarketOrDefault } from "@/lib/market-server";
 import { Link } from "@/i18n/routing";
 import type { Locale } from "@/i18n/routing";
 import { getBuildConfig, listProducts } from "@/lib/api";
@@ -40,7 +41,7 @@ export default async function ProductsPage({
   let limitEnabled = true;
   let error: string | null = null;
   try {
-    products = await listProducts();
+    products = await listProducts(await getMarketOrDefault());
   } catch (err) {
     error = err instanceof Error ? err.message : "Failed";
   }

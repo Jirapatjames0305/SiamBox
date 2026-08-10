@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { CurrencySwitcher } from "@/components/CurrencyProvider";
+import { MarketSwitcher } from "@/components/MarketGate";
+import type { Market } from "@/lib/market";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
 import { routing, type Locale } from "@/i18n/routing";
@@ -17,7 +19,15 @@ const NAV = [
   { href: "/track", key: "track" },
 ] as const;
 
-export function Navbar({ logoUrl = "" }: { logoUrl?: string }) {
+export function Navbar({
+  logoUrl = "",
+  market = "CN",
+  showMarketSwitcher = false,
+}: {
+  logoUrl?: string;
+  market?: Market;
+  showMarketSwitcher?: boolean;
+}) {
   const t = useTranslations("Nav");
   const locale = useLocale() as Locale;
   const pathname = usePathname();
@@ -56,6 +66,7 @@ export function Navbar({ logoUrl = "" }: { logoUrl?: string }) {
             </button>
           </div>
           <div className="flex items-center gap-4">
+            {showMarketSwitcher && <MarketSwitcher current={market} />}
             <CurrencySwitcher className="rounded border border-gold-700/40 px-0.5" />
             <div className="inline-flex overflow-hidden rounded border border-gold-700/40">
               {routing.locales.map((l) => (

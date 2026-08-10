@@ -35,6 +35,15 @@ const pingSchema = z.object({
 
 export const presenceRouter = Router();
 
+// Country for an IP, used by the web middleware to pick which catalogue to show.
+// `ip` may be passed explicitly because the caller is the web container relaying a
+// visitor's address; without it we fall back to the caller's own address.
+// Accuracy is country-level and a VPN defeats it — the storefront lets people switch.
+presenceRouter.get("/geo", (req, res) => {
+  const ip = typeof req.query.ip === "string" && req.query.ip ? req.query.ip : (req.ip ?? "");
+  res.json({ data: { ip, country: geoip.lookup(ip)?.country ?? null } });
+});
+
 presenceRouter.post("/ping", (req, res) => {
   const body = pingSchema.parse(req.body);
   const now = Date.now();

@@ -6,7 +6,7 @@
 > **สถานะ (ก.ค. 2026):** Beam Checkout ถูกถอดออกจากโปรเจคแล้ว — เลือกใช้ตอนแรกเพราะสมัคร
 > ในนามบุคคลธรรมดาได้ ตอนนี้มีนิติบุคคลแล้วจึงไม่จำเป็น
 >
-> โค้ดตอนนี้รองรับ **เจ้าไทย 3 เจ้า** สลับด้วย env `PAYMENT_PROVIDER` เดียว — ดูหัวข้อ
+> โค้ดตอนนี้รองรับ **5 เจ้า** (ไทย 3 + Antom + SiamPay) สลับด้วย env `PAYMENT_PROVIDER` เดียว — ดูหัวข้อ
 > [สถานะการ implement](#สถานะการ-implement-ในโปรเจค) ท้ายไฟล์
 
 ---
@@ -61,7 +61,7 @@ PSP ไทยหลายเจ้าที่โฆษณาว่า "รั�
 
 รองรับ Alipay + WeChat Pay + UnionPay + LINE Pay + ShopeePay สำหรับ merchant ไทย
 แต่ไม่มีข้อมูล fee / requirement / cross-border เปิดเผยเลย ต้องโทรถาม (02-642-3272)
-เก็บไว้เป็นตัวสำรองถ้าสามเจ้าบนไม่ผ่าน — **ยังไม่ได้ implement ในโปรเจค**
+เก็บไว้เป็นตัวสำรองถ้าสามเจ้าบนไม่ผ่าน — **implement แล้ว** (ส.ค. 2026) ดูหัวข้อสถานะท้ายไฟล์
 
 ### เทียบเจ้าไทย
 
@@ -92,7 +92,7 @@ cross-border จีนโดยตรง) แล้วคุย **Opn** คู�
 
 **Antom เป็นตัวเลือกที่ดีที่สุดในภาพรวม** แต่ต้องเซ็นกับนิติบุคคลต่างประเทศและ onboarding
 หนักกว่า — ถ้าเจ้าไทยทั้งสามให้ราคาหรือเงื่อนไขที่ไม่ไหว ค่อยกลับมาดูตัวนี้
-(การเพิ่ม Antom ทำได้ด้วยการเขียนไฟล์ใหม่ 1 ไฟล์ใน `apps/api/src/lib/payments/`)
+**implement แล้ว** (ส.ค. 2026) เหลือแค่ขอ credentials ก็ใช้ได้ทันที
 
 ---
 
@@ -146,7 +146,7 @@ cross-border จีนโดยตรง) แล้วคุย **Opn** คู�
 
 ## สถานะการ implement ในโปรเจค
 
-ทั้งสามเจ้าเขียนเสร็จแล้วหลัง `PaymentProvider` interface เดียวกัน — สลับด้วย env ตัวเดียว
+ทั้งห้าเจ้าเขียนเสร็จแล้วหลัง `PaymentProvider` interface เดียวกัน — สลับด้วย env ตัวเดียว
 ไม่ต้องแก้ route หรือ frontend รายละเอียดเชิงเทคนิคอยู่ใน `docs/siambox.md` → Phase 2A
 
 ```text
@@ -154,17 +154,42 @@ apps/api/src/lib/payments/types.ts       interface + cnyCentsToSatang()
 apps/api/src/lib/payments/ksher.ts       HMAC-SHA256 signature
 apps/api/src/lib/payments/opn.ts         HTTP Basic (secret key)
 apps/api/src/lib/payments/twoctwop.ts    JWT HS256 envelope
+apps/api/src/lib/payments/antom.ts       RSA-SHA256 ลายเซ็นสองทาง (คีย์คู่)
+apps/api/src/lib/payments/siampay.ts     SHA-1 secureHash + redirect form (AsiaPay)
 apps/api/src/lib/payments/index.ts       registry — activeProvider() / getProvider()
 ```
 
-**เลือกเจ้า:** `PAYMENT_PROVIDER=ksher | opn | 2c2p` ใน `.env` (ดูคีย์ทั้งหมดใน `apps/api/.env.example`)
+**เลือกเจ้า:** `PAYMENT_PROVIDER=ksher | opn | 2c2p | antom | siampay` ใน `.env`
+(ดูคีย์ทั้งหมดใน `deploy/.env.example`)
 
-**Webhook:** ทั้งสามเส้น mount ไว้พร้อมกัน — `/api/webhooks/ksher`, `/api/webhooks/opn`,
-`/api/webhooks/2c2p` → เปลี่ยนเจ้าไม่ต้อง redeploy แค่ไปแก้ URL ใน dashboard ของ provider
+**Webhook:** ทั้งห้าเส้น mount ไว้พร้อมกัน — `/api/webhooks/ksher`, `/api/webhooks/opn`,
+`/api/webhooks/2c2p`, `/api/webhooks/antom`, `/api/webhooks/siampay` → เปลี่ยนเจ้าไม่ต้อง
+redeploy แค่ไปแก้ URL ใน dashboard ของ provider
 
 - **Ksher** เซ็นลายเซ็นทับ **full callback URL** → ต้องตั้ง `KSHER_WEBHOOK_URL` ให้ตรงกับที่ตั้งใน dashboard เป๊ะ ๆ ไม่งั้น verify ไม่ผ่าน
 - **Opn ไม่เซ็น webhook เลย** → ต่อ `?key=<OPN_WEBHOOK_SECRET>` ท้าย URL ใน dashboard
 - **2C2P** ใช้ JWT ตัวเดียวกับ API → verify ด้วย secret key ได้เลย
+- **Antom** เซ็น RSA-SHA256 ทับ `POST <path>\n<clientId>.<time>.<body>` → verify ด้วย `ANTOM_PUBLIC_KEY` (คีย์ของ Antom ไม่ใช่ของเรา)
+- **SiamPay** ต้องตอบกลับ datafeed ด้วยข้อความ `OK` เป๊ะ ๆ ไม่งั้น AsiaPay ยิงซ้ำไม่หยุด — route จัดการให้แล้วผ่าน `webhookAckBody`
+
+### Antom — จุดที่ต่างจากเจ้าอื่น
+
+- **auth เป็นคีย์คู่ RSA ไม่ใช่ secret ร่วม** → สร้าง keypair เอง อัปโหลด public key ขึ้น portal ของ Antom แล้วเก็บ private key ไว้ที่ `ANTOM_PRIVATE_KEY` ส่วน `ANTOM_PUBLIC_KEY` คือคีย์ **ของ Antom** เอาไว้ verify notification ขาเข้า
+- `paymentRequestId` = เลขออเดอร์ของเราตรง ๆ ทำหน้าที่เป็น idempotency key ในตัว แต่ **refund ต้องใช้ `paymentId` ของ Antom** → เราเก็บ `paymentId` ลง `gatewayRef`
+- **refund ไม่มีธง "คืนทั้งหมด"** ต้องระบุจำนวนเสมอ — โค้ดโยน error แทนที่จะเดา
+- Antom รับ **CNY ตรงได้** (จุดขายหลักตามตารางด้านบน) แต่โค้ดยังส่ง THB satang เหมือนเจ้าอื่น เพราะ contract ใน `types.ts` ผูกกับ THB ทั้งไฟล์ — **การเปลี่ยนไปคิดเป็น CNY ตรงยังไม่ได้ทำ** ต้องแก้ contract ก่อน (จะได้ตัดปัญหาเรทลอยตามหัวข้อท้ายไฟล์ไปเลย)
+
+### SiamPay — จุดที่ต่างจากเจ้าอื่น
+
+> ⚠️ **SiamPay ไม่มีเอกสาร integrate เปิดสาธารณะ** โค้ดเขียนตามสเปก PayDollar/PesoPay ของ
+> AsiaPay ซึ่ง SiamPay เป็นแบรนด์ไทยของเจ้านั้น — **ทั้ง endpoint, สูตร hash และชื่อฟิลด์ใน
+> datafeed ต้องเทียบกับคู่มือที่ AsiaPay ส่งให้ตอน onboard ก่อน go-live**
+
+- **ไม่มี API สร้างรายการจ่าย** — `createPayment` แค่ประกอบ URL ที่เซ็น `secureHash` (SHA-1) แล้ว redirect ไปหน้า hosted form ไม่ยิงเน็ตเลยสักคอล
+- คิดเงินเป็น **ทศนิยมบาท** (`500.00`) และใช้ **ISO numeric `764`** แทนตัวอักษร THB
+- **status sync กับ refund ต้องใช้บัญชี portal แยก** (`SIAMPAY_LOGIN_ID` / `SIAMPAY_PASSWORD`) → ถ้าไม่ตั้ง checkout ยังทำงานแต่ยืนยันการจ่ายอัตโนมัติไม่ได้
+- refund ต้องใช้ `PayRef` ของ AsiaPay ไม่ใช่เลขออเดอร์เรา → โค้ด query หาก่อนแล้วค่อย refund
+- ต้อง**เปิด datafeed ใน portal เอง** (default ปิด) ไม่งั้นไม่มี webhook ส่งมาเลย
 
 **Payment เก่าไม่พัง:** `Payment.gatewayProvider` เก็บเจ้าที่สร้าง payment นั้นไว้ การ sync
 และ refund ใช้เจ้าตามที่บันทึกไว้ ไม่ใช่เจ้าที่ active อยู่ตอนนี้ → สลับเจ้ากลางคันได้
@@ -179,6 +204,8 @@ apps/api/src/lib/payments/index.ts       registry — activeProvider() / getProv
 | **Ksher** | base URL (`KSHER_API_BASE`), ชื่อ field ของ URL ที่ตอบกลับตอน create order (โค้ดอ่านหลายชื่อเผื่อไว้), channel codes, และ **WeChat ที่ต้องเปิดในแอป WeChat → ต้องทำ QR fallback** |
 | **Opn** | `Alipay` ของ merchant ไทยเป็น cross-border online หรือ in-store barcode |
 | **2C2P** | channel code ของ WeChat Pay, และ Payment Action API (`/payment/4.3/action`) สำหรับ refund |
+| **Antom** | `ANTOM_API_BASE` ของ region ที่เซ็นสัญญา, `keyVersion` ที่ portal ออกให้ (โค้ด hardcode `1`), และ `paymentMethodType` ที่เปิดใช้จริง |
+| **SiamPay** | **ทุกอย่าง** — ไม่มี public docs เลย ต้องเทียบกับคู่มือ AsiaPay ทั้ง endpoint / สูตร hash / ชื่อฟิลด์ datafeed |
 | ทุกเจ้า | รับผู้จ่ายที่อยู่ในจีนแผ่นดินใหญ่จริงหรือไม่ (ไม่ใช่แค่นักท่องเที่ยวจีนในไทย) |
 
 ### เรื่องเรทเงิน

@@ -123,6 +123,8 @@ export type Product = {
   category: string | null;
   tags: string[];
   images: string[];
+  /** Markets this product may be listed in: "CN" (mainland) / "HK". */
+  markets: string[];
   active: boolean;
   createdAt: string;
   updatedAt: string;
